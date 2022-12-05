@@ -15,12 +15,16 @@ Some descriptions here
 [![matplotlib-3.5.2](https://img.shields.io/badge/matplotlib-3.5.2-silver)](https://github.com/matplotlib/matplotlib)
 [![sklearn-1.0.2](https://img.shields.io/badge/sklearn-1.0.2-gold)](https://github.com/scikit-learn/scikit-learn)
 
-Some packages will be required
+<pre>
+git clone https://github.com/JackSSK/FateZ.git
+cd FateZ
+pip install .
+</pre>
 
 
 # Tutorial
 
-The documentation page is [here](https://JackSSK.github.io/Ageas/html/index.html).
+The documentation page is [here](https://jackssk.github.io/FateZ/html/index.html).
 
 # Contributors
 

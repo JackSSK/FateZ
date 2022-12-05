@@ -14,7 +14,11 @@ Some descriptions here
 Install
 =================================
 
-Some install stuffs here
+FateZ can be cloned from `GitHub <https://github.com/JackSSK/FateZ/>`_ ::
+
+  git clone https://github.com/JackSSK/FateZ.git
+  cd FateZ
+  pip install .
 
 
 Test

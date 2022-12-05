@@ -11,8 +11,8 @@ setuptools.setup(
     description = "Ummmmmm, later!",
     long_description = long_description,
     long_description_content_type = "text/markdown",
-    # url = "https://github.com/JackSSK/Ageas",
-    # project_urls = {"Bug Tracker": "https://github.com/JackSSK/Ageas/issues",},
+    url = "https://github.com/JackSSK/FateZ",
+    project_urls = {"Bug Tracker": "https://github.com/JackSSK/FateZ/issues",},
     packages = setuptools.find_packages(),
     # package_data = {'': [
     #     'data/config/*',

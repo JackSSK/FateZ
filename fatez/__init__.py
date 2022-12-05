@@ -20,7 +20,7 @@
 # along with this program. If not, see <http://www.gnu.org/licenses/>.
 
 """
-Fate_Zero(Temp_name)
+FateZ (Temporary)
 ========
 Summary
 -------
