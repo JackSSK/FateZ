@@ -22,8 +22,6 @@ class Launch:
 		**kwargs,			# leave the bracket to a new line
 		):
 		"""
-		Pipeline to launch FateZ.
-
 		:param path: <str Default = None>
 			Comments will be here, like "Path to datasets".
 
