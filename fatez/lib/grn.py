@@ -253,15 +253,3 @@ class GRN(GRN_Basic):
 		data = JSON.decode(path = load_path)
 		print('Not finished yet')
 		return
-
-# Main function for tests
-if __name__ == '__main__':
-	gene_a = Gene(id = 'a', symbol = 'AAA')
-	gene_b = Gene(id = 'b', symbol = 'BBB')
-	grp_ab = GRP(reg_source = gene_a, reg_target = gene_b)
-	grn = GRN(id = 'grn')
-	grn.add_gene(gene_a)
-	grn.add_gene(gene_b)
-	grn.add_grp(grp_ab)
-	grn.as_dict()
-	grn.as_digraph()

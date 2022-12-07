@@ -7,7 +7,6 @@ author: jy, nkmtmsys
 import re
 import gzip
 import pandas as pd
-from pkg_resources import resource_filename
 import fatez.tool as tool
 import fatez.lib.grn as grn
 
@@ -74,8 +73,3 @@ class Reader(tool.Reader_Template):
                     )
                 )
         return template_grn
-
-# Main function for tests
-if __name__ == '__main__':
-    a = Reader('../data/mouse/gencode.vM25.basic.annotation.gff3.gz')
-    template = a.get_genes_gencode()
