@@ -7,6 +7,7 @@ author: jy
 
 import fatez
 import fatez.tool.gff as gff
+import fatez.lib.grn as grn
 from pkg_resources import resource_filename
 
 def Test(**kwargs):
@@ -21,21 +22,44 @@ def Test(**kwargs):
 	return
 
 def make_template_grn():
-	a = gff.Reader('../data/mouse/gencode.vM25.basic.annotation.gff3.gz')
-	template = a.get_genes_gencode()
-	template.id = 'GRCm38_template'
-	template.save('../data/mouse/template.grn.js')
+	mm10_gff = gff.Reader('../data/mouse/gencode.vM25.basic.annotation.gff3.gz')
+	mm10_template = mm10_gff.get_genes_gencode(id = 'GRCm38_template')
+	Xkr4 = mm10_template.genes['ENSMUSG00000051951']
+	print(Xkr4.symbol)
+	gff_rec = mm10_gff.get(Xkr4.gff_coordinate)
+	print(gff_rec)
+
 
 def test_grn():
-	gene_a = grn.Gene(id = 'a', symbol = 'AAA')
-	gene_b = grn.Gene(id = 'b', symbol = 'BBB')
-	grp_ab = grn.GRP(reg_source = gene_a, reg_target = gene_b)
-	grn = grn.GRN(id = 'grn')
-	grn.add_gene(gene_a)
-	grn.add_gene(gene_b)
-	grn.add_grp(grp_ab)
-	grn.as_dict()
-	grn.as_digraph()
+	toy = grn.GRN(id = 'toy')
+	# fake genes
+	gene_list = [
+		grn.Gene(id = 'a', symbol = 'AAA'),
+		grn.Gene(id = 'b', symbol = 'BBB'),
+		grn.Gene(id = 'c', symbol = 'CCC'),
+	]
+	# fake grps
+	grp_list = [
+		grn.GRP(reg_source = gene_list[0], reg_target = gene_list[1]),
+		grn.GRP(reg_source = gene_list[0], reg_target = gene_list[2]),
+		grn.GRP(reg_source = gene_list[1], reg_target = gene_list[2]),
+	]
+	# populate toy GRN
+	for gene in gene_list:
+		toy.add_gene(gene)
+	for grp in grp_list:
+		toy.add_grp(grp)
+
+	toy.as_dict()
+	toy.as_digraph()
+	toy.save('../data/toy.grn.js.gz')
+	# Load new GRN
+	del toy
+	toy_new = grn.GRN()
+	toy_new.load('../data/toy.grn.js.gz')
+	for id, rec in toy_new.grps.items():
+		print(rec.reg_source.symbol)
 
 if __name__ == '__main__':
 	make_template_grn()
+	test_grn()

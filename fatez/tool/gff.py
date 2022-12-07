@@ -16,14 +16,17 @@ class Reader(tool.Reader_Template):
     """
 	Object to read in GFF file.
 	"""
-    def get_genes_gencode(self,):
+    def get_genes_gencode(self, id):
         """
         Pattern GFF file obtained from GENCODE, extract information of genes,
         and make a template GRN.
 
+        :param id: <str Default = None>
+			ID of the output GRN template.
+
         :return: <class fatez.lib.grn.GRN>
         """
-        template_grn = grn.GRN(ref_gff = self.path)
+        template_grn = grn.GRN(id = id, ref_gff = self.path)
         while (True):
             line = self.file.readline()
             coordinate = self.file.tell() - len(line)

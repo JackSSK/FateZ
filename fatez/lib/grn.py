@@ -128,7 +128,10 @@ class GRP(GRN_Basic):
 			Enrichment of source gene's motifs to regulate target gene.
 		"""
 		super(GRP, self).__init__()
-		self.id = (reg_source.id, reg_target.id)
+		if type(reg_source) == str and type(reg_target) == str:
+			self.id = reg_source + '_' + reg_target
+		else:
+			self.id = reg_source.id + '_' + reg_target.id
 		self.reg_source = reg_source
 		self.reg_target = reg_target
 		self.reversable = reversable
@@ -251,5 +254,18 @@ class GRN(GRN_Basic):
 	        Length of each indent.
 		"""
 		data = JSON.decode(path = load_path)
-		print('Not finished yet')
+		self.id = data['id']
+		# Load genes first
+		for id, rec in data['genes'].items():
+			self.genes[id] = Gene(**rec)
+		# Then load GRPs
+		for id, rec in data['grps'].items():
+			self.grps[id] = GRP(**rec)
+			# Change reg source and target back to objects
+			self.grps[id].reg_source = self.genes[self.grps[id].reg_source]
+			self.grps[id].reg_target = self.genes[self.grps[id].reg_target]
+		# Load other attrs if there is any
+		for k in data:
+			if k not in ['id','genes','grps']:
+				setattr(self, k, data[k])
 		return
