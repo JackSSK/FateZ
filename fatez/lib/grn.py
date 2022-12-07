@@ -8,6 +8,7 @@ author: jy
 import copy
 import networkx as nx
 from fatez.lib import GRN_Basic
+import fatez.tool.JSON as JSON
 
 
 
@@ -40,6 +41,7 @@ class CRE(GRN_Basic):
 		self.chr = None
 		self.start_pos = None
 		self.end_pos = None
+		self.strand = None
 		self.peak_count = peak_count
 		# if there are other args
 		for key in kwargs: setattr(self, key, kwargs[key])
@@ -54,6 +56,7 @@ class Gene(GRN_Basic):
 		id:str = None,
 		symbol:str = None,
 		type:str = 'Gene',
+		gff_coordinate:int = None,
 		rna_exp:float = None,
 		peak_count:float = None,
 		cre_regions:list = list(),
@@ -69,6 +72,9 @@ class Gene(GRN_Basic):
 		:param type: <str Default = 'Gene'>
 			If the gene is known to be Transcription Factor, change it to 'TF'.
 
+		:param gff_coordinate: <int Default = None>
+			The location of corresponding record in the refernece GFF file.
+
 		:param rna_exp: <float Default = None>
 			Transcriptomic expression of gene.
 
@@ -83,6 +89,7 @@ class Gene(GRN_Basic):
 		self.id = id
 		self.symbol = symbol
 		self.type = type
+		self.gff_coordinate = gff_coordinate
 		self.rna_exp = rna_exp
 		self.peak_count = peak_count
 		self.cre_regions = cre_regions
@@ -104,10 +111,10 @@ class GRP(GRN_Basic):
 		**kwargs
 		):
 		"""
-		:param reg_source: <class Gene>
+		:param reg_source: <class fatez.lib.grn.Gene>
 			The object of propective regulatory source gene.
 
-		:param reg_target: <class Gene>
+		:param reg_target: <class fatez.lib.grn.Gene>
 			The object of propective regulatory target gene.
 
 		:param reversable: <bool Default = False>
@@ -164,8 +171,8 @@ class GRN(GRN_Basic):
 		"""
 		Add a new gene into GRN.
 
-		:param gene: <class Gene>
-			The Gene() object to add.
+		:param gene: <class fatez.lib.grn.Gene>
+			The Gene object to add.
 		"""
 		assert gene.id not in self.genes
 		self.genes[gene.id] = gene
@@ -175,8 +182,8 @@ class GRN(GRN_Basic):
 		"""
 		Add a new GRP into GRN.
 
-		:param grp: <class GRP>
-			The GRP() object to add.
+		:param grp: <class fatez.lib.grn.GRP>
+			The GRP object to add.
 		"""
 		assert grp.id not in self.grps
 		self.grps[grp.id] = grp
@@ -188,10 +195,16 @@ class GRN(GRN_Basic):
 
 		:return: <class 'dict'>
 		"""
-		return {
+		answer = {
 			'genes': {id:record.as_dict() for id, record in self.genes.items()},
 			'grps': {id:record.as_dict() for id, record in self.grps.items()},
 		}
+		for key in self.__dict__:
+			if key == 'genes' or key == 'grps':
+				continue
+			else:
+				answer[key] = self.__dict__[key]
+		return answer
 
 	def as_digraph(self):
 		"""
@@ -212,9 +225,35 @@ class GRN(GRN_Basic):
 
 			# add GRP as an edge
 			graph.add_edge(source.id, target.id, **self.grps[grp_id].as_dict())
-
 		return graph
-	
+
+	def save(self, save_path:str = None, indent:int = 4):
+		"""
+		Save current GRN into a JSON file.
+
+		:param save_path: <str Default = 'out.js'>
+	        Path to save the output file.
+
+	    :param indent: <int Default = 4>
+	        Length of each indent.
+		"""
+		JSON.encode(data=self.as_dict(), save_path=save_path, indent=indent)
+		return
+
+	def load(self, load_path:str = None):
+		"""
+		Load GRN from a given JSON file.
+
+		:param save_path: <str Default = 'out.js'>
+	        Path to save the output file.
+
+	    :param indent: <int Default = 4>
+	        Length of each indent.
+		"""
+		data = JSON.decode(path = load_path)
+		print('Not finished yet')
+		return
+
 # Main function for tests
 if __name__ == '__main__':
 	gene_a = Gene(id = 'a', symbol = 'AAA')

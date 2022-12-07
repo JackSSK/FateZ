@@ -4,6 +4,9 @@ Basic tools for handling files.
 
 author: jy, nkmtmsys
 """
+import re
+import gzip
+
 
 class Error(Exception):
     pass
@@ -16,7 +19,8 @@ class Reader_Template:
     """
     def __init__(self, path:str = None):
         """
-        :param path:str = None
+        :param path: <str Default = None>
+            Path to the input file.
         """
         self.path = path
         # Open as .gz file
@@ -37,3 +41,22 @@ class Reader_Template:
     # Need to be override based on need
     def __next__(self):
         return self
+
+    def get(self, coordinate:int = None, sep:str = '\t'):
+        """
+        Read in line at given coordinate.
+
+        :param coordinate: <int Default = None>
+            Path to the input file.
+
+        :param sep: <str Default = '\t'>
+            Seperate character within a line.
+
+        :return: <class 'list'>
+        """
+        self.file.seek(coordinate)
+        info = self.file.readline()
+        if sep is not None:
+            return info.split('\t')
+        else:
+            return list(info)

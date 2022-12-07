@@ -36,6 +36,8 @@ def decode(path:str = None):
 
     :param path: <str Default = None>
         Path to the input file.
+
+    :return: <class 'dict'>
     """
     if re.search(r'\.gz$', path):
         with gzip.open(path, 'r') as json_file:
