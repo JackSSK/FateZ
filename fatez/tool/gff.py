@@ -43,12 +43,12 @@ class Reader(tool.Reader_Template):
                 raise tool.Error('Bad GFF Format')
 
             if line[2] == 'gene':
-                # chr = line[0]
+                chr = line[0]
                 # source = line[1]
-                # beg = int(line[3])
-                # end = int(line[4])
+                beg = int(line[3])
+                end = int(line[4])
                 # score = line[5]
-                # strand = line[6]
+                #strand = line[6]
                 # phase = line[7]
                 info = line[8].split(';')
                 # Skip pseudogene
@@ -73,6 +73,13 @@ class Reader(tool.Reader_Template):
                         id = id,
                         gff_coordinate = coordinate,
                         symbol = symbol
+                    )
+                )
+                template_grn.add_gene_region(
+                    grn.Gene_region(
+                        gene_chr = chr,
+                        gene_start = beg,
+                        gene_end = end
                     )
                 )
         return template_grn
