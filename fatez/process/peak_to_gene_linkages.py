@@ -10,7 +10,7 @@ author: jjy
 import pyranges as pr
 import pandas as pd
 
-class linkages(object):
+class Link(object):
     """
     Preprocess to get corresponding
     relationships between peaks and genes

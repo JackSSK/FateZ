@@ -12,7 +12,7 @@ import torch.nn.functional as F
 
 
 
-class GraphAttentionLayer(nn.Module):
+class Graph_Attention_Layer(nn.Module):
     """
     Simple graph attention layer for GAT.
     """
@@ -48,7 +48,7 @@ class GraphAttentionLayer(nn.Module):
             Whether concatenating with other layers.
             Note: False for last layer.
         """
-        super(GraphAttentionLayer, self).__init__()
+        super(Graph_Attention_Layer, self).__init__()
         self.dropout = dropout
         self.in_dim = in_dim
         self.out_dim = out_dim
@@ -103,16 +103,16 @@ class GraphAttentionLayer(nn.Module):
         attention = F.softmax(attention, dim = 1)
         return attention
 
-    def forward(self, h, adj_mat):
+    def forward(self, input, adj_mat):
         """
-        :param h:torch.Tensor = None
+        :param input:torch.Tensor = None
             Input matrix. (Genes)
 
         :param adj_mat:torch.Tensor = None
             Adjacent matrix. (Based on GRPs)
         """
         # Multiply hs to ensure output dimension == out_dim
-        w_h = torch.mm(h, self.weights)
+        w_h = torch.mm(input, self.weights)
         # w_h.shape == (N, out_feature)
         # Now we calculate weights for GRPs.
         e_values = self._prepare_attentional_mechanism_input(w_h)
@@ -121,8 +121,10 @@ class GraphAttentionLayer(nn.Module):
         result = torch.matmul(attention, w_h)
 
         if self.concat:
+            # if this layer is not last layer,
             return F.elu(result)
         else:
+            # if this layer is last layer,
             return result
 
 
@@ -173,7 +175,7 @@ class GAT(nn.Module):
 
         # Add attention heads
         self.attentions = [
-            GraphAttentionLayer(
+            Graph_Attention_Layer(
                 in_dim = in_dim,
                 out_dim = n_hidden,
                 lr = lr,
@@ -189,7 +191,7 @@ class GAT(nn.Module):
         # Also, we can add other layers here.
 
         # Last out put layer
-        self.last = GraphAttentionLayer(
+        self.last = Graph_Attention_Layer(
             in_dim = n_hidden * n_head,
             out_dim = en_dim,
             lr = lr,
@@ -218,18 +220,3 @@ class GAT(nn.Module):
             answer.append(x)
         answer = torch.stack(answer, 0)
         return answer
-
-if __name__ == '__main__':
-    a = torch.randn(4,1)
-    b = torch.randn(4,4)
-    label = torch.tensor([[1]])
-    model = GAT(in_dim=1,)
-    linear = nn.Linear(8, 4)
-    out = model([[a,b]])
-    out = F.softmax(out, dim = -1)
-
-
-    # out = F.softmax(linear(out), dim = -1)
-    print(out)
-    # loss = F.nll_loss(out, label)
-    # print(out, loss)

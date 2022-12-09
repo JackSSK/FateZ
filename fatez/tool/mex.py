@@ -13,7 +13,7 @@ from warnings import warn
 
 class Reader(object):
 	"""
-	Object to read in scRNA-seq MEX data.
+	Object to read in MEX data.
 	"""
 
 	def __init__(self,
@@ -31,73 +31,108 @@ class Reader(object):
 		:param barcodes_path: <str Default = None>
 			Path to the barcode file.
 		"""
-		# Process features
-		with gzip.open(features_path, 'rt') as features:
-			self.features = [
-				{'id':x[0], 'name':x[1]} for x in csv.reader(
-					features, delimiter = '\t'
-				)
-			]
+		self.matrix_path = matrix_path
 
-		# Process matrix
-		self.data = pd.DataFrame(scipy.io.mmread(matrix_path).toarray())
+		# Process features
+		self.features_path = features_path
+		with gzip.open(self.features_path, 'rt') as features:
+			self.features = pd.DataFrame(
+				data = [x for x in csv.reader(features, delimiter = '\t')]
+			)
+		assert self.features.shape[1] >= 2
 
 		# Process barcodes
-		with gzip.open(barcodes_path, 'rt') as barcodes:
-			self.data.columns = [
+		self.barcodes_path = barcodes_path
+		with gzip.open(self.barcodes_path, 'rt') as barcodes:
+			self.barcodes = [
 				rec[-1] for rec in csv.reader(barcodes, delimiter = '\t')
 			]
 
-	def get_gem(self, save_path:str = None, handle_repeat:str = 'sum',):
+	def read_matrix(self):
+		"""
+		Read in matrix at once.
+		"""
+		return pd.DataFrame(scipy.io.mmread(self.matrix_path).toarray())
+
+	def read_matrix_sparse(self):
+		"""
+		Read in files without loading full matrix.
+		Go through matrix line by line and populate dataframe if there is a read
+
+		Developing~
+		"""
+		return None
+
+	def seperate_matrices(self, sparse_read:bool = False):
+		"""
+		Seperate matrices in MEX by data type.
+		Useful for handling multiomic data.
+
+		:param sparse_read:bool = False
+			Whether load in matrix with sparse method or not.
+		"""
+		matrices = dict()
+		assert self.features.shape[1] >= 3
+		types = list(set(self.features[2]))
+		# Load data
+		if sparse_read:
+			data = self.read_matrix_sparse()
+			print('Developing~')
+		else:
+			data = self.read_matrix()
+			for type in types:
+				matrices[type] = data[self.features[2] == type]
+		return matrices
+
+	def get_gem(self,
+		save_path:str = None,
+		handle_repeat:str = 'sum',
+		sparse_read:bool = False
+		):
 		"""
 		Obtain GEM data frame from processed MEX file.
 
 		:param save_path:str = None
 
 		:param handle_repeat:str = 'sum'
-		
+
 		:return: Pandas.DataFrame
 		"""
-		self.data.index = [x['id'] for x in self.features]
-
+		if sparse_read:
+			data = self.read_matrix_sparse()
+		else:
+			data = self.read_matrix()
+		data.index = self.features[0]
+		data.columns = self.barcodes
 		# sum up data sharing same gene name if any
-		if len(self.data.columns) != len(list(set(self.data.columns))):
+		if len(data.columns) != len(list(set(data.columns))):
 			warn('Found repeated barcodes in MEX! Merging.')
 			if handle_repeat == 'first':
-				self.data=self.data[~self.data.columns.duplicated(keep='first')]
+				data=data[~data.columns.duplicated(keep='first')]
 			elif handle_repeat == 'sum':
-				self.data = self.data.groupby(self.data.columns).sum()
+				data = data.groupby(data.columns).sum()
 
 		# summ up data sharing same barcode if any
-		if len(self.data.index) != len(list(set(self.data.index))):
+		if len(data.index) != len(list(set(data.index))):
 			warn('Found repeated genes in MEX! Merging.')
 			if handle_repeat == 'first':
-				self.data = self.data[~self.data.index.duplicated(keep='first')]
+				data = data[~data.index.duplicated(keep='first')]
 			elif handle_repeat == 'sum':
-				self.data = self.data.groupby(self.data.index).sum()
+				data = data.groupby(data.index).sum()
 
 		# Check for repeats
-		assert len(self.data.columns) == len(list(set(self.data.columns)))
-		assert len(self.data.index) == len(list(set(self.data.index)))
+		assert len(data.columns) == len(list(set(data.columns)))
+		assert len(data.index) == len(list(set(data.index)))
 
 		# Remove Gfp counts
-		if 'bGH' in self.data.index:
-			self.data.drop('bGH')
-		if 'eGFP' in self.data.index:
-			self.data.drop('eGFP')
+		if 'bGH' in data.index:
+			data.drop('bGH')
+		if 'eGFP' in data.index:
+			data.drop('eGFP')
 
 		# save GEM if specified path to save
 		if save_path is not None:
-			self.data.to_csv(save_path)
+			data.to_csv(save_path)
 
 		# Return df purned records only have 0 counts
-		return self.data.loc[~(self.data==0).all(axis=1)]
-
-
-# if __name__ == '__main__':
-#     gem = Reader(
-#         matrix_path = 'GSM4085627_10x_5_matrix.mtx.gz',
-# 		features_path = 'GSM4085627_10x_5_genes.tsv.gz',
-#         barcodes_path = 'GSM4085627_10x_5_barcodes.tsv.gz'
-#     )
-#     gem.get_gem(save_path = '../pfA6w.csv')
+		return data.loc[~(data==0).all(axis=1)]

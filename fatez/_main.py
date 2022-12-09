@@ -15,6 +15,9 @@ from pkg_resources import resource_filename
 class Launch:
 	"""
 	Guess we will have a general object for one-line usage
+
+	Attributes:
+		:self.path: Path to datasets
 	"""
 	def __init__(self, 		# leave self at first line
 		path:str = None, 	# No need to add comment here
@@ -27,9 +30,6 @@ class Launch:
 
 		:param thread_num: <int Default = 1>
 			Number of threads for multithreading. By default, no multithreading.
-
-		Attributes:
-			:self.path: Path to datasets
 		"""
 		# If variables are not expected to be used out of current object,
 		# name it with _XXX.

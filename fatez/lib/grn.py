@@ -55,11 +55,11 @@ class Gene(GRN_Basic):
 	def __init__(self,
 		id:str = None,
 		symbol:str = None,
-		type:str = 'Gene',
-		gff_coordinate:int = None,
+		# type:str = 'Gene',
+		# gff_coordinates:list = list(),
 		rna_exp:float = None,
 		peak_count:float = None,
-		cre_regions:list = list(),
+		# cre_regions:list = list(),
 		**kwargs
 		):
 		"""
@@ -72,8 +72,8 @@ class Gene(GRN_Basic):
 		:param type: <str Default = 'Gene'>
 			If the gene is known to be Transcription Factor, change it to 'TF'.
 
-		:param gff_coordinate: <int Default = None>
-			The location of corresponding record in the refernece GFF file.
+		:param gff_coordinates: <list Default = None>
+			The locations of corresponding record in the refernece GFF file.
 
 		:param rna_exp: <float Default = None>
 			Transcriptomic expression of gene.
@@ -88,11 +88,11 @@ class Gene(GRN_Basic):
 		super(Gene, self).__init__()
 		self.id = id
 		self.symbol = symbol
-		self.type = type
-		self.gff_coordinate = gff_coordinate
+		# self.type = type
+		# self.gff_coordinates = gff_coordinates
 		self.rna_exp = rna_exp
 		self.peak_count = peak_count
-		self.cre_regions = cre_regions
+		# self.cre_regions = cre_regions
 		# if there are other args
 		for key in kwargs: setattr(self, key, kwargs[key])
 
@@ -156,12 +156,15 @@ class GRP(GRN_Basic):
 class GRN(GRN_Basic):
 	"""
 	Class for representing Gene Regulatory Network(GRN).
+
+	Attributes:
+		:self.genes: Dictionary of Gene() objects in the GRN
+		:self.grps: Dictionary of GRP() objects in the GRN
 	"""
 	def __init__(self, id:str = None, **kwargs):
 		"""
-		Attributes:
-			:self.genes: Dictionary of Gene() objects in the GRN
-			:self.grps: Dictionary of GRP() objects in the GRN
+		:param id: <str Default = None>
+			The ID for GRN object.
 		"""
 		super(GRN, self).__init__()
 		self.id = id
@@ -264,8 +267,13 @@ class GRN(GRN_Basic):
 			# Change reg source and target back to objects
 			self.grps[id].reg_source = self.genes[self.grps[id].reg_source]
 			self.grps[id].reg_target = self.genes[self.grps[id].reg_target]
+		# Check CREs
+		if 'cres' in data:
+			for id, rec in data['cres'].items():
+				self.cres[id] = CRE(**rec)
+
 		# Load other attrs if there is any
 		for k in data:
-			if k not in ['id','genes','grps']:
+			if k not in ['id','genes','grps', 'cres']:
 				setattr(self, k, data[k])
 		return
