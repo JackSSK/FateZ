@@ -21,14 +21,6 @@ def Test(**kwargs):
 	print('Start Test')
 	return
 
-def make_template_grn():
-	mm10_gff = gff.Reader('../data/mouse/gencode.vM25.basic.annotation.gff3.gz')
-	mm10_template = mm10_gff.get_genes_gencode(id = 'GRCm38_template')
-	Xkr4 = mm10_template.genes['ENSMUSG00000051951']
-	print(Xkr4.symbol)
-	gff_rec = mm10_gff.get(Xkr4.gff_coordinate)
-	print(gff_rec)
-
 def make_template_grn_jjy():
 	mm10_gff = gff.Reader('E:\\public/gencode.vM25.basic.annotation.gff3.gz')
 	mm10_template = mm10_gff.get_genes_gencode(id = 'GRCm38_template')

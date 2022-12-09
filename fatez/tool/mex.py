@@ -15,7 +15,6 @@ class Reader(object):
 	"""
 	Object to read in MEX data.
 	"""
-
 	def __init__(self,
 		matrix_path:str = None,
 		features_path:str = None,
