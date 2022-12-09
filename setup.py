@@ -45,7 +45,6 @@ setuptools.setup(
         'networkx >= 2.8.1',
         'matplotlib >= 3.5.2',
         'scikit-learn >= 1.0.2',
-        'pyranges >= 0.0.1',
         'scanpy >= 1.9.0',
         'anndata >= 0.7'
     ],

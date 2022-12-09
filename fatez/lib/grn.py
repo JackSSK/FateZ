@@ -96,6 +96,15 @@ class Gene(GRN_Basic):
 		# if there are other args
 		for key in kwargs: setattr(self, key, kwargs[key])
 
+class Gene_region(GRN_Basic):
+	def __init__(self,
+		gene_chr = None,
+		gene_start = None,
+		gene_end = None,
+		**kwargs
+		):
+		self.id = gene_chr + '_' + str(gene_start) + '_' + str(gene_end)
+		for key in kwargs: setattr(self, key, kwargs[key])
 
 
 class GRP(GRN_Basic):
@@ -170,8 +179,15 @@ class GRN(GRN_Basic):
 		self.id = id
 		self.genes = dict()
 		self.grps = dict()
+		self.gene_regions = dict()
 		# if there are other args
 		for key in kwargs: setattr(self, key, kwargs[key])
+
+
+	def add_gene_region(self, gene_region:Gene_region = None):
+
+		assert gene_region.id not in self.gene_regions
+		self.gene_regions[gene_region.id] = gene_region
 
 	def add_gene(self, gene:Gene = None):
 		"""
