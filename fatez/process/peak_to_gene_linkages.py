@@ -18,4 +18,6 @@ class linkages(object):
     def __init__(self,
 
         ):
-    def
+    def overlap(self,peak_regions,gene_regions):
+
+    def gp_correlation(self,):

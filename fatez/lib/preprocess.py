@@ -48,12 +48,14 @@ class preprocess():
         chr_list = list()
         start_list = list()
         end_list = list()
-        ### extract
+        ### extract chromosome start and end
         for i in peak_names:
             peak = i.split('_')
             chr_list.append(peak[0])
             start_list.append(peak[1])
             end_list.append(peak[2])
+
+        ### create pyranges object
 
         self.peak_dict = {'Chromosome':chr_list,'Start':start_list,'End':end_list}
         self.peak_pr = pr.from_dict(peak_dict)
