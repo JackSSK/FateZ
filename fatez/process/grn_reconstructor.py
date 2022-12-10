@@ -11,7 +11,6 @@ import fatez.tool.mex as mex
 
 
 
-
 class Reconstruct(object):
     """
     Main object to reconstruct GRNs from given data.
@@ -49,6 +48,7 @@ class Reconstruct(object):
             if group_barcodes is None or id in group_barcodes:
                 sample_grn = grn.GRN(id = id)
                 exps = matrices['Gene Expression'][i]
+                # Note: In the peak matrix, records must be ordered by start pos
                 peaks = matrices['Peaks'][i]
 
                 # Process genes
@@ -57,15 +57,15 @@ class Reconstruct(object):
                     gene_id = gene_rec[0].to_string(index = False)
                     if gene_id in self.template_grn.genes:
                         sample_grn.add_gene(
-                            grn.Gene(
-                                id = gene_id,
-                                symbol = gene_rec[1].to_string(index = False),
-                                rna_exp = float(exps[index])
-                            )
+                            grn.Gene(id = gene_id, rna_exp = float(exps[index]))
                         )
                 sample_grn = self._add_missing_genes(sample_grn)
 
                 # Process peaks
+                # ToDo: Intersection part not finished yet
+                prev_chr = None
+                prev_ind = None
+                prev_start = None
                 for index in peaks.index:
                     peak_count = float(peaks[index])
                     if peak_count > 0.0:
@@ -75,6 +75,32 @@ class Reconstruct(object):
                         chr = temp[0]
                         start = int(temp[1].split('-')[0])
                         end = int(temp[1].split('-')[1])
+
+                        if chr != prev_chr:
+                            prev_chr = chr
+                            prev_ind = 0
+                            prev_start = 0
+
+                        assert prev_start < start
+                        prev_start = start
+
+                        region_rec = self.template_grn.regions[chr][prev_ind]
+                        # Overlapping
+                        if self._check_pos_overlap(start, end, region_rec):
+                            print(region_rec['id'], region_rec['type'])
+                        # Not reaching current record
+                        elif end <= region_rec['pos'][0]:
+                            continue
+                        # Passed current record
+                        elif start >= region_rec['pos'][1]:
+                            prev_ind += 1
+                            # If there is no other records
+                            if prev_ind >= len(self.template_grn.regions[chr]):
+                                continue
+                            region_rec = self.template_grn.regions[chr][prev_ind]
+
+                            # ToDo: check whether overlapping with next rec
+
 
                         print(chr, start, end, peak_count)
                         # Find which gene or CRE the peak belongs to
@@ -105,10 +131,17 @@ class Reconstruct(object):
                         rna_exp = float(0.0)
                     )
                 )
-        print(len(sample_grn.genes) == len(self.template_grn.genes))
         return sample_grn
 
-
+    def _check_pos_overlap(self, start, end, region_rec):
+        """
+        """
+        if ((start <= region_rec['pos'][0] and end > region_rec['pos'][0]) or
+            (start >= region_rec['pos'][0] and end <= region_rec['pos'][0]) or
+            (start < region_rec['pos'][1] and end >= region_rec['pos'][1])):
+            return True
+        else:
+            return False
 
 
     # Populate CRE(), Gene(), GRP() with scRNA-seq, scATAC-seq and necessary DBs

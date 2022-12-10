@@ -16,9 +16,11 @@ class GRN_Basic(object):
 	Basic object for GRN components.
 	"""
 
-	def __init__(self, id:str = None):
+	def __init__(self, id:str = None, **kwargs):
 		super(GRN_Basic, self).__init__()
 		self.id = id
+        # if there are other args
+		for key in kwargs: setattr(self, key, kwargs[key])
 
 	def as_dict(self):
 		"""
@@ -38,5 +40,5 @@ class GRN_Basic(object):
 		:param value: <>
 			The value of new attribute.
 		"""
-		setattr(self, key, kwargs[key])
+		setattr(self, key, value)
 		return

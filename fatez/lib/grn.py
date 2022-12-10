@@ -37,7 +37,7 @@ class CRE(GRN_Basic):
 			Peak-calling result of the CRE.
 		"""
 		super(CRE, self).__init__()
-		# self.id = chr + '_' + str(start_pos) + '_' + str(end_pos)
+		self.id = chr + ':' + str(start_pos) + '-' + str(end_pos)
 		self.chr = None
 		self.start_pos = None
 		self.end_pos = None
@@ -54,11 +54,11 @@ class Gene(GRN_Basic):
 	"""
 	def __init__(self,
 		id:str = None,
-		symbol:str = None,
+		# symbol:str = None,
 		# type:str = 'Gene',
 		# gff_coordinates:list = list(),
-		rna_exp:float = None,
-		peak_count:float = None,
+		rna_exp:float = 0.0,
+		peak_count:float = 0.0,
 		# cre_regions:list = list(),
 		**kwargs
 		):
@@ -75,10 +75,10 @@ class Gene(GRN_Basic):
 		:param gff_coordinates: <list Default = None>
 			The locations of corresponding record in the refernece GFF file.
 
-		:param rna_exp: <float Default = None>
+		:param rna_exp: <float Default = 0.0>
 			Transcriptomic expression of gene.
 
-		:param peak_count: <float Default = None>
+		:param peak_count: <float Default = 0.0>
 			Peak-calling result of the gene.
 
 		:param cre_regions: <list[CRE_IDS] Default = Empty List>
@@ -87,7 +87,7 @@ class Gene(GRN_Basic):
 		"""
 		super(Gene, self).__init__()
 		self.id = id
-		self.symbol = symbol
+		# self.symbol = symbol
 		# self.type = type
 		# self.gff_coordinates = gff_coordinates
 		self.rna_exp = rna_exp
@@ -96,15 +96,6 @@ class Gene(GRN_Basic):
 		# if there are other args
 		for key in kwargs: setattr(self, key, kwargs[key])
 
-# class Gene_region(GRN_Basic):
-# 	def __init__(self,
-# 		gene_chr = None,
-# 		gene_start = None,
-# 		gene_end = None,
-# 		**kwargs
-# 		):
-# 		self.id = gene_chr + '_' + str(gene_start) + '_' + str(gene_end)
-# 		for key in kwargs: setattr(self, key, kwargs[key])
 
 
 class GRP(GRN_Basic):
@@ -179,15 +170,8 @@ class GRN(GRN_Basic):
 		self.id = id
 		self.genes = dict()
 		self.grps = dict()
-		self.gene_regions = dict()
 		# if there are other args
 		for key in kwargs: setattr(self, key, kwargs[key])
-
-
-	# def add_gene_region(self, gene_region:Gene_region = None):
-	#
-	# 	assert gene_region.id not in self.gene_regions
-	# 	self.gene_regions[gene_region.id] = gene_region
 
 	def add_gene(self, gene:Gene = None):
 		"""

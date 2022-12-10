@@ -16,17 +16,14 @@ class Reader(tool.Reader_Template):
     """
 	Object to read in GFF file.
 	"""
+    
     def get_genes_gencode(self,
-        id:str = None,
         skip_chrM:bool = True,
         gene_types:dict = {'protein_coding':None, },
         ):
         """
         Pattern GFF file obtained from GENCODE, extract information of genes,
         and make a template GRN.
-
-        :param id: <str Default = None>
-			ID of the output GRN template.
 
         :param skip_chrM: <bool Default = True>
 			Skip genes on mitochondria.
@@ -36,9 +33,9 @@ class Reader(tool.Reader_Template):
             Currently, we only consider protein coding genes.
             We may increase this list later.
 
-        :return: <class fatez.lib.grn.GRN>
+        :return: <class dict>
         """
-        template_grn = grn.GRN(id = id, ref_gff = self.path, cres = dict())
+        temp_grn = grn.GRN()
         while (True):
             line = self.file.readline()
             coordinate = self.file.tell() - len(line)
@@ -79,8 +76,8 @@ class Reader(tool.Reader_Template):
                 symbol = info[3].split('=')[1]
 
                 # populate template GRN
-                if id[0] not in template_grn.genes:
-                    template_grn.add_gene(
+                if id[0] not in temp_grn.genes:
+                    temp_grn.add_gene(
                         grn.Gene(
                             id = id[0],
                             symbol = symbol,
@@ -93,6 +90,6 @@ class Reader(tool.Reader_Template):
                         )
                     )
                 else:
-                    template_grn.genes[id[0]].gff_coordinates.append(coordinate)
+                    temp_grn.genes[id[0]].gff_coordinates.append(coordinate)
 
-        return template_grn
+        return temp_grn.genes
