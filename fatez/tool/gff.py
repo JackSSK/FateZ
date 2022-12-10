@@ -83,10 +83,10 @@ class Reader(tool.Reader_Template):
                     template_grn.add_gene(
                         grn.Gene(
                             id = id[0],
-                            symbol = symbol，
-                            chr = chr，
-                    		start_pos = beg，
-                    		end_pos = end，
+                            symbol = symbol,
+                            chr = chr,
+                    		start_pos = beg,
+                    		end_pos = end,
                             strand = strand,
                             gff_coordinates = [coordinate],
                             cre_regions = list(),
