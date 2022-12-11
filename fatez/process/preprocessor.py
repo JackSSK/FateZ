@@ -148,5 +148,3 @@ class Process():
 
     def __is_overlapping(self,x1, x2, y1, y2):
         return max(x1, y1) <= min(x2, y2)
-
-    def __pseudo_cell(self)
