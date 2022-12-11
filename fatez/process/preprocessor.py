@@ -2,6 +2,8 @@
 """
 Objects
 
+Note: Try to keep line length within 81 Chars
+
 author: jjy
 """
 import pandas as pd
@@ -33,10 +35,10 @@ class Process():
 
     """
     :param rna_path: <class fatez.lib.preprocess.preprocess>
-    	The object of propective regulatory source gene.
+    	The object of prospective regulatory source gene.
 
     :param atac_path: <class fatez.lib.preprocess.preprocess>
-    	The object of propective regulatory target gene.
+    	The object of prospective regulatory target gene.
     """
     def load_data(self):
         sc.settings.verbosity = 3
@@ -80,30 +82,52 @@ class Process():
             start_list.append(peak[1])
             end_list.append(peak[2])
 
-        self.peak_region_df = pd.DataFrame({'chr'=chr_list,'start'=start_list,'end'=end_list},index=peak_names)
-        self.gene_region_df = pd.DataFrame({'chr'=gene_chr_list, 'start'=gene_start_list,
-                                                                        'end'=gene_end_list},index=row_name_list)
+        self.peak_region_df = pd.DataFrame(
+            {'chr' = chr_list,'start' = start_list,'end' = end_list},
+            index = peak_names
+        )
+        self.gene_region_df = pd.DataFrame(
+            {
+                'chr' = gene_chr_list,
+                'start' = gene_start_list,
+                'end' = gene_end_list
+            },
+            index=row_name_list
+        )
 
 
-    def make_pseudo_networks(self,network_cell_size=10,data_type,network_number=10):
+    def make_pseudo_networks(self,
+        network_cell_size:int = 10,
+        data_type:str = None,
+        network_number:int = 10
+        ):
         ### sample cells
         for i in range(network_number):
             if data_type == 'paired':
-                rna_cell_use = self.rna_mt.obs_names[random.sample(range(len(self.rna_mt.obs_names)),
-                                                                   network_size)]
+                rna_cell_use = self.rna_mt.obs_names[
+                    random.sample(
+                        range(len(self.rna_mt.obs_names)),
+                        network_size
+                    )
+                ]
                 atac_cell_use = rna_cell_use
 
-            if data_type == 'unpaired'
-                rna_cell_use = self.rna_mt.obs_names[random.sample(range(len(self.rna_mt.obs_names)),
-                                                                   network_size)]
-                atac_cell_use = self.atac_mt.obs_names[random.sample(range(len(self.atac_mt.obs_names)),
-                                                           network_size)]
-
+            if data_type == 'unpaired':
+                rna_cell_use = self.rna_mt.obs_names[
+                    random.sample(
+                        range(len(self.rna_mt.obs_names)),
+                        network_size
+                    )
+                ]
+                atac_cell_use = self.atac_mt.obs_names[
+                    random.sample(
+                        range(len(self.atac_mt.obs_names)),
+                        network_size)]
             self.pseudo_network.append()
 
 
 
-    def find_linkages(self,overlap_size=250,cor_thr = 0.6):
+    def find_linkages(self, overlap_size=250, cor_thr = 0.6):
         ### find overlap
         gene_chr_type = list(set())
         gene_overlapped_peaks = {}

@@ -6,6 +6,7 @@ author: jy
 """
 
 import copy
+import pandas as pd
 import networkx as nx
 from fatez.lib import GRN_Basic
 import fatez.tool.JSON as JSON
@@ -59,6 +60,7 @@ class Gene(GRN_Basic):
 		# gff_coordinates:list = list(),
 		rna_exp:float = 0.0,
 		peak_count:float = 0.0,
+		promoter_peaks:float = 0.0,
 		# cre_regions:list = list(),
 		**kwargs
 		):
@@ -81,6 +83,9 @@ class Gene(GRN_Basic):
 		:param peak_count: <float Default = 0.0>
 			Peak-calling result of the gene.
 
+		:param promoter_peaks: <float Default = 0.0>
+			Peak-calling result of the promoter region of gene.
+
 		:param cre_regions: <list[CRE_IDS] Default = Empty List>
 			List of CREs interacting with the gene.
 			Note: Based on database like 4DGenome.
@@ -92,6 +97,7 @@ class Gene(GRN_Basic):
 		# self.gff_coordinates = gff_coordinates
 		self.rna_exp = rna_exp
 		self.peak_count = peak_count
+		self.promoter_peaks = promoter_peaks
 		# self.cre_regions = cre_regions
 		# if there are other args
 		for key in kwargs: setattr(self, key, kwargs[key])
@@ -208,6 +214,10 @@ class GRN(GRN_Basic):
 		for key in self.__dict__:
 			if key == 'genes' or key == 'grps':
 				continue
+			elif key == 'cres':
+				answer[key] = {
+					id:record.as_dict() for id, record in self.cres.items()
+				}
 			else:
 				answer[key] = self.__dict__[key]
 		return answer
@@ -269,11 +279,21 @@ class GRN(GRN_Basic):
 			self.grps[id].reg_target = self.genes[self.grps[id].reg_target]
 		# Check CREs
 		if 'cres' in data:
+			self.cres = dict()
 			for id, rec in data['cres'].items():
 				self.cres[id] = CRE(**rec)
-
+		# Check genetic regions
+		if 'regions' in data:
+			self.regions = dict()
+			for chr, recs in data['regions'].items():
+				self.regions[chr] = list()
+				for region in recs:
+					region['pos'] = pd.Interval(
+                        region['pos'][0], region['pos'][1], closed = 'both',
+                    )
+					self.regions[chr].append(region)
 		# Load other attrs if there is any
 		for k in data:
-			if k not in ['id','genes','grps', 'cres']:
+			if k not in ['id','genes','grps','cres','regions']:
 				setattr(self, k, data[k])
 		return
