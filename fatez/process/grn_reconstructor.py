@@ -4,7 +4,7 @@ GRN inference.
 
 Note: Developing~
 
-author: jy
+author: jy, nkmtmsys
 """
 import re
 import pandas as pd
@@ -38,6 +38,9 @@ class Reconstruct(object):
 
         :return <class 'dict'>
         """
+        cur_chr = None
+        cur_index = 0
+        skip_chr = False
         annotations = dict()
         for index in range(len(features)):
             id = features.iloc[[index]][0].to_string(index = False)
@@ -48,6 +51,13 @@ class Reconstruct(object):
                 temp = id.split(':')
                 chr = temp[0]
                 if chr not in self.template.regions: continue
+                # Reset pointer while entering new chr
+                if chr != cur_chr:
+                    cur_chr = chr
+                    cur_index = 0
+                # Skip rest of peaks in current chr
+                elif chr == cur_chr and skip_chr:
+                    continue
 
                 # Get peak position
                 start = int(temp[1].split('-')[0])
@@ -55,7 +65,9 @@ class Reconstruct(object):
                 assert start <= end
                 peak = pd.Interval(start, end, closed = 'both')
 
-                for i, ele in enumerate(self.template.regions[chr]):
+                cur_index = 0
+                while cur_index < len(self.template.regions[chr]):
+                    ele = self.template.regions[chr][cur_index]
                     # Check overlaps
                     if peak.overlaps(ele['pos']):
                         annotations[id] = {
@@ -83,14 +95,16 @@ class Reconstruct(object):
                         }
                         break
                     # No need to check others if filling into region gap
-                    if i > 0:
-                        prev_ele = self.template.regions[chr][i-1]
+                    if cur_index > 0:
+                        prev_ele = self.template.regions[chr][cur_index-1]
                         pre_max = max(
                             prev_ele['pos'].right, prev_ele['promoter_pos']
                         )
                         cur_min = min(ele['pos'].left, ele['promoter_pos'])
                         if peak.left >= pre_max and peak.right <= cur_min:
                             break
+                    # Go for next
+                    cur_index += 1
         return annotations
 
     def paired_multi_MEX(self,
