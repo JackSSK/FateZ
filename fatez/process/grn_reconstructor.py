@@ -65,7 +65,7 @@ class Reconstruct(object):
                 assert start <= end
                 peak = pd.Interval(start, end, closed = 'both')
 
-                cur_index = 0
+                # cur_index = 0
                 while cur_index < len(self.template.regions[chr]):
                     ele = self.template.regions[chr][cur_index]
                     # Check overlaps
