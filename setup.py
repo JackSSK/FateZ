@@ -46,6 +46,7 @@ setuptools.setup(
         'matplotlib >= 3.5.2',
         'scikit-learn >= 1.0.2',
         'scanpy >= 1.9.0',
-        'anndata >= 0.7'
+        'anndata >= 0.7',
+        'biopython >= 1.5',
     ],
 )

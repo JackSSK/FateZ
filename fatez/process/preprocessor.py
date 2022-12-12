@@ -9,9 +9,12 @@ import random
 import scanpy as sc
 import anndata as ad
 from scipy import stats
+from fatez import data.mouse
+import importlib.resources as pkg_resources
+from Bio import motifs
 import fatez.tool.gff as gff
 
-class Process():
+class Preprocess():
     """
     Preprocessing the scRNA-seq and scATAC-seq data to get
     linkages between peaks and genes.
@@ -48,14 +51,14 @@ class Process():
             cache = True
         )
 
-        gff = gff.Reader(gff_path)
+        gff = gff.Reader(self.gff_path)
         gff_template = gff.get_genes_gencode(id='GRCm38_template')
 
         symbol_list = []
         gene_chr_list = []
         gene_start_list = []
         gene_end_list = []
-        for i in list(mm10_template.genes.keys()):
+        for i in list(gff_template.genes.keys()):
 
             symbol_list.append(gff_template.genes[i].symbol)
             gene_chr_list.append(gff_template.genes[i].chr)
@@ -80,33 +83,36 @@ class Process():
             start_list.append(peak[1])
             end_list.append(peak[2])
 
-        self.peak_region_df = pd.DataFrame({'chr'=chr_list,'start'=start_list,'end'=end_list},index=peak_names)
-        self.gene_region_df = pd.DataFrame({'chr'=gene_chr_list, 'start'=gene_start_list,
-                                                                        'end'=gene_end_list},index=row_name_list)
+        self.peak_region_df = pd.DataFrame({'chr':chr_list,'start':start_list,'end':end_list},index=peak_names)
+        self.gene_region_df = pd.DataFrame({'chr':gene_chr_list, 'start':gene_start_list,
+                                                                        'end':gene_end_list},index=row_name_list)
 
 
     def make_pseudo_networks(self,network_cell_size=10,data_type,network_number=10):
-        ### sample cells
+
         for i in range(network_number):
+            ### sample cells
             if data_type == 'paired':
                 rna_cell_use = self.rna_mt.obs_names[random.sample(range(len(self.rna_mt.obs_names)),
-                                                                   network_size)]
+                                                                   network_cell_size)]
                 atac_cell_use = rna_cell_use
 
-            if data_type == 'unpaired'
+            if data_type == 'unpaired':
                 rna_cell_use = self.rna_mt.obs_names[random.sample(range(len(self.rna_mt.obs_names)),
-                                                                   network_size)]
+                                                                   network_cell_size)]
                 atac_cell_use = self.atac_mt.obs_names[random.sample(range(len(self.atac_mt.obs_names)),
-                                                           network_size)]
+                                                           network_cell_size)]
+            rna_pseudo_netowrk = self.rna_mt[rna_cell_use]
+            atac_pseudo_network = self.atac_mt[atac_cell_use]
+            self.pseudo_network.append([rna_pseudo_netowrk,atac_pseudo_network])
 
-            self.pseudo_network.append()
 
 
-
-    def find_linkages(self,overlap_size=250,cor_thr = 0.6):
+    def find_linkages(self,overlap_size=250,cor_thr = 0.6,rna_network,atac_network):
         ### find overlap
         gene_chr_type = list(set())
         gene_overlapped_peaks = {}
+        gene_related_peak = []
         for i in gene_chr_type:
             ### match chr
             gene_df_use = self.gene_region_df[self.gene_region_df['chr'] == i]
@@ -119,6 +125,7 @@ class Process():
                 peak_df_use = peak_df_use[int(peak_df_use['start']) < gene_start+overlap_size]
 
                 peak_overlap = []
+                peak_cor = []
                 for j in peak_df_use.index:
                     ### overlap
                     peak_start = int(peak_df_use.loc[j]['start'])
@@ -127,23 +134,41 @@ class Process():
                     if self.__is_overlapping(gene_start,gene_start+overlap_size,
                                      peak_start,peak_end)):
                     ### calculate correlation between gene count and peak count
-                        for network in self.pseudo_network:
+                        rna_count = rna_network[:,row].X.todense
+                        atac_count = atac_network[:,j].X.todense
 
-                            if stats.pearsonr(, ) > cor_thr:
-                                peak_overlap.append(True)
+                        pg_cor = stats.pearsonr(rna_count.transpose().A[0],
+                                 atac_count.transpose().A[0])
+                        if  pg_cor > cor_thr:
+                            peak_overlap.append(j)
+                            peak_cor.append(pg_cor)
 
+                pg_cor_se = pd.Series(peak_cor,index=peak_overlap)
+                ### select peak with the largest correlation
 
+                if len(pg_cor_se) >1:
+                    pg_cor_se = pg_cor_se[pg_cor_se==max(pg_cor_se)]
 
+                gene_related_peak.append(pg_cor_se.index[0])
 
-                gene_overlapped_peaks[self.gene_region_df.index] = peak_df_use.index[peak_overlap]
-
+        gene_related_peak_region = self.peak_region_df.loc[gene_related_peak]
+        gene_related_peak_region.index = self.gene_region_df.index
+        ### modify the self.gene_region_df to let it contain gene related peak
+        self.gene_region_df = pd.concat([self.gene_region_df,gene_related_peak_region],
+                                axis=1,join='outer')
 
 
 
 
         ###
-    def find_motif_enrichment(self,)
+    def find_motifs_binding(self):
+        ### load tf motif relationships
+        template = pkg_resources.read_text(templates, 'temp_file')
+        ### load TRANSFAC PWM
+        
+        ### check TFs
 
+        ### match motifs
 
 
     def __is_overlapping(self,x1, x2, y1, y2):
