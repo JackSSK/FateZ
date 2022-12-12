@@ -2,6 +2,8 @@
 """
 Objects
 
+Note: Try to keep line length within 81 Chars
+
 author: jjy
 """
 import pandas as pd
@@ -9,7 +11,6 @@ import random
 import scanpy as sc
 import anndata as ad
 from scipy import stats
-from fatez import data.mouse
 import importlib.resources as pkg_resources
 from Bio import motifs
 import fatez.tool.gff as gff
@@ -36,10 +37,10 @@ class Preprocess():
 
     """
     :param rna_path: <class fatez.lib.preprocess.preprocess>
-    	The object of propective regulatory source gene.
+    	The object of prospective regulatory source gene.
 
     :param atac_path: <class fatez.lib.preprocess.preprocess>
-    	The object of propective regulatory target gene.
+    	The object of prospective regulatory target gene.
     """
     def load_data(self):
         sc.settings.verbosity = 3
@@ -88,7 +89,12 @@ class Preprocess():
                                                                         'end':gene_end_list},index=row_name_list)
 
 
-    def make_pseudo_networks(self,network_cell_size=10,data_type,network_number=10):
+    def make_pseudo_networks(self,
+        network_cell_size:int = 10,
+        data_type:str = None,
+        network_number:int = 10
+        ):
+        ### sample cells
 
         for i in range(network_number):
             ### sample cells
@@ -108,7 +114,10 @@ class Preprocess():
 
 
 
-    def find_linkages(self,overlap_size=250,cor_thr = 0.6,rna_network,atac_network):
+
+
+    def find_linkages(self, overlap_size=250, cor_thr = 0.6):
+
         ### find overlap
         gene_chr_type = list(set())
         gene_overlapped_peaks = {}

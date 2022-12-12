@@ -17,4 +17,8 @@ data = mex.Reader(
     features_path = '../data/human/filtered_PBMC/features.tsv.gz',
     barcodes_path = '../data/human/filtered_PBMC/barcodes.tsv.gz'
 )
-reconstructor.paired_multi_MEX(data)
+grns = reconstructor.paired_multi_MEX(
+    data, group_barcodes = ['AAACAGCCAAATATCC-1']
+)
+for k,v in grns.items():
+    v.save('../data/sample_grn.js')
