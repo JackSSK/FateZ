@@ -14,19 +14,10 @@ setuptools.setup(
     url = "https://github.com/JackSSK/FateZ",
     project_urls = {"Bug Tracker": "https://github.com/JackSSK/FateZ/issues",},
     packages = setuptools.find_packages(),
-    # package_data = {'': [
-    #     'data/config/*',
-    #     'data/human/*.txt',
-    #     'data/human/bioGRiD.stratified.js.gz',
-    #     'data/human/gtrd_promoter-1000.js.gz',
-    #     'data/human/gtrd_whole_genes.js.gz',
-    #     'data/human/uniprot_idmapping.stratified.js.gz',
-    #     'data/mouse/*.txt',
-    #     'data/mouse/bioGRiD.stratified.js.gz',
-    #     'data/mouse/gtrd_promoter-1000.js.gz',
-    #     'data/mouse/gtrd_whole_genes.js.gz',
-    #     'data/mouse/uniprot_idmapping.stratified.js.gz',
-    # ]},
+    package_data = {'': [
+        'data/human/*',
+        'data/mouse/*',
+    ]},
     classifiers = [
                     'Programming Language :: Python :: 3',
                     'License :: OSI Approved :: MIT License',
