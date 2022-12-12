@@ -23,12 +23,16 @@ class Reader_Template:
             Path to the input file.
         """
         self.path = path
+        self.file = self.load()
+
+    # Load in file
+    def load(self,):
         # Open as .gz file
         if re.search(r'\.gz$', self.path):
-            self.file = gzip.open(self.path, 'rt', encoding='utf-8')
+            return gzip.open(self.path, 'rt', encoding='utf-8')
         # Open directly
         else:
-            self.file = open(self.path, 'r')
+            return open(self.path, 'r')
 
     # Close file reading
     def close(self):
