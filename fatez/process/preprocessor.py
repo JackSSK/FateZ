@@ -11,7 +11,8 @@ import random
 import scanpy as sc
 import anndata as ad
 from scipy import stats
-import importlib.resources as pkg_resources
+from pkg_resources import resource_filename
+import numpy as np
 from Bio import motifs
 import fatez.tool.gff as gff
 
@@ -51,7 +52,8 @@ class Preprocess():
             var_names = 'gene_symbols',
             cache = True
         )
-
+        sc.pp.filter_cells(self.rna_mt, min_genes=200)
+        sc.pp.filter_genes(self.rna_mt, min_cells=3)
         gff = gff.Reader(self.gff_path)
         gff_template = gff.get_genes_gencode(id='GRCm38_template')
 
@@ -143,8 +145,8 @@ class Preprocess():
                     if self.__is_overlapping(gene_start,gene_start+overlap_size,
                                      peak_start,peak_end)):
                     ### calculate correlation between gene count and peak count
-                        rna_count = rna_network[:,row].X.todense
-                        atac_count = atac_network[:,j].X.todense
+                        rna_count = rna_network[:,row].X.todense()
+                        atac_count = atac_network[:,j].X.todense()
 
                         pg_cor = stats.pearsonr(rna_count.transpose().A[0],
                                  atac_count.transpose().A[0])
@@ -172,13 +174,25 @@ class Preprocess():
         ###
     def find_motifs_binding(self):
         ### load tf motif relationships
-        template = pkg_resources.read_text(templates, 'temp_file')
+        data_path = '../data/mouse/Transfac201803_Mm_MotifTFsF.txt'
+        path = resource_filename(__name__, data_path)
+        Motif_db = pd.read_table(path)
         ### load TRANSFAC PWM
         
         ### check TFs
 
         ### match motifs
 
-
+    def  __generate_grp(self):
+        ### grp
+        df_gene = pd.DataFrame(np.zeros((len(self.rna_mt.var_names), len(self.rna_mt.var_names))))
+        df_gene.columns = self.rna_mt.var_names
+        df_gene.index = self.rna_mt.var_names
+        gene_melt = pd.melt(df_gene)
+        rownames = pd.Series(list(self.rna_mt.var_names)*len(self.rna_mt.var_names))
+        gene_melt = pd.concat([rownames,gene_melt ],axis=1,join='outer')
+        gene_melt = gene_melt.iloc[:,[0,1]]
+        gene_melt.columns = ['source','target']
+        gene_melt.iloc[:,[0]].tolist()
     def __is_overlapping(self,x1, x2, y1, y2):
         return max(x1, y1) <= min(x2, y2)
