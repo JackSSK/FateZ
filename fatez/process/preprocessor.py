@@ -172,11 +172,22 @@ class Preprocess():
 
 
         ###
-    def find_motifs_binding(self):
+    def find_motifs_binding(self,region_use):
         ### load tf motif relationships
-        data_path = '../data/mouse/Transfac201803_Mm_MotifTFsF.txt'
+        data_path = '../data/mouse/Transfac201803_MotifTFsF.txt'
         path = resource_filename(__name__, data_path)
         Motif_db = pd.read_table(path)
+        ### make TFs motifs dict
+        TF_motif_dict = {}
+        for i in Motif_db.index:
+            TFs = Motif_db.iloc[i, :][3]
+            TF_list = TFs.split(';')
+            Motif = Motif_db.iloc[i, :][0]
+            for i  in TF_list:
+                if i in TF_motif_dict.keys():
+                    TF_motif_dict[i].append(Motif)
+                else:
+                    TF_motif_dict[i] = [Motif]
         ### load TRANSFAC PWM
         
         ### check TFs
