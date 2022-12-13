@@ -19,7 +19,10 @@ class Template_GRN(grn.GRN):
         2. Default CRE set...Developing...
     """
 
-    def load_genes(self, gff_path, **kwargs):
+    def load_genes(self,
+        gff_path:str = None,
+        promoter_upstream:int = 250,
+        **kwargs):
         """
         Load in genes from given GFF file.
 
@@ -32,7 +35,18 @@ class Template_GRN(grn.GRN):
         self.ref_gff = gff_path
         gff_obj = self.get_gff()
         self.genes = gff_obj.get_genes_gencode(**kwargs)
+        self._add_promoter_info(promoter_upstream = promoter_upstream)
         gff_obj.close()
+        return
+
+    def _add_promoter_info(self, promoter_upstream:int = 250,):
+        for k, v in self.genes.items():
+            # For genes on pos strand
+            if v.strand == '+':
+                v.promoter=(max(v.start_pos-promoter_upstream, 0), v.start_pos)
+            # For genes on negative strand
+            elif v.strand == '-':
+                v.promoter = (v.end_pos, v.end_pos + promoter_upstream)
         return
 
     def load_cres(self, path:str = None):
@@ -61,15 +75,11 @@ class Template_GRN(grn.GRN):
         Populate the region dict with genes.
         """
         for id, rec in rec_dict.items():
-            # For genes on pos strand
-            if rec.strand == '+':
-                promoter_pos = max(rec.start_pos - promoter_upstream, 0)
-            # For genes on negative strand
-            elif rec.strand == '-':
-                promoter_pos = rec.end_pos + promoter_upstream
+            promoter=list(set([rec.start_pos, rec.end_pos]) & set(rec.promoter))
+            assert len(promoter) == 1
             data = {
                 'pos':(rec.start_pos, rec.end_pos),
-                'promoter_pos':promoter_pos,
+                'promoter_pos':promoter[0],
                 'id':id,
             }
             if rec.chr not in self.regions:

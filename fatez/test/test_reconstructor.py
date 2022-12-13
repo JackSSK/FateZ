@@ -21,4 +21,4 @@ grns = reconstructor.paired_multi_MEX(
     data, group_barcodes = ['AAACAGCCAAATATCC-1']
 )
 for k,v in grns.items():
-    v.save('../data/sample_grn.js')
+    v.save('../data/sample_grn.js.gz')

@@ -16,7 +16,7 @@ class Reader(tool.Reader_Template):
     """
 	Object to read in GFF file.
 	"""
-    
+
     def get_genes_gencode(self,
         skip_chrM:bool = True,
         gene_types:dict = {'protein_coding':None, },
@@ -86,6 +86,7 @@ class Reader(tool.Reader_Template):
                     		end_pos = end,
                             strand = strand,
                             gff_coordinates = [coordinate],
+                            promoter = list(),
                             cre_regions = list(),
                         )
                     )
