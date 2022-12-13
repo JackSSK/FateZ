@@ -66,8 +66,8 @@ class Preprocess():
 
             symbol_list.append(gff_template.genes[i].symbol)
             gene_chr_list.append(gff_template.genes[i].chr)
-            gene_start_list.append(gff_template.genes[i].start_pos)
-            gene_end_list.append(gff_template.genes[i].end_pos)
+            gene_start_list.append(gff_template.genes[i].position[0])
+            gene_end_list.append(gff_template.genes[i].position[1])
 
         if self.rna_mt[0][0:3] == 'ENS':
             row_name_list = gff_template.genes.keys()
@@ -181,7 +181,7 @@ class Preprocess():
         ### make TFs motifs dict
         tf_motifs = transfac.Reader(path = path).get_tfs()
         print(tf_motifs)
-        
+
         # TF_motif_dict = {}
         # for i in motif_db.index:
         #     TFs = motif_db.iloc[i, :][3]

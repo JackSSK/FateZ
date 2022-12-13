@@ -28,7 +28,7 @@ class Reconstruct(object):
         Note: This version WILL need features to be sorted by start pos.
 
         :param features:<class pandas.DataFrame Default = None>
-			DataFrame of features
+    DataFrame of features
 
         :return <class 'dict'>
         """
@@ -63,47 +63,48 @@ class Reconstruct(object):
                 # cur_index = 0
                 while cur_index < len(self.template.regions[chr]):
                     ele = self.template.regions[chr][cur_index]
+
+                    # Load position
+                    position = pd.Interval(
+                        ele['pos'][0], ele['pos'][1], closed = 'both',
+                    )
+                    # Load promoter
+                    if ele['promoter']:
+                        promoter = pd.Interval(
+                            ele['promoter'][0],ele['promoter'][1],closed='both',
+                        )
+
                     # Check overlaps
-                    if peak.overlaps(ele['pos']):
+                    if peak.overlaps(position):
                         annotations[id] = {
-                            'id':ele['id'],
-                            'promoter':False,
-                            'gene':False,
+                            'id':ele['id'], 'promoter':False, 'gene':False,
                         }
                         # Check whether there is promoter count
-                        if ele['promoter_pos'] is not None:
+                        if ele['promoter']:
                             annotations[id]['gene'] = True
-                            if ele['pos'].left >= ele['promoter_pos']:
-                                tss = ele['pos'].left
-                            else:
-                                tss = ele['pos'].right
-                            if tss in peak:
-                                annotations[id]['promoter'] = True
+                            annotations[id]['promoter']=peak.overlaps(promoter)
                         break
 
                     # What if peak only in promoter region
-                    elif (ele['promoter_pos'] != -1 and
-                            ele['promoter_pos'] in peak):
+                    elif ele['promoter'] and peak.overlaps(promoter):
                         annotations[id] = {
-                            'id':ele['id'],
-                            'promoter':True,
-                            'gene':False,
+                            'id':ele['id'], 'promoter':True, 'gene':False,
                         }
                         break
 
                     # No need to check others if fail to reach minimum value of
                     # current record
-                    if peak.right <= min(ele['pos'].left, ele['promoter_pos']):
+                    if peak.right <= min(position.left, promoter.left):
                         break
 
                     cur_index += 1
                     # Everything comes next will not fit, then skip this chr
-                    if (cur_index == len(self.template.regions[chr]) and
-                        peak.left >= max(ele['pos'].right,ele['promoter_pos'])):
-                        skip_chr = True
-                    elif cur_index == len(self.template.regions[chr]):
-                        cur_index -= 1
-                        break
+                    if cur_index == len(self.template.regions[chr]):
+                        if peak.left >= max(position.right, promoter.right):
+                            skip_chr = True
+                        else:
+                            cur_index -= 1
+                            break
         return annotations
 
     def paired_multi_MEX(self,
@@ -115,13 +116,13 @@ class Reconstruct(object):
         Reconstruct sample GRNs with paired multiomic seq data in MEX format.
 
         :param mex_reader:<class fatez.tool.mex.Reader Default = None>
-			A reader object that fed with MEX information.
+    A reader object that fed with MEX information.
 
         :param peak_annotations:<dict Default = None>
-			The annotations for each peak.
+    The annotations for each peak.
 
         :param group_barcodes:<list Default = None>
-			List of barcodes that representing cells belonging to a same
+    List of barcodes that representing cells belonging to a same
             sample group. (e.g. Cell types / Cell states)
 
         :return: dict of grn.GRN objects.
@@ -164,7 +165,7 @@ class Reconstruct(object):
                         # leave peaks not having annotations
                         if ann is None: continue
                         if ann['gene']:
-                            sample_grn.genes[ann['id']].peak_count += count
+                            sample_grn.genes[ann['id']].peaks += count
                         if ann['promoter']:
                             sample_grn.genes[ann['id']].promoter_peaks += count
                         if not ann['gene'] and not ann['promoter']:
@@ -186,7 +187,7 @@ class Reconstruct(object):
         Add genes included in the template GRN but absent in a sample GRN.
 
         :param sample_grn:<class fatez.lib.grn.GRN Default = None>
-			A GRN object need to be double-checked that every gene in the
+            A GRN object need to be double-checked that every gene in the
             template GRN is included.
         """
         for gene in self.template.genes:

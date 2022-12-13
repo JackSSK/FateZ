@@ -21,7 +21,8 @@ class Template_GRN(grn.GRN):
 
     def load_genes(self,
         gff_path:str = None,
-        promoter_upstream:int = 250,
+        promoter_upstream:int = 1000,
+        promoter_downstream:int = 500,
         **kwargs):
         """
         Load in genes from given GFF file.
@@ -35,18 +36,19 @@ class Template_GRN(grn.GRN):
         self.ref_gff = gff_path
         gff_obj = self.get_gff()
         self.genes = gff_obj.get_genes_gencode(**kwargs)
-        self._add_promoter_info(promoter_upstream = promoter_upstream)
+        self._add_promoter_info(promoter_upstream, promoter_downstream)
         gff_obj.close()
         return
 
-    def _add_promoter_info(self, promoter_upstream:int = 250,):
+    def _add_promoter_info(self, upstream:int = 1000, downstream:int = 500):
         for k, v in self.genes.items():
             # For genes on pos strand
             if v.strand == '+':
-                v.promoter=(max(v.start_pos-promoter_upstream, 0), v.start_pos)
+                t = (max(v.position[0]-upstream, 0), v.position[0] + downstream)
             # For genes on negative strand
             elif v.strand == '-':
-                v.promoter = (v.end_pos, v.end_pos + promoter_upstream)
+                t = (max(v.position[1]-downstream, 0), v.position[1] + upstream)
+            v.promoter = t
         return
 
     def load_cres(self, path:str = None):
@@ -59,29 +61,23 @@ class Template_GRN(grn.GRN):
         """
         return gff.Reader(self.ref_gff)
 
-    def get_genetic_regions(self, promoter_upstream:int = 250):
+    def get_genetic_regions(self,):
         """
         Make a dictionary storing locations for every genetic feature.
         """
         self.regions = dict()
-        self._get_gene_loc(self.genes, promoter_upstream)
+        self._get_gene_loc(self.genes,)
         if hasattr(self, 'cres'): self._get_cre_loc(rec_dict = self.cres,)
         # Sort regions by start position
         for k,v in self.regions.items(): v.sort(key = lambda x:x['pos'][0])
         return
 
-    def _get_gene_loc(self, rec_dict, promoter_upstream:int = 250,):
+    def _get_gene_loc(self, rec_dict,):
         """
         Populate the region dict with genes.
         """
         for id, rec in rec_dict.items():
-            promoter=list(set([rec.start_pos, rec.end_pos]) & set(rec.promoter))
-            assert len(promoter) == 1
-            data = {
-                'pos':(rec.start_pos, rec.end_pos),
-                'promoter_pos':promoter[0],
-                'id':id,
-            }
+            data = {'pos':rec.position, 'promoter':rec.promoter, 'id':id,}
             if rec.chr not in self.regions:
                 self.regions[rec.chr] = [data]
             else:
@@ -93,29 +89,9 @@ class Template_GRN(grn.GRN):
         Populate the region dict with CRE info.
         """
         for id, rec in rec_dict.items():
-            data = {
-                'pos':(rec.start_pos, rec.end_pos), 'promoter_pos':-1, 'id':id,
-            }
+            data = {'pos':rec.position, 'promoter':False, 'id':id,}
             if rec.chr not in self.regions:
                 self.regions[rec.chr] = [data]
             else:
                 self.regions[rec.chr].append(data)
         return
-
-
-
-
-# Main function for testing purpose
-if __name__ == '__main__':
-    gff_path = '../data/mouse/gencode.vM25.basic.annotation.gff3.gz'
-    template_id = 'GRCm38_template'
-    out_path = '../data/mouse/template.js.gz'
-    gff_path = '../data/human/gencode.v42.basic.annotation.gff3.gz'
-    template_id = 'GRCh38_template'
-    out_path = '../data/human/template.js.gz'
-
-    template = Template_GRN(id = template_id)
-    template.load_genes(gff_path = gff_path)
-    template.load_cres()
-    template.get_genetic_regions(promoter_upstream = 250)
-    template.save(save_path = out_path)
