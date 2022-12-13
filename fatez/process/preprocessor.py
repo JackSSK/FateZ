@@ -15,6 +15,7 @@ from pkg_resources import resource_filename
 import numpy as np
 from Bio import motifs
 import fatez.tool.gff as gff
+import fatez.tool.transfac as transfac
 
 class Preprocess():
     """
@@ -172,24 +173,27 @@ class Preprocess():
 
 
         ###
-    def find_motifs_binding(self,region_use):
+    def find_motifs_binding(self, specie:str = 'mouse', region_use, ):
         ### load tf motif relationships
-        data_path = '../data/mouse/Transfac201803_MotifTFsF.txt'
-        path = resource_filename(__name__, data_path)
-        Motif_db = pd.read_table(path)
+        path = resource_filename(
+            __name__, '../data/' + specie +'/Transfac201803_MotifTFsF.txt.gz'
+        )
         ### make TFs motifs dict
-        TF_motif_dict = {}
-        for i in Motif_db.index:
-            TFs = Motif_db.iloc[i, :][3]
-            TF_list = TFs.split(';')
-            Motif = Motif_db.iloc[i, :][0]
-            for i  in TF_list:
-                if i in TF_motif_dict.keys():
-                    TF_motif_dict[i].append(Motif)
-                else:
-                    TF_motif_dict[i] = [Motif]
-        ### load TRANSFAC PWM
+        tf_motifs = transfac.Reader(path = path).get_tfs()
+        print(tf_motifs)
         
+        # TF_motif_dict = {}
+        # for i in motif_db.index:
+        #     TFs = motif_db.iloc[i, :][3]
+        #     TF_list = TFs.split(';')
+        #     Motif = motif_db.iloc[i, :][0]
+        #     for i  in TF_list:
+        #         if i in TF_motif_dict.keys():
+        #             TF_motif_dict[i].append(Motif)
+        #         else:
+        #             TF_motif_dict[i] = [Motif]
+        ### load TRANSFAC PWM
+
         ### check TFs
 
         ### match motifs

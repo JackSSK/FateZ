@@ -25,13 +25,7 @@ class Reconstruct(object):
     def annotate_peaks(self, features:list = None,):
         """
         Annotate Peaks with Gene and CRE information from template GRN.
-
-        Note: This version won't need features to be sorted by start pos.
-
-        ToDo: During pre-process, make sure features are sorted by start pos
-        and stored into DataFrame format as MEX feature.tsc.gz would lead to.
-        Therefore, we can set a pointer while iterating region records and
-        make sure there is no need to look back.
+        Note: This version WILL need features to be sorted by start pos.
 
         :param features:<class pandas.DataFrame Default = None>
 			DataFrame of features
@@ -50,14 +44,15 @@ class Reconstruct(object):
                 annotations[id] = None
                 temp = id.split(':')
                 chr = temp[0]
+
+                # Skip weitd Chr
                 if chr not in self.template.regions: continue
                 # Reset pointer while entering new chr
                 if chr != cur_chr:
                     cur_chr = chr
                     cur_index = 0
                 # Skip rest of peaks in current chr
-                elif chr == cur_chr and skip_chr:
-                    continue
+                elif chr == cur_chr and skip_chr: continue
 
                 # Get peak position
                 start = int(temp[1].split('-')[0])
@@ -85,6 +80,7 @@ class Reconstruct(object):
                             if tss in peak:
                                 annotations[id]['promoter'] = True
                         break
+
                     # What if peak only in promoter region
                     elif (ele['promoter_pos'] != -1 and
                             ele['promoter_pos'] in peak):
@@ -94,21 +90,25 @@ class Reconstruct(object):
                             'gene':False,
                         }
                         break
-                    # No need to check others if filling into region gap
-                    if cur_index > 0:
-                        prev_ele = self.template.regions[chr][cur_index-1]
-                        pre_max = max(
-                            prev_ele['pos'].right, prev_ele['promoter_pos']
-                        )
-                        cur_min = min(ele['pos'].left, ele['promoter_pos'])
-                        if peak.left >= pre_max and peak.right <= cur_min:
-                            break
-                    # Go for next
+
+                    # No need to check others if fail to reach minimum value of
+                    # current record
+                    if peak.right <= min(ele['pos'].left, ele['promoter_pos']):
+                        break
+
                     cur_index += 1
+                    # Everything comes next will not fit, then skip this chr
+                    if (cur_index == len(self.template.regions[chr]) and
+                        peak.left >= max(ele['pos'].right,ele['promoter_pos'])):
+                        skip_chr = True
+                    elif cur_index == len(self.template.regions[chr]):
+                        cur_index -= 1
+                        break
         return annotations
 
     def paired_multi_MEX(self,
         mex_reader:mex.Reader = None,
+        peak_annotations:dict = None,
         group_barcodes:list = None,
         ):
         """
@@ -116,6 +116,9 @@ class Reconstruct(object):
 
         :param mex_reader:<class fatez.tool.mex.Reader Default = None>
 			A reader object that fed with MEX information.
+
+        :param peak_annotations:<dict Default = None>
+			The annotations for each peak.
 
         :param group_barcodes:<list Default = None>
 			List of barcodes that representing cells belonging to a same
@@ -127,7 +130,8 @@ class Reconstruct(object):
         1. Infer GRPs with motif enrichment -> probably go by another object
         """
         answer = dict()
-        peak_annotations = self.annotate_peaks(mex_reader.features)
+        if peak_annotations is None:
+            peak_annotations = self.annotate_peaks(mex_reader.features)
         # Maybe take seperate_matrices() operation outside later
         matrices = mex_reader.seperate_matrices()
 

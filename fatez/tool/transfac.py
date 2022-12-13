@@ -27,14 +27,20 @@ class Reader(tool.Reader_Template):
             elif line[:1] == '#':
                 continue
             content = line.split('\t')
+            motif = content[0]
             symbols = content[3].split(';')
             ids = content[4].split(';')
             for id in ids:
                 if id not in tfs:
-                    tfs[id] = symbols
+                    tfs[id] = {'names':symbols, 'motif':[motif],}
+                else:
+                    assert motif not in tfs[id]['motif']
+                    tfs[id]['names']=list(set(symbols) & set(tfs[id]['names']))
+                    tfs[id]['motif'].append(motif)
         self.close()
         return tfs
 
-# Example
-if __name__ == '__main__':
-    tfs = Reader('../data/mouse/Tranfac201803_MotifTFsF.txt.gz').get_tfs()
+# # Example
+# if __name__ == '__main__':
+#     tfs = Reader('../data/mouse/Transfac201803_MotifTFsF.txt.gz').get_tfs()
+#     print(tfs)
