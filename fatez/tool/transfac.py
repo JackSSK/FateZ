@@ -36,6 +36,5 @@ class Reader(tool.Reader_Template):
         return tfs
 
 # Example
-# if __name__ == '__main__':
-#     reader = Reader('../data/mouse/Transfac201803_Mm_MotifTFsF.txt')
-#     tfs = reader.get_tfs()
+if __name__ == '__main__':
+    tfs = Reader('../data/mouse/Tranfac201803_MotifTFsF.txt.gz').get_tfs()
