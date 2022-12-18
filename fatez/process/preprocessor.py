@@ -13,6 +13,7 @@ import anndata as ad
 from scipy import stats
 from pkg_resources import resource_filename
 import numpy as np
+import pandas as pd
 from Bio import motifs
 import fatez.tool.gff as gff
 import fatez.tool.transfac as transfac
@@ -173,15 +174,16 @@ class Preprocess():
 
 
         ###
-    def find_motifs_binding(self, specie:str = 'mouse', region_use, ):
+    def find_motifs_binding(self, specie:str = 'mouse', region_use, gene,peak):
         ### load tf motif relationships
         path = resource_filename(
             __name__, '../data/' + specie +'/Transfac201803_MotifTFsF.txt.gz'
         )
         ### make TFs motifs dict
         tf_motifs = transfac.Reader(path = path).get_tfs()
-        print(tf_motifs)
+        motifs_use = tf_motifs[gene]['motif']
 
+        # motif_db = pd.read_table(path)
         # TF_motif_dict = {}
         # for i in motif_db.index:
         #     TFs = motif_db.iloc[i, :][3]
@@ -192,11 +194,25 @@ class Preprocess():
         #             TF_motif_dict[i].append(Motif)
         #         else:
         #             TF_motif_dict[i] = [Motif]
+
         ### load TRANSFAC PWM
-
-        ### check TFs
-
-        ### match motifs
+        pwm_path = resource_filename(
+            __name__, '../data/' + specie +'/Transfac_PWM.txt'
+        )
+        handle = open(pwm_path)
+        record = motifs.parse(handle, "TRANSFAC")
+        handle.close()
+        score_all = 0
+        ### motif discovering
+        for i in motifs_use:
+            score_dict[i] = []
+            motif_use_name = i[1:5]
+            motif = record[int(motif_use_name)]
+            pwm = motif.counts.normalize()
+            pssm = pwm.log_odds()
+            for position, score in pssm.search(peak, threshold=3.0):
+                score_all += score
+        return [gene,score_all]
 
     def  __generate_grp(self):
         ### grp
