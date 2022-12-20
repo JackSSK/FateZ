@@ -19,31 +19,31 @@ class CRE(GRN_Basic):
 	"""
 	def __init__(self,
 		chr:str = None,
-		start_pos:int = 0,
-		end_pos:int = 0,
-		peak_count:float = 0.0,
+		position:list = [0, 0],
+		strand:str = '+',
+		peaks:float = 0.0,
 		**kwargs,
 		):
 		"""
 		:param chr: <str Default = None>
 			Chromosomal location of the CRE
 
-		:param start_pos: <int Default = 0>
-			Start position of the CRE.
+		:param position: <list Default = [0.0]>
+			Genomic position of the CRE.
+			[Start position, End position]
 
-		:param end_pos: <int Default = 0>
-			End position of the CRE.
+		:param strand: <str Default = '+'>
+			Which strand the CRE is located.
 
-		:param peak_count: <float Default = None>
+		:param peaks: <float Default = None>
 			Peak-calling result of the CRE.
 		"""
 		super(CRE, self).__init__()
-		self.id = chr + ':' + str(start_pos) + '-' + str(end_pos)
-		self.chr = None
-		self.start_pos = None
-		self.end_pos = None
-		self.strand = None
-		self.peak_count = peak_count
+		self.id = chr + ':' + str(position[0]) + '-' + str(position[1])
+		self.chr = chr
+		self.position = position
+		self.strand = strand
+		self.peaks = peaks
 		# if there are other args
 		for key in kwargs: setattr(self, key, kwargs[key])
 
@@ -59,7 +59,7 @@ class Gene(GRN_Basic):
 		# type:str = 'Gene',
 		# gff_coordinates:list = list(),
 		rna_exp:float = 0.0,
-		peak_count:float = 0.0,
+		peaks:float = 0.0,
 		promoter_peaks:float = 0.0,
 		# cre_regions:list = list(),
 		**kwargs
@@ -80,7 +80,7 @@ class Gene(GRN_Basic):
 		:param rna_exp: <float Default = 0.0>
 			Transcriptomic expression of gene.
 
-		:param peak_count: <float Default = 0.0>
+		:param peaks: <float Default = 0.0>
 			Peak-calling result of the gene.
 
 		:param promoter_peaks: <float Default = 0.0>
@@ -96,7 +96,7 @@ class Gene(GRN_Basic):
 		# self.type = type
 		# self.gff_coordinates = gff_coordinates
 		self.rna_exp = rna_exp
-		self.peak_count = peak_count
+		self.peaks = peaks
 		self.promoter_peaks = promoter_peaks
 		# self.cre_regions = cre_regions
 		# if there are other args
@@ -286,12 +286,7 @@ class GRN(GRN_Basic):
 		if 'regions' in data:
 			self.regions = dict()
 			for chr, recs in data['regions'].items():
-				self.regions[chr] = list()
-				for region in recs:
-					region['pos'] = pd.Interval(
-                        region['pos'][0], region['pos'][1], closed = 'both',
-                    )
-					self.regions[chr].append(region)
+				self.regions[chr] = [x for x in recs]
 		# Load other attrs if there is any
 		for k in data:
 			if k not in ['id','genes','grps','cres','regions']:

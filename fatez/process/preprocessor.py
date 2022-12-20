@@ -13,8 +13,10 @@ import anndata as ad
 from scipy import stats
 from pkg_resources import resource_filename
 import numpy as np
+import pandas as pd
 from Bio import motifs
 import fatez.tool.gff as gff
+import fatez.tool.transfac as transfac
 
 class Preprocess():
     """
@@ -65,8 +67,8 @@ class Preprocess():
 
             symbol_list.append(gff_template.genes[i].symbol)
             gene_chr_list.append(gff_template.genes[i].chr)
-            gene_start_list.append(gff_template.genes[i].start_pos)
-            gene_end_list.append(gff_template.genes[i].end_pos)
+            gene_start_list.append(gff_template.genes[i].position[0])
+            gene_end_list.append(gff_template.genes[i].position[1])
 
         if self.rna_mt[0][0:3] == 'ENS':
             row_name_list = gff_template.genes.keys()
@@ -172,27 +174,45 @@ class Preprocess():
 
 
         ###
-    def find_motifs_binding(self,region_use):
+    def find_motifs_binding(self, specie:str = 'mouse', region_use, gene,peak):
         ### load tf motif relationships
-        data_path = '../data/mouse/Transfac201803_MotifTFsF.txt'
-        path = resource_filename(__name__, data_path)
-        Motif_db = pd.read_table(path)
+        path = resource_filename(
+            __name__, '../data/' + specie +'/Transfac201803_MotifTFsF.txt.gz'
+        )
         ### make TFs motifs dict
-        TF_motif_dict = {}
-        for i in Motif_db.index:
-            TFs = Motif_db.iloc[i, :][3]
-            TF_list = TFs.split(';')
-            Motif = Motif_db.iloc[i, :][0]
-            for i  in TF_list:
-                if i in TF_motif_dict.keys():
-                    TF_motif_dict[i].append(Motif)
-                else:
-                    TF_motif_dict[i] = [Motif]
-        ### load TRANSFAC PWM
-        
-        ### check TFs
+        tf_motifs = transfac.Reader(path = path).get_tfs()
+        motifs_use = tf_motifs[gene]['motif']
 
-        ### match motifs
+        # motif_db = pd.read_table(path)
+        # TF_motif_dict = {}
+        # for i in motif_db.index:
+        #     TFs = motif_db.iloc[i, :][3]
+        #     TF_list = TFs.split(';')
+        #     Motif = motif_db.iloc[i, :][0]
+        #     for i  in TF_list:
+        #         if i in TF_motif_dict.keys():
+        #             TF_motif_dict[i].append(Motif)
+        #         else:
+        #             TF_motif_dict[i] = [Motif]
+
+        ### load TRANSFAC PWM
+        pwm_path = resource_filename(
+            __name__, '../data/' + specie +'/Transfac_PWM.txt'
+        )
+        handle = open(pwm_path)
+        record = motifs.parse(handle, "TRANSFAC")
+        handle.close()
+        score_all = 0
+        ### motif discovering
+        for i in motifs_use:
+            score_dict[i] = []
+            motif_use_name = i[1:5]
+            motif = record[int(motif_use_name)]
+            pwm = motif.counts.normalize()
+            pssm = pwm.log_odds()
+            for position, score in pssm.search(peak, threshold=3.0):
+                score_all += score
+        return [gene,score_all]
 
     def  __generate_grp(self):
         ### grp
