@@ -8,6 +8,6 @@ class Reader(tool.Reader_Template):
     """
     def get_fasta(self):
         fa_seq = {}
-        for seq_record in SeqIO.parse(ref_seq_path, "fasta"):
+        for seq_record in SeqIO.parse(self.path, "fasta"):
             fa_seq[seq_record.id] = seq_record.seq
         return fa_seq
