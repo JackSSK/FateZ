@@ -28,7 +28,7 @@ class Reconstruct(object):
         Note: This version WILL need features to be sorted by start pos.
 
         :param features:<class pandas.DataFrame Default = None>
-    DataFrame of features
+            DataFrame of features
 
         :return <class 'dict'>
         """
@@ -116,13 +116,13 @@ class Reconstruct(object):
         Reconstruct sample GRNs with paired multiomic seq data in MEX format.
 
         :param mex_reader:<class fatez.tool.mex.Reader Default = None>
-    A reader object that fed with MEX information.
+            A reader object that fed with MEX information.
 
         :param peak_annotations:<dict Default = None>
-    The annotations for each peak.
+            The annotations for each peak.
 
         :param group_barcodes:<list Default = None>
-    List of barcodes that representing cells belonging to a same
+            List of barcodes that representing cells belonging to a same
             sample group. (e.g. Cell types / Cell states)
 
         :return: dict of grn.GRN objects.
