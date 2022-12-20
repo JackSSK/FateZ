@@ -40,6 +40,24 @@ class Reader(tool.Reader_Template):
         self.close()
         return tfs
 
+    def get_motifs(self):
+        """
+        Obtain TF information.
+        """
+        motifs = dict()
+        while(True):
+            line = self.file.readline().strip()
+            if line == '':
+                break
+            elif line[:1] == '#':
+                continue
+            content = line.split('\t')
+            motif = content[0]
+            symbols = content[3].split(';')
+            ids = content[4].split(';')
+            motifs[motif] = {'names':symbols,'id':ids}
+        self.close()
+        return motifs
 # # Example
 # if __name__ == '__main__':
 #     tfs = Reader('../data/mouse/Transfac201803_MotifTFsF.txt.gz').get_tfs()
