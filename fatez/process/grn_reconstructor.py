@@ -51,6 +51,7 @@ class Reconstruct(object):
                 if chr != cur_chr:
                     cur_chr = chr
                     cur_index = 0
+                    skip_chr = False
                 # Skip rest of peaks in current chr
                 elif chr == cur_chr and skip_chr: continue
 
@@ -76,19 +77,40 @@ class Reconstruct(object):
 
                     # Check overlaps
                     if peak.overlaps(position):
+                        overlap_region = [
+                            max(peak.left, position.left),
+                            min(peak.right, position.right),
+                        ]
+
                         annotations[id] = {
-                            'id':ele['id'], 'promoter':False, 'gene':False,
+                            'id':ele['id'],
+                            'gene':False,
+                            'cre':False,
+                            'promoter':False,
                         }
                         # Check whether there is promoter count
                         if ele['promoter']:
-                            annotations[id]['gene'] = True
-                            annotations[id]['promoter']=peak.overlaps(promoter)
+                            annotations[id]['gene'] = overlap_region
+                            if peak.overlaps(promoter):
+                                annotations[id]['promoter'] = [
+                                    max(peak.left, promoter.left),
+                                    min(peak.right, promoter.right),
+                                ]
+                        # If not having promoter, it should be a CRE
+                        else:
+                            annotations[id]['cre'] = overlap_region
                         break
 
                     # What if peak only in promoter region
                     elif ele['promoter'] and peak.overlaps(promoter):
                         annotations[id] = {
-                            'id':ele['id'], 'promoter':True, 'gene':False,
+                            'id':ele['id'],
+                            'gene':False,
+                            'cre':False,
+                            'promoter':[
+                                max(peak.left, promoter.left),
+                                min(peak.right, promoter.right),
+                            ],
                         }
                         break
 
@@ -168,7 +190,7 @@ class Reconstruct(object):
                             sample_grn.genes[ann['id']].peaks += count
                         if ann['promoter']:
                             sample_grn.genes[ann['id']].promoter_peaks += count
-                        if not ann['gene'] and not ann['promoter']:
+                        if ann['cre']:
                             print('CRE part still developing')
 
                 # Add sample _grn
