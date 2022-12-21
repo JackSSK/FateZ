@@ -11,20 +11,21 @@ import random
 import scanpy as sc
 import anndata as ad
 from scipy import stats
+from scipy.sparse import vstack
 from pkg_resources import resource_filename
 import numpy as np
 import pandas as pd
 from Bio import motifs
-import fatez.tool.gff as gff
+import fatez.tool.gff as gff1
 import fatez.tool.transfac as transfac
 import fatez.tool.sequence as seq
-class Preprocesser():
+class Preprocessor():
     """
     Preprocessing the scRNA-seq and scATAC-seq data to get
     linkages between peaks and genes.
     Criteria: (1) Peak region overlap Gene region
     """
-    def __int__(self,
+    def __init__(self,
         rna_path:str = None,
         atac_path:str = None,
         gff_path:str = None
@@ -48,7 +49,8 @@ class Preprocesser():
 
 
 
-    def load_data(self,rna_min_genes,rna_min_cells,rna_max_cells,rna_mt_counts):
+    def load_data(self,rna_min_genes:int=3,rna_min_cells:int=200,
+                  rna_max_cells:int=2000,rna_mt_counts:int=5):
 
         ### load rna
         sc.settings.verbosity = 3
@@ -69,8 +71,8 @@ class Preprocesser():
         self.rna_mt = self.rna_mt[self.rna_mt.obs.pct_counts_mt < rna_mt_counts, :]
 
         ### load gff
-        gff = gff.Reader(self.gff_path)
-        gff_template = gff.get_genes_gencode(id='GRCm38_template')
+        gff = gff1.Reader(self.gff_path)
+        gff_template = gff.get_genes_gencode()
 
         symbol_list = []
         gene_chr_list = []
@@ -116,22 +118,32 @@ class Preprocesser():
         chr1 = peak_df.iloc[0,0]
         start1 = peak_df.iloc[0,1]
         end1 = peak_df.iloc[0,2]
+        peak_count1 = self.atac_mt[:,0]
         ###
         final_chr = []
         final_start = []
         final_end = []
+        final_atac_mt = self.atac_mt[:,0]
+
         for i in peak_df.index:
+
             ### set target peak
-            chr2 = peak_df.loc[i,0]
-            start2 = peak_df.loc[i,1]
-            end2 = peak_df.loc[i,2]
+            chr2 = peak_df.iloc[i,0]
+            start2 = peak_df.iloc[i,1]
+            end2 = peak_df.iloc[i,2]
+            peak_count2 = self.atac_mt[:,i]
+
             ### merge peak
-            if chr1 == chr2 & ((start1>=start1 & start1<=end2) | (end1>=start2 & end1<=end2) |
-                               (start1<=start2 & end1 >end2) | (start2>end1 & (end2-start1) < width*2 ) |
-                               (start1>end2 & (end1-start2) < width*2 ) ):
+            if (chr1 == chr2) & (((start1>=start2) & (start1<=end2)) | ((end1>=start2) & (end1<=end2)) |
+                               ((start1<=start2) & (end1 >end2)) | ((start2>end1) & ((end2-start1) < width*2) ) |
+                               ((start1>end2) & ((end1-start2) < width*2) ) ):
                 new_region = sorted([start1,end1,start2,end2])
                 start1 = new_region[0]
+
                 end1 = new_region[3]
+
+                ### merge peak count
+                peak_count1 = peak_count1 + peak_count2
             else:
                 ### fix peak region
                 new_start = start1 + int((end1-start1)/2) - width
@@ -140,12 +152,20 @@ class Preprocesser():
                     new_start = 1
                     new_end = width*2
                 final_chr.append(chr1)
-                final_start.append(start1)
-                final_end.append(end1)
+                final_start.append(new_start)
+                final_end.append(new_end)
+                final_atac_mt = vstack(final_atac_mt,peak_count1)
                 ### keep iterating
                 chr1 = chr2
                 start1 =start2
                 end1 = end2
+
+        ### add the final row
+        final_chr.append(peak_df.iloc[len(peak_df.index)-1,0])
+        final_start.append(peak_df.iloc[len(peak_df.index)-1,1])
+        final_end.append(peak_df.iloc[len(peak_df.index)-1,2])
+        final_atac_mt = vstack(final_atac_mt, (len(self.atac_mt.var_names)-1))
+
         self.gene_region_df = pd.DataFrame({'chr': final_chr, 'start': final_start,
                                             'end': final_end}, index=row_name_list)
 
@@ -154,32 +174,43 @@ class Preprocesser():
     def make_pseudo_networks(self,
         network_cell_size:int = 10,
         data_type:str = None,
-        network_number:int = 10
+        network_number:int = 10,
+        method = 'sample_cells'
         ):
+        """
+        Because of the sparsity of single cell data and data asymmetry,
+        pick up several cells to make pseudo cell help to increase model
+        accuracy, and to significantly reduce running time. This function
+        provides two strategies to make pseudo cell: 'sample_cells' and
+        'slidewindow'
+        """
         ### sample cells
+        if method == 'sample_cells':
+            for i in range(network_number):
+                    ### sample cells
+                    if data_type == 'paired':
+                        rna_cell_use = self.rna_mt.obs_names[random.sample(range(len(self.rna_mt.obs_names)),
+                                                                           network_cell_size)]
+                        atac_cell_use = rna_cell_use
 
-        for i in range(network_number):
-            ### sample cells
-            if data_type == 'paired':
-                rna_cell_use = self.rna_mt.obs_names[random.sample(range(len(self.rna_mt.obs_names)),
+                    if data_type == 'unpaired':
+                        rna_cell_use = self.rna_mt.obs_names[random.sample(range(len(self.rna_mt.obs_names)),
+                                                                           network_cell_size)]
+                        atac_cell_use = self.atac_mt.obs_names[random.sample(range(len(self.atac_mt.obs_names)),
                                                                    network_cell_size)]
-                atac_cell_use = rna_cell_use
+                    rna_pseudo_netowrk = self.rna_mt[rna_cell_use]
+                    atac_pseudo_network = self.atac_mt[atac_cell_use]
+                    self.pseudo_network.append([rna_pseudo_netowrk,atac_pseudo_network])
+        elif method == 'slidewindow':
+            print('under development')
 
-            if data_type == 'unpaired':
-                rna_cell_use = self.rna_mt.obs_names[random.sample(range(len(self.rna_mt.obs_names)),
-                                                                   network_cell_size)]
-                atac_cell_use = self.atac_mt.obs_names[random.sample(range(len(self.atac_mt.obs_names)),
-                                                           network_cell_size)]
-            rna_pseudo_netowrk = self.rna_mt[rna_cell_use]
-            atac_pseudo_network = self.atac_mt[atac_cell_use]
-            self.pseudo_network.append([rna_pseudo_netowrk,atac_pseudo_network])
 
 
 
 
 
     def find_linkages(self, overlap_size=250, cor_thr = 0.6):
-        
+
         ### find overlap
         gene_chr_type = list(set())
         gene_overlapped_peaks = {}
@@ -203,7 +234,7 @@ class Preprocesser():
                     peak_end = int(peak_df_use.loc[j]['end'])
 
                     if self.__is_overlapping(gene_start,gene_start+overlap_size,
-                                     peak_start,peak_end)):
+                                     peak_start,peak_end):
                     ### calculate correlation between gene count and peak count
                         rna_count = rna_network[:,row].X.todense()
                         atac_count = atac_network[:,j].X.todense()
@@ -232,7 +263,7 @@ class Preprocesser():
 
 
         ###
-    def find_motifs_binding(self, specie:str = 'mouse',ref_seq_path:str, peak_list:list):
+    def find_motifs_binding(self, specie:str = 'mouse',ref_seq_path:str='a',peak_list:list=[]):
         """
         This function calculate binding score for all motifs
         in specific regions (overlap region between peak and
@@ -293,7 +324,7 @@ class Preprocesser():
 
 
     def __get_tf_related_motif(self):
-
+        print('under development')
 
     def  __generate_grp(self):
         ### grp

@@ -157,3 +157,4 @@ cython_debug/
 .idea/vcs.xml
 .idea/workspace.xml
 cache/D-Westlake-pwk lab-fatez-hg19-matrix.h5ad
+fatez/test/cache/D-Westlake-pwk lab-fatez-hg19-matrix.h5ad
