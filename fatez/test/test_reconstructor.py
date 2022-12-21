@@ -42,6 +42,12 @@ if __name__ == '__main__':
         features_path = '../data/human/filtered_PBMC/features.tsv.gz',
         barcodes_path = '../data/human/filtered_PBMC/barcodes.tsv.gz'
     )
+
+    ####################################################################
+    peak_annotations = reconstructor.annotate_peaks(data.features)
+    # print(peak_annotations)
+    ####################################################################
+
     grns = reconstructor.paired_multi_MEX(
         data, group_barcodes = ['AAACAGCCAAATATCC-1']
     )
