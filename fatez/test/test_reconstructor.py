@@ -45,12 +45,14 @@ if __name__ == '__main__':
 
     ####################################################################
     peak_annotations = reconstructor.annotate_peaks(data.features)
-    # JSON.encode(peak_annotations, 'a.js')
+    gene_peak_annotations = grn_recon.Reverse_Peaks_Ann(peak_annotations)
+    JSON.encode(peak_annotations, 'a.js')
+    JSON.encode(gene_peak_annotations, 'b.js')
 
     ####################################################################
 
-    grns = reconstructor.paired_multi_MEX(
-        data, group_barcodes = ['AAACAGCCAAATATCC-1']
-    )
-    for k,v in grns.items():
-        v.save('../data/sample_grn.js.gz')
+    # grns = reconstructor.paired_multi_MEX(
+    #     data, group_barcodes = ['AAACAGCCAAATATCC-1']
+    # )
+    # for k,v in grns.items():
+    #     v.save('../data/sample_grn.js.gz')
