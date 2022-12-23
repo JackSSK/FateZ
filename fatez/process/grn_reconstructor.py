@@ -12,6 +12,28 @@ import fatez.lib.grn as grn
 import fatez.tool.mex as mex
 
 
+def Reverse_Peaks_Ann(annotations):
+    """
+    Make annotation dict with gene IDs as keys.
+
+    :param annotations:<dict Default = None>
+        The annotation dict returned from Reconstruct.annotate_peaks()
+    """
+    answer = dict()
+    for peak, rec in annotations.items():
+        if rec is None: continue
+
+        id = rec['id']
+        if id not in answer:
+            answer[id] = dict()
+
+        if rec['cre']:
+            answer[id][peak] = {'overlap':rec['cre']}
+        else:
+            answer[id][peak]={'overlap':rec['gene'], 'promoter':rec['promoter']}
+    return answer
+
+
 
 class Reconstruct(object):
     """
