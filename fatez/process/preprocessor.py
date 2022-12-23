@@ -345,8 +345,8 @@ class Preprocessor():
                     atac_pseudo_network.index = list(atac_pseudo.var_names.values)
                     atac_pseudo_network.columns = atac_pseudo.obs_names.values
 
-                    self.pseudo_network[i]['rna'] = rna_pseudo_network
-                    self.pseudo_network[i]['atac'] = atac_pseudo_network
+                    self.pseudo_network[i]['rna'] = rna_cell_use
+                    self.pseudo_network[i]['atac'] = atac_cell_use
         elif method == 'slidewindow':
             print('under development')
 
