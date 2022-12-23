@@ -12,25 +12,25 @@ from pkg_resources import resource_filename
 
 # Main function for testing purpose
 if __name__ == '__main__':
-    # gff_path = '../data/mouse/gencode.vM25.basic.annotation.gff3.gz'
-    # template_id = 'GRCm38_template'
-    # out_path = '../data/mouse/template.js.gz'
-    #
-    # template = tgrn.Template_GRN(id = template_id)
-    # template.load_genes(gff_path = gff_path)
-    # template.load_cres()
-    # template.get_genetic_regions()
-    # template.save(save_path = out_path)
-    #
-    # gff_path = '../data/human/gencode.v42.basic.annotation.gff3.gz'
-    # template_id = 'GRCh38_template'
-    # out_path = '../data/human/template.js.gz'
-    #
-    # template = tgrn.Template_GRN(id = template_id)
-    # template.load_genes(gff_path = gff_path)
-    # template.load_cres()
-    # template.get_genetic_regions()
-    # template.save(save_path = out_path)
+    gff_path = '../data/mouse/gencode.vM25.basic.annotation.gff3.gz'
+    template_id = 'GRCm38_template'
+    out_path = '../data/mouse/template.js.gz'
+
+    template = tgrn.Template_GRN(id = template_id)
+    template.load_genes(gff_path = gff_path)
+    template.load_cres()
+    template.get_genetic_regions()
+    template.save(save_path = out_path)
+
+    gff_path = '../data/human/gencode.v42.basic.annotation.gff3.gz'
+    template_id = 'GRCh38_template'
+    out_path = '../data/human/template.js.gz'
+
+    template = tgrn.Template_GRN(id = template_id)
+    template.load_genes(gff_path = gff_path)
+    template.load_cres()
+    template.get_genetic_regions()
+    template.save(save_path = out_path)
 
 
     template_grn = grn.GRN()
