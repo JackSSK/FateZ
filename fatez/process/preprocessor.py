@@ -6,6 +6,8 @@ Note: Try to keep line length within 81 Chars
 
 author: jjy
 """
+import time
+
 import pandas as pd
 import random
 import re
@@ -16,12 +18,10 @@ from scipy.sparse import vstack
 from pkg_resources import resource_filename
 import numpy as np
 import pandas as pd
-from Bio import motifs
 import fatez.tool.gff as gff1
 import fatez.tool.transfac as transfac
 import fatez.lib.template_grn as tgrn
-import fatez.tool.sequence as seq
-import itertools
+import fatez.process.grn_reconstructor as grn_recon
 class Preprocessor():
     """
     Preprocessing the scRNA-seq and scATAC-seq data to get
@@ -40,10 +40,12 @@ class Preprocessor():
         self.data_type = data_type
         self.rna_mt = list()
         self.atac_mt = list()
+        self.peak_count = dict()
         self.peak_annotations = dict()
         self.peak_region_df = pd.DataFrame()
         self.gene_region_df = pd.DataFrame()
         self.pseudo_network = dict()
+        self.peak_gene_links = dict()
 
     """
     :param rna_path: <class fatez.lib.preprocess.preprocess>
@@ -89,42 +91,47 @@ class Preprocessor():
             self.atac_mt = ad.read(self.atac_path)
 
         ### load gff
-        gff = gff1.Reader(self.gff_path)
-        gff_template = gff.get_genes_gencode()
-
-        symbol_list = []
-        gene_chr_list = []
-        gene_start_list = []
-        gene_end_list = []
-        for i in list(gff_template.genes.keys()):
-
-            symbol_list.append(gff_template.genes[i].symbol)
-            gene_chr_list.append(gff_template.genes[i].chr)
-            gene_start_list.append(gff_template.genes[i].position[0])
-            gene_end_list.append(gff_template.genes[i].position[1])
-
-        if self.rna_mt[0][0:3] == 'ENS':
-            row_name_list = gff_template.genes.keys()
-        else:
-            row_name_list = symbol_list
-
-        self.atac_h5ad = ad.read(self.atac_path)
-
-
-        peak_names = list(self.atac_h5ad.var_names)
+        # gff = gff1.Reader(self.gff_path)
+        # gff_template = gff.get_genes_gencode()
+        #
+        # symbol_list = []
+        # gene_chr_list = []
+        # gene_start_list = []
+        # gene_end_list = []
+        # for i in list(gff_template.genes.keys()):
+        #
+        #     symbol_list.append(gff_template.genes[i].symbol)
+        #     gene_chr_list.append(gff_template.genes[i].chr)
+        #     gene_start_list.append(gff_template.genes[i].position[0])
+        #     gene_end_list.append(gff_template.genes[i].position[1])
+        #
+        # if self.rna_mt[0][0:3] == 'ENS':
+        #     row_name_list = gff_template.genes.keys()
+        # else:
+        #     row_name_list = symbol_list
+        #
+        # self.atac_h5ad = ad.read(self.atac_path)
+        #
+        #
+        peak_names = list(self.atac_mt.var_names)
         chr_list = list()
         start_list = list()
         end_list = list()
-        ### extract chromosome start and end
+        # ### extract chromosome start and end
         for i in peak_names:
-            peak = i.split('_')
-            chr_list.append(peak[0])
-            start_list.append(peak[1])
-            end_list.append(peak[2])
+             peak = i.split(':')
+             peak1 = peak[1].split('-')
+             chr_list.append(peak[0])
+             start_list.append(peak1[0])
+             end_list.append(peak1[1])
 
         self.peak_region_df = pd.DataFrame({'chr':chr_list,'start':start_list,'end':end_list},index=peak_names)
-        self.gene_region_df = pd.DataFrame({'chr':gene_chr_list, 'start':gene_start_list,
-                                                                        'end':gene_end_list},index=row_name_list)
+        # self.gene_region_df = pd.DataFrame({'chr':gene_chr_list, 'start':gene_start_list,
+        #                                                                 'end':gene_end_list},index=row_name_list)
+        atac_array = self.atac_mt.X.toarray().T
+        for i in range(peak_names):
+            peak_name = peak_names[i]
+            self.peak_count[peak_name] = atac_array[i]
 
 
     def rna_qc(self,rna_min_genes:int=3,rna_min_cells:int=200,
@@ -137,38 +144,41 @@ class Preprocessor():
         self.rna_mt = self.rna_mt[self.rna_mt.obs.n_genes_by_counts < rna_max_cells, :]
         self.rna_mt = self.rna_mt[self.rna_mt.obs.pct_counts_mt < rna_mt_counts, :]
 
+
     def atac_qc(self,atac_min_features:int=3,atac_min_cells:int=100,
                 atac_max_cells:int=2000):
         sc.pp.filter_cells(self.atac_mt, min_genes=atac_min_features)
         sc.pp.filter_genes(self.atac_mt, min_cells=atac_min_cells)
-        self.atac_mt = self.atac_mt[self.atac_mt.obs.n_genes_by_counts < atac_max_cells, :]
-
+        #self.atac_mt = self.atac_mt[self.atac_mt.obs.n_genes_by_counts < atac_max_cells, :]
+        self.peak_region_df = self.peak_region_df.loc[list(self.atac_mt.var_names)]
+        ### peak_count dict
+        atac_array = self.atac_mt.X.toarray().T
 
     def merge_peak(self,width=250):
         """
         This function merge peaks and fix the peak length as 500bp,
         which is easier for downstream analysis.
         """
-        peak_df = self.gene_region_df
+        peak_df = self.peak_region_df
         ### set query peak. The first peak is query peak
         chr1 = peak_df.iloc[0,0]
-        start1 = peak_df.iloc[0,1]
-        end1 = peak_df.iloc[0,2]
-        peak_count1 = self.atac_mt[:,0]
+        start1 = int(peak_df.iloc[0,1])
+        end1 = int(peak_df.iloc[0,2])
+        atac_array = self.atac_mt.X.toarray().T
+        peak_count1 = atac_array[0]
         ###
         final_chr = []
         final_start = []
         final_end = []
-        final_atac_mt = self.atac_mt[:,0]
-
-        for i in peak_df.index:
+        row_name_list = []
+        peak_count_dict = {}
+        for i in range(len(peak_df.index)):
 
             ### set target peak
             chr2 = peak_df.iloc[i,0]
-            start2 = peak_df.iloc[i,1]
-            end2 = peak_df.iloc[i,2]
-            peak_count2 = self.atac_mt[:,i]
-
+            start2 = int(peak_df.iloc[i,1])
+            end2 = int(peak_df.iloc[i,2])
+            peak_count2 = atac_array[i]
             ### merge peak
             if (chr1 == chr2) & (((start1>=start2) & (start1<=end2)) | ((end1>=start2) & (end1<=end2)) |
                                ((start1<=start2) & (end1 >end2)) | ((start2>end1) & ((end2-start1) < width*2) ) |
@@ -187,21 +197,24 @@ class Preprocessor():
                 if new_start<1:
                     new_start = 1
                     new_end = width*2
+                row_name = chr1 + ':' + str(new_start) + '-' + str(new_end)
+                row_name_list.append(row_name)
                 final_chr.append(chr1)
                 final_start.append(new_start)
                 final_end.append(new_end)
-                final_atac_mt = vstack(final_atac_mt,peak_count1)
+                peak_name = peak_df.index[i]
+                peak_count_dict[peak_name] = peak_count1
                 ### keep iterating
                 chr1 = chr2
                 start1 =start2
                 end1 = end2
-
+                peak_count1 = peak_count2
         ### add the final row
-        final_chr.append(peak_df.iloc[len(peak_df.index)-1,0])
-        final_start.append(peak_df.iloc[len(peak_df.index)-1,1])
-        final_end.append(peak_df.iloc[len(peak_df.index)-1,2])
-        final_atac_mt = vstack(final_atac_mt, (len(self.atac_mt.var_names)-1))
-
+        # final_chr.append(peak_df.iloc[len(peak_df.index)-1,0])
+        # final_start.append(peak_df.iloc[len(peak_df.index)-1,1])
+        # final_end.append(peak_df.iloc[len(peak_df.index)-1,2])
+        # peak_count_dict[peak_df.index[len(peak_df.index)]] = atac_array[len(peak_df.index)]
+        self.peak_count = peak_count_dict
         self.gene_region_df = pd.DataFrame({'chr': final_chr, 'start': final_start,
                                             'end': final_end}, index=row_name_list)
 
@@ -304,6 +317,7 @@ class Preprocessor():
                         else:
                             cur_index -= 1
                             break
+        annotations = grn_recon.Reverse_Peaks_Ann(annotations)
         self.peak_annotations = annotations
 
 
@@ -334,16 +348,16 @@ class Preprocessor():
                                                                            network_cell_size)]
                         atac_cell_use = self.atac_mt.obs_names[random.sample(range(len(self.atac_mt.obs_names)),
                                                                    network_cell_size)]
-                    rna_pseudo = self.rna_mt[rna_cell_use]
-                    atac_pseudo = self.atac_mt[atac_cell_use]
-
-                    rna_pseudo_network = pd.DataFrame(rna_pseudo.X.todense().T)
-                    rna_pseudo_network.index = list(rna_pseudo.var_names.values)
-                    rna_pseudo_network.columns = rna_pseudo.obs_names.values
-
-                    atac_pseudo_network = pd.DataFrame(atac_pseudo.X.todense().T)
-                    atac_pseudo_network.index = list(atac_pseudo.var_names.values)
-                    atac_pseudo_network.columns = atac_pseudo.obs_names.values
+                    # rna_pseudo = self.rna_mt[rna_cell_use]
+                    # atac_pseudo = self.atac_mt[atac_cell_use]
+                    #
+                    # rna_pseudo_network = pd.DataFrame(rna_pseudo.X.todense().T)
+                    # rna_pseudo_network.index = list(rna_pseudo.var_names.values)
+                    # rna_pseudo_network.columns = rna_pseudo.obs_names.values
+                    #
+                    # atac_pseudo_network = pd.DataFrame(atac_pseudo.X.todense().T)
+                    # atac_pseudo_network.index = list(atac_pseudo.var_names.values)
+                    # atac_pseudo_network.columns = atac_pseudo.obs_names.values
 
                     self.pseudo_network[i]['rna'] = rna_cell_use
                     self.pseudo_network[i]['atac'] = atac_cell_use
@@ -352,6 +366,44 @@ class Preprocessor():
 
 
 
+
+
+    def cal_peak_gene_cor(self,cor_thr = 0.6):
+
+         for network in list(self.pseudo_network.keys()):
+             rna_pseudo_network,atac_pseudo_network = self.__generate_network(network)
+             rna_row_mean = rna_pseudo_network.mean(axis=1)
+             atac_row_mean = atac_pseudo_network.mean(axis=1)
+             self.peak_gene_links[network] = {}
+             for i in list(self.peak_annotations.keys()):
+                self.peak_gene_links[network][i] = {}
+                all_overlap_peaks = list(self.peak_annotations[i].keys())
+                peak_cor = []
+                peak_use = []
+                ### may have some bugs
+                for j in all_overlap_peaks:
+                    rna_count = rna_pseudo_network.loc[i,]
+                    atac_count = atac_pseudo_network.loc[j,]
+
+                    pg_cor = stats.pearsonr(rna_count,
+                                                atac_count)
+                    if pg_cor > cor_thr:
+                        peak_cor.append(pg_cor)
+                        peak_use.append(j)
+                peak_series = pd.Series(peak_cor,index=peak_use)
+                peak_series_abs = abs(peak_series)
+                if len(peak_series) !=1:
+                    cor_max_peak = peak_series_abs.sort_values().index[len(peak_series_abs)-1]
+                    cor_max = peak_series[cor_max_peak]
+                else:
+                    cor_max_peak = peak_series.index
+                    cor_max = peak_series[0]
+                peak_mean_count = rna_row_mean[i]
+                gene_mean_count = atac_row_mean[cor_max_peak]
+                self.peak_gene_links[network][i]['peak'] = cor_max_peak
+                self.peak_gene_links[network][i]['peak_correlation'] = cor_max
+                self.peak_gene_links[network][i]['peak_mean_count'] = peak_mean_count
+                self.peak_gene_links[network][i]['gene_mean_count'] = gene_mean_count
 
 
 
@@ -409,68 +461,21 @@ class Preprocessor():
 
 
         ###
-    def find_motifs_binding(self, specie:str = 'mouse',ref_seq_path:str='a'):
-        """
-        This function calculate binding score for all motifs
-        in specific regions (overlap region between peak and
-        gene promoter).
-        """
-        peak_list = list(self.peak_annotations.keys)
-        ### load tf motif relationships
-        path = resource_filename(
-            __name__, '../data/' + specie +'/Transfac201803_MotifTFsF.txt.gz'
-        )
-        ### make TFs motifs dict
-        tf_motifs = transfac.Reader(path = path).get_motifs()
-        motifs_use = [tf_motifs.keys()]
+    def __generate_network(self,network_name):
+        rna_cell_use = self.pseudo_network[network_name]['rna']
+        atac_cell_use = self.pseudo_network[network_name]['atac']
 
-        # motif_db = pd.read_table(path)
-        # TF_motif_dict = {}
-        # for i in motif_db.index:
-        #     TFs = motif_db.iloc[i, :][3]
-        #     TF_list = TFs.split(';')
-        #     Motif = motif_db.iloc[i, :][0]
-        #     for i  in TF_list:
-        #         if i in TF_motif_dict.keys():
-        #             TF_motif_dict[i].append(Motif)
-        #         else:
-        #             TF_motif_dict[i] = [Motif]
+        rna_pseudo = self.rna_mt[rna_cell_use]
+        atac_pseudo = self.atac_mt[atac_cell_use]
 
-        ### load reference seq
-        ref_seq = seq.Reader(path=ref_seq_path).get_fasta()
+        rna_pseudo_network = pd.DataFrame(rna_pseudo.X.todense().T)
+        rna_pseudo_network.index = list(rna_pseudo.var_names.values)
+        rna_pseudo_network.columns = rna_pseudo.obs_names.values
 
-        ### load TRANSFAC PWM
-        pwm_path = resource_filename(
-            __name__, '../data/' + specie +'/Transfac_PWM.txt'
-        )
-        handle = open(pwm_path)
-        record = motifs.parse(handle, "TRANSFAC")
-        handle.close()
-        score_all = 0
-        peak_motif_dict = {}
-        ### motif discovering
-        for peak in peak_list:
-            if self.peak_annotations[peak] != None:
-                peak2 = peak.split(':')
-                ### extract peak sequence
-                chr = peak2[0]
-                start = int(peak2.split('-')[0])
-                end = int(peak2.split('-')[1])
-                peak_sequence = ref_seq[chr][start-1:end]
-
-                motif_score_dict = {}
-                ### motif discovering
-                for i in motifs_use:
-
-                    score_dict[i] = []
-                    motif_use_name = i[1:5]
-                    motif = record[int(motif_use_name)]
-                    pwm = motif.counts.normalize()
-                    pssm = pwm.log_odds()
-                    for position, score in pssm.search(peak_sequence, threshold=0):
-                        motif_score_dict[i] = score
-                self.peak_annotations.keys[peak] = motif_score_dict
-
+        atac_pseudo_network = pd.DataFrame(atac_pseudo.X.todense().T)
+        atac_pseudo_network.index = list(atac_pseudo.var_names.values)
+        atac_pseudo_network.columns = atac_pseudo.obs_names.values
+        return rna_pseudo_network,atac_pseudo_network
 
     def __get_tf_related_motif(self):
         print('under development')
