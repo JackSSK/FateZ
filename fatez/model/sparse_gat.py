@@ -260,7 +260,6 @@ class Spare_GAT(nn.Module):
             x = torch.cat([att(x, adj_mat) for att in self.attentions], dim = 1)
             x = F.dropout(x, self.dropout, training = self.training)
             x = F.elu(self.last(x, adj_mat))
-            x = F.log_softmax(x, dim = 1)
             answer.append(x)
         answer = torch.stack(answer, 0)
         return answer

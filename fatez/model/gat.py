@@ -136,6 +136,7 @@ class GAT(nn.Module):
     def __init__(self,
         in_dim:int = None,
         en_dim:int = 2,
+        n_class:int = 2,
         n_hidden:int = 1,
         n_head:int = 1,
         lr:float = 0.005,
@@ -149,6 +150,9 @@ class GAT(nn.Module):
 
         :param en_dim:int = 2
             Number of each gene's encoded features.
+
+        :param n_class:int = None
+            Number of classes.
 
         :param n_hidden:int = None
             Number of hidden units.
@@ -201,6 +205,8 @@ class GAT(nn.Module):
             concat = False,
         )
 
+        self.decision_layer = nn.Linear(en_dim, n_class)
+
     def forward(self, samples):
         """
         :param samples:list = None
@@ -216,7 +222,18 @@ class GAT(nn.Module):
             x = torch.cat([att(x, adj_mat) for att in self.attentions], dim = 1)
             x = F.dropout(x, self.dropout, training = self.training)
             x = F.elu(self.last(x, adj_mat))
-            x = F.log_softmax(x, dim = 1)
             answer.append(x)
         answer = torch.stack(answer, 0)
         return answer
+
+    def activation(self, input):
+        """
+        Use activation layer
+        """
+        return F.log_softmax(input, dim = -1)
+
+    def decision(self, input):
+        """
+        Use decsion layer
+        """
+        return F.softmax(self.decision_layer(input), dim = -1)
