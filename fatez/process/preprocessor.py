@@ -129,7 +129,7 @@ class Preprocessor():
         # self.gene_region_df = pd.DataFrame({'chr':gene_chr_list, 'start':gene_start_list,
         #                                                                 'end':gene_end_list},index=row_name_list)
         atac_array = self.atac_mt.X.toarray().T
-        for i in range(peak_names):
+        for i in range(len(peak_names)):
             peak_name = peak_names[i]
             self.peak_count[peak_name] = atac_array[i]
 
@@ -153,6 +153,12 @@ class Preprocessor():
         self.peak_region_df = self.peak_region_df.loc[list(self.atac_mt.var_names)]
         ### peak_count dict
         atac_array = self.atac_mt.X.toarray().T
+        peak_names = list(self.atac_mt.var_names)
+        for i in range(len(peak_names)):
+            peak_name = peak_names[i]
+            self.peak_count[peak_name] = atac_array[i]
+
+
 
     def merge_peak(self,width=250):
         """
@@ -339,15 +345,18 @@ class Preprocessor():
             for i in range(network_number):
                     ### sample cells
                     if data_type == 'paired':
-                        rna_cell_use = self.rna_mt.obs_names[random.sample(range(len(self.rna_mt.obs_names)),
-                                                                           network_cell_size)]
+                        #rna_cell_use = self.rna_mt.obs_names[random.sample(range(len(self.rna_mt.obs_names)),
+                        #                                                  network_cell_size)]
+                        rna_cell_use = random.sample(list(range(len(self.rna_mt.obs_names))),network_cell_size)
                         atac_cell_use = rna_cell_use
 
                     if data_type == 'unpaired':
-                        rna_cell_use = self.rna_mt.obs_names[random.sample(range(len(self.rna_mt.obs_names)),
-                                                                           network_cell_size)]
-                        atac_cell_use = self.atac_mt.obs_names[random.sample(range(len(self.atac_mt.obs_names)),
-                                                                   network_cell_size)]
+                        #rna_cell_use = self.rna_mt.obs_names[random.sample(range(len(self.rna_mt.obs_names)),
+                        #                                                   network_cell_size)]
+                        #atac_cell_use = self.atac_mt.obs_names[random.sample(range(len(self.atac_mt.obs_names)),
+                        #                                           network_cell_size)]
+                        rna_cell_use = random.sample(list(range(len(self.rna_mt.obs_names))), network_cell_size)
+                        atac_cell_use = random.sample(list(range(len(self.atac_mt.obs_names))), network_cell_size)
                     # rna_pseudo = self.rna_mt[rna_cell_use]
                     # atac_pseudo = self.atac_mt[atac_cell_use]
                     #
@@ -358,7 +367,7 @@ class Preprocessor():
                     # atac_pseudo_network = pd.DataFrame(atac_pseudo.X.todense().T)
                     # atac_pseudo_network.index = list(atac_pseudo.var_names.values)
                     # atac_pseudo_network.columns = atac_pseudo.obs_names.values
-
+                    self.pseudo_network[i] = {'rna': [], 'atac': []}
                     self.pseudo_network[i]['rna'] = rna_cell_use
                     self.pseudo_network[i]['atac'] = atac_cell_use
         elif method == 'slidewindow':
@@ -371,39 +380,60 @@ class Preprocessor():
     def cal_peak_gene_cor(self,cor_thr = 0.6):
 
          for network in list(self.pseudo_network.keys()):
-             rna_pseudo_network,atac_pseudo_network = self.__generate_network(network)
+
+             ### extract rna pseudo network
+             rna_cell_use = self.pseudo_network[network]['rna']
+             rna_pseudo = self.rna_mt[rna_cell_use]
+             rna_pseudo_network = pd.DataFrame(rna_pseudo.X.todense().T)
+             rna_pseudo_network.index = list(rna_pseudo.var_names.values)
+             rna_pseudo_network.columns = rna_pseudo.obs_names.values
              rna_row_mean = rna_pseudo_network.mean(axis=1)
-             atac_row_mean = atac_pseudo_network.mean(axis=1)
+
+             ### atac cell
+             atac_cell_use = rna_cell_use = self.pseudo_network[network]['atac']
+
+             ### overlapped genes
+             mt_gene_array = np.array(self.rna_mt.var_names)
+             gff_gene_array = np.array(list(self.peak_annotations.keys()))
+             print(gff_gene_array)
+             print(mt_gene_array)
+             gene_use = mt_gene_array[[x in gff_gene_array for x in mt_gene_array]]
+             print(gene_use)
              self.peak_gene_links[network] = {}
-             for i in list(self.peak_annotations.keys()):
+             for i in list(gene_use):
                 self.peak_gene_links[network][i] = {}
                 all_overlap_peaks = list(self.peak_annotations[i].keys())
                 peak_cor = []
                 peak_use = []
-                ### may have some bugs
+                ###
                 for j in all_overlap_peaks:
                     rna_count = rna_pseudo_network.loc[i,]
-                    atac_count = atac_pseudo_network.loc[j,]
+                    atac_count = self.peak_count[j][atac_cell_use]
 
-                    pg_cor = stats.pearsonr(rna_count,
-                                                atac_count)
-                    if pg_cor > cor_thr:
-                        peak_cor.append(pg_cor)
+                    pg_cor = stats.pearsonr(list(rna_count),list(atac_count))
+                    if abs(pg_cor[0]) > cor_thr:
+                        peak_cor.append(pg_cor[0])
                         peak_use.append(j)
-                peak_series = pd.Series(peak_cor,index=peak_use)
-                peak_series_abs = abs(peak_series)
-                if len(peak_series) !=1:
-                    cor_max_peak = peak_series_abs.sort_values().index[len(peak_series_abs)-1]
-                    cor_max = peak_series[cor_max_peak]
+                gene_mean_count = rna_row_mean[i]
+                if len(peak_use) > 0:
+                    peak_series = pd.Series(peak_cor,index=peak_use)
+                    peak_series_abs = abs(peak_series)
+                    if len(peak_series) > 1:
+                        cor_max_peak = peak_series_abs.sort_values().index[len(peak_series_abs)-1]
+                        cor_max = peak_series[cor_max_peak]
+                    else:
+                        cor_max_peak = peak_series.index[0]
+                        cor_max = peak_series[0]
+                    peak_mean_count = self.peak_count[cor_max_peak][atac_cell_use].mean()
+                    self.peak_gene_links[network][i]['peak'] = cor_max_peak
+                    self.peak_gene_links[network][i]['peak_correlation'] = cor_max
+                    self.peak_gene_links[network][i]['peak_mean_count'] = peak_mean_count
+                    self.peak_gene_links[network][i]['gene_mean_count'] = gene_mean_count
                 else:
-                    cor_max_peak = peak_series.index
-                    cor_max = peak_series[0]
-                peak_mean_count = rna_row_mean[i]
-                gene_mean_count = atac_row_mean[cor_max_peak]
-                self.peak_gene_links[network][i]['peak'] = cor_max_peak
-                self.peak_gene_links[network][i]['peak_correlation'] = cor_max
-                self.peak_gene_links[network][i]['peak_mean_count'] = peak_mean_count
-                self.peak_gene_links[network][i]['gene_mean_count'] = gene_mean_count
+                    self.peak_gene_links[network][i]['peak'] = None
+                    self.peak_gene_links[network][i]['peak_correlation'] = 0
+                    self.peak_gene_links[network][i]['peak_mean_count'] = 0
+                    self.peak_gene_links[network][i]['gene_mean_count'] = gene_mean_count
 
 
 
@@ -461,21 +491,7 @@ class Preprocessor():
 
 
         ###
-    def __generate_network(self,network_name):
-        rna_cell_use = self.pseudo_network[network_name]['rna']
-        atac_cell_use = self.pseudo_network[network_name]['atac']
 
-        rna_pseudo = self.rna_mt[rna_cell_use]
-        atac_pseudo = self.atac_mt[atac_cell_use]
-
-        rna_pseudo_network = pd.DataFrame(rna_pseudo.X.todense().T)
-        rna_pseudo_network.index = list(rna_pseudo.var_names.values)
-        rna_pseudo_network.columns = rna_pseudo.obs_names.values
-
-        atac_pseudo_network = pd.DataFrame(atac_pseudo.X.todense().T)
-        atac_pseudo_network.index = list(atac_pseudo.var_names.values)
-        atac_pseudo_network.columns = atac_pseudo.obs_names.values
-        return rna_pseudo_network,atac_pseudo_network
 
     def __get_tf_related_motif(self):
         print('under development')
