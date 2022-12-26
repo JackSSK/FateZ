@@ -4,11 +4,16 @@ This folder contains Graph Attention Network (GAT) related objects.
 
 author: jy
 """
+
 import numpy as np
 import torch
 import torch.nn as nn
 import torch.optim as optim
 import torch.nn.functional as F
+
+# Ignoring warnings because of using LazyLinear
+import warnings
+warnings.filterwarnings('ignore')
 
 
 
@@ -117,7 +122,9 @@ class Graph_Attention_Layer(nn.Module):
 
         # w_h.shape == (N, out_feature)
         # Now we calculate weights for GRPs.
-        e_values = self._prepare_attentional_mechanism_input(w_h, len(adj_mat))
+        e_values = self._prepare_attentional_mechanism_input(
+            w_h = w_h, n_regulons = adj_mat.size()[0]
+        )
         attention = self._prepare_attentions(e_values, adj_mat)
         attention = F.dropout(attention, self.dropout, training = self.training)
         result = torch.matmul(attention, w_h)
@@ -211,7 +218,7 @@ class GAT(nn.Module):
             alpha = alpha,
             concat = False,
         )
-        self.decision_layer = nn.Linear(en_dim, n_class)
+        self.decision_layer = nn.LazyLinear(n_class)
 
     def forward(self, samples):
         """
@@ -229,7 +236,10 @@ class GAT(nn.Module):
             if self.attentions is not None:
                 x = torch.cat([a(x, adj_mat) for a in self.attentions], dim = 1)
                 x = F.dropout(x, self.dropout, training = self.training)
-            x = F.elu(self.last(x, adj_mat))
+                # Resize the adj_mat to top_k rows 
+                x = F.elu(self.last(x, adj_mat.narrow(1, 0, adj_mat.size()[0])))
+            else:
+                x = F.elu(self.last(x, adj_mat))
             answer.append(x)
         answer = torch.stack(answer, 0)
         return answer
@@ -244,4 +254,6 @@ class GAT(nn.Module):
         """
         Use decsion layer
         """
+        # Fully Connection First
+        input = torch.flatten(input, start_dim = 1)
         return F.softmax(self.decision_layer(input), dim = -1)

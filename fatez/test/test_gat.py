@@ -5,24 +5,26 @@ import torch.nn.functional as F
 import fatez.model.gat as gat
 import fatez.model.sparse_gat as sgat
 
-k = 5
-top_k = 2
-n = 1
+k = 20000
+top_k = 1000
+n = 70
 n_class = 2
+n_head = None
 in_dim = 3
-en_dim = 1
+en_dim = 2
 
 
 adj_mat = torch.randn(top_k, k)
 sample = [torch.randn(k, in_dim), adj_mat]
 samples = [sample]*n
+labels = torch.tensor([1]*n)
 print('# Fake feat:', k)
 print('# Sample:', len(samples))
 
 # print('here')
 print('Test plain GAT')
-labels = torch.tensor([[1, 0]])
-model_gat = gat.GAT(in_dim = in_dim, en_dim = en_dim)
+
+model_gat = gat.GAT(in_dim = in_dim, en_dim = en_dim, n_head = n_head,)
 out_gat = model_gat(samples)
 
 # Activation and Decision
@@ -30,30 +32,30 @@ out_gat = model_gat.activation(out_gat)
 out_gat = model_gat.decision(out_gat)
 
 
-# print(out_gat, len(out_gat))
-# print('\n')
-
-
 loss = nn.CrossEntropyLoss()(
     out_gat, labels
 )
 loss.backward()
-print(loss)
+print('GAT CEL:', loss)
 
-loss = F.nll_loss(out_gat, labels)
-print(loss)
+# loss = F.nll_loss(out_gat, labels)
+# print(loss)
 
 
 
-# print('Test sparse GAT')
-# model_sgat = sgat.Spare_GAT(in_dim = 1)
-# out_sgat = model_sgat(samples)
-# # Activation Layer
-# out_sgat = F.softmax(F.log_softmax(out_sgat, dim = -1), dim = -1)
-# print(out_sgat)
+print('Test sparse GAT')
+model_sgat = sgat.Spare_GAT(in_dim = in_dim, en_dim = en_dim, n_head = n_head,)
+out_sgat = model_sgat(samples)
 
-# linear = nn.Linear(8, 4)
-# out = F.softmax(linear(out), dim = -1)
-#
-# loss = F.nll_loss(out, label)
-# print(out, loss)
+# Activation and Decision
+out_sgat = model_gat.activation(out_sgat)
+out_sgat = model_gat.decision(out_sgat)
+
+loss = nn.CrossEntropyLoss()(
+    out_sgat, labels
+)
+loss.backward()
+print('SGAT CEL:', loss)
+
+# loss = F.nll_loss(out_sgat, labels)
+# print(loss)

@@ -12,6 +12,11 @@ import torch.optim as optim
 import torch.nn.functional as F
 import fatez.model.gat as gat
 
+# Ignoring warnings because of using LazyLinear
+import warnings
+warnings.filterwarnings('ignore')
+
+
 
 class Sparse_MatMul_Function(torch.autograd.Function):
     """
@@ -122,8 +127,9 @@ class Sparse_Graph_Attention_Layer(nn.Module):
             Adjacent matrix. (Based on GRPs)
         """
         row_num = input.size()[0]
+        n_regulons = adj_mat.size()[0]
         edge_indices = adj_mat.nonzero().t()
-        # print('GRP indices:', edge_indices.shape)
+        # print('GRP indices:', edge_indices)
 
         w_h = torch.mm(input, self.weights)
         # h: row_num x out
@@ -145,7 +151,7 @@ class Sparse_Graph_Attention_Layer(nn.Module):
         row_e_values_sum = self.sparse_matmul(
             indices = edge_indices,
             values = edge_e_values,
-            shape = torch.Size([row_num, row_num]),
+            shape = torch.Size([n_regulons, row_num]),
             mat_2 = torch.ones(size = (row_num, 1), device = device)
         )
         edge_e_values = F.dropout(
@@ -153,11 +159,11 @@ class Sparse_Graph_Attention_Layer(nn.Module):
             self.dropout,
             training = self.training
         )
-        print('E values:', edge_e_values.shape)
+
         result = self.sparse_matmul(
             indices = edge_indices,
             values = edge_e_values,
-            shape = torch.Size([row_num, row_num]),
+            shape = torch.Size([n_regulons, row_num]),
             mat_2 = w_h
         )
         assert not torch.isnan(result).any()
@@ -183,8 +189,9 @@ class Spare_GAT(nn.Module):
     def __init__(self,
         in_dim:int = None,
         en_dim:int = 2,
+        n_class:int = 2,
         n_hidden:int = 1,
-        n_head:int = 1,
+        n_head:int = None,
         lr:float = 0.005,
         weight_decay:float = 5e-4,
         dropout:float = 0.2,
@@ -196,6 +203,9 @@ class Spare_GAT(nn.Module):
 
         :param en_dim:int = 2
             Number of each gene's encoded features.
+
+        :param n_class:int = None
+            Number of classes.
 
         :param n_hidden:int = None
             Number of hidden units.
@@ -219,24 +229,30 @@ class Spare_GAT(nn.Module):
         self.dropout = dropout
         self.lr = lr
         self.weight_decay = weight_decay
+        self.attentions = None
 
         # Add attention heads
-        self.attentions = [
-            Sparse_Graph_Attention_Layer(
-                in_dim = in_dim,
-                out_dim = n_hidden,
-                lr = lr,
-                weight_decay = weight_decay,
-                dropout = dropout,
-                alpha = alpha,
-                concat = True
-            ) for _ in range(n_head)
-        ]
-        for i, attention in enumerate(self.attentions):
-            self.add_module('attention_{}'.format(i), attention)
+        if n_head is not None and n_head > 0:
+            self.attentions = [
+                Sparse_Graph_Attention_Layer(
+                    in_dim = in_dim,
+                    out_dim = n_hidden,
+                    lr = lr,
+                    weight_decay = weight_decay,
+                    dropout = dropout,
+                    alpha = alpha,
+                    concat = True
+                ) for _ in range(n_head)
+            ]
+            for i, attention in enumerate(self.attentions):
+                self.add_module('attention_{}'.format(i), attention)
 
+            # Change input dimension for last GAT layer
+            in_dim = n_hidden * n_head
+
+        # Last output GAT layer
         self.last = Sparse_Graph_Attention_Layer(
-            in_dim = n_hidden * n_head,
+            in_dim = in_dim,
             out_dim = en_dim,
             lr = lr,
             weight_decay = weight_decay,
@@ -244,6 +260,7 @@ class Spare_GAT(nn.Module):
             alpha = alpha,
             concat = False,
         )
+        self.decision_layer = nn.LazyLinear(n_class)
 
     def forward(self, samples):
         """
@@ -257,9 +274,28 @@ class Spare_GAT(nn.Module):
             x = sample[0]
             adj_mat = sample[1]
             x = F.dropout(x, self.dropout, training = self.training)
-            x = torch.cat([att(x, adj_mat) for att in self.attentions], dim = 1)
-            x = F.dropout(x, self.dropout, training = self.training)
-            x = F.elu(self.last(x, adj_mat))
+            # Multi-head attention mechanism
+            if self.attentions is not None:
+                x = torch.cat([a(x, adj_mat) for a in self.attentions], dim = 1)
+                x = F.dropout(x, self.dropout, training = self.training)
+                # Resize the adj_mat to top_k rows
+                x = F.elu(self.last(x, adj_mat.narrow(1, 0, adj_mat.size()[0])))
+            else:
+                x = F.elu(self.last(x, adj_mat))
             answer.append(x)
         answer = torch.stack(answer, 0)
         return answer
+
+    def activation(self, input):
+        """
+        Use activation layer
+        """
+        return F.log_softmax(input, dim = -1)
+
+    def decision(self, input):
+        """
+        Use decsion layer
+        """
+        # Fully Connection First
+        input = torch.flatten(input, start_dim = 1)
+        return F.softmax(self.decision_layer(input), dim = -1)
