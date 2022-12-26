@@ -21,6 +21,7 @@ class Graph_Attention_Layer(nn.Module):
         out_dim:int = None,
         lr:float = 0.005,
         weight_decay:float = 5e-4,
+        gain:float = 1.414,
         dropout:float = 0.2,
         alpha:float = 0.2,
         concat:bool = True,
@@ -57,8 +58,8 @@ class Graph_Attention_Layer(nn.Module):
         # Set up parameters
         self.weights = nn.Parameter(torch.empty(size = (in_dim, out_dim)))
         self.a_values = nn.Parameter(torch.empty(size = (2 * out_dim, 1)))
-        nn.init.xavier_uniform_(self.weights.data, gain=1.414)
-        nn.init.xavier_uniform_(self.a_values.data, gain=1.414)
+        nn.init.xavier_uniform_(self.weights.data, gain = gain)
+        nn.init.xavier_uniform_(self.a_values.data, gain = gain)
 
         self.leaky_relu = nn.LeakyReLU(self.alpha)
         self.optimizer = optim.Adam(
@@ -67,20 +68,20 @@ class Graph_Attention_Layer(nn.Module):
             weight_decay = weight_decay
         )
 
-    def _prepare_attentional_mechanism_input(self, w_h):
+    def _prepare_attentional_mechanism_input(self, w_h, n_regulons):
         """
         Calculate e values according to input matrix and weights.
 
         :param w_h:torch.Tensor = None
             Weighted matrix.
         """
-        # w_h1 and w_h2.shape (N, 1)
-        # e.shape (N, N)
-        w_h1 = torch.matmul(w_h, self.a_values[:self.out_dim, :])
+        # w_h1.shape (n_regulons, 1) and w_h2.shape (N, 1)
+        # e.shape (n_regulons, N)
+
+        w_h1 = torch.matmul(w_h[:n_regulons,:], self.a_values[:self.out_dim, :])
         w_h2 = torch.matmul(w_h, self.a_values[self.out_dim:, :])
-        # broadcast add
-        e = w_h1 + w_h2.T
-        return self.leaky_relu(e)
+        # broadcast add and return
+        return self.leaky_relu(w_h1 + w_h2.T)
 
     def _prepare_attentions(self, e_values, adj_mat):
         """
@@ -113,9 +114,10 @@ class Graph_Attention_Layer(nn.Module):
         """
         # Multiply hs to ensure output dimension == out_dim
         w_h = torch.mm(input, self.weights)
+
         # w_h.shape == (N, out_feature)
         # Now we calculate weights for GRPs.
-        e_values = self._prepare_attentional_mechanism_input(w_h)
+        e_values = self._prepare_attentional_mechanism_input(w_h, len(adj_mat))
         attention = self._prepare_attentions(e_values, adj_mat)
         attention = F.dropout(attention, self.dropout, training = self.training)
         result = torch.matmul(attention, w_h)
@@ -138,7 +140,7 @@ class GAT(nn.Module):
         en_dim:int = 2,
         n_class:int = 2,
         n_hidden:int = 1,
-        n_head:int = 1,
+        n_head:int = None,
         lr:float = 0.005,
         weight_decay:float = 5e-4,
         dropout:float = 0.2,
@@ -157,7 +159,7 @@ class GAT(nn.Module):
         :param n_hidden:int = None
             Number of hidden units.
 
-        :param n_head:int = 1
+        :param n_head:int = None
             Number of attention heads.
 
         :param lr:float = 0.005
@@ -176,27 +178,32 @@ class GAT(nn.Module):
         self.dropout = dropout
         self.lr = lr
         self.weight_decay = weight_decay
+        self.attentions = None
 
         # Add attention heads
-        self.attentions = [
-            Graph_Attention_Layer(
-                in_dim = in_dim,
-                out_dim = n_hidden,
-                lr = lr,
-                weight_decay = weight_decay,
-                dropout = dropout,
-                alpha = alpha,
-                concat = True
-            ) for _ in range(n_head)
-        ]
-        for i, attention in enumerate(self.attentions):
-            self.add_module('attention_{}'.format(i), attention)
+        if n_head is not None and n_head > 0:
+            self.attentions = [
+                Graph_Attention_Layer(
+                    in_dim = in_dim,
+                    out_dim = n_hidden,
+                    lr = lr,
+                    weight_decay = weight_decay,
+                    dropout = dropout,
+                    alpha = alpha,
+                    concat = True
+                ) for _ in range(n_head)
+            ]
+            for i, attention in enumerate(self.attentions):
+                self.add_module('attention_{}'.format(i), attention)
+
+            # Change input dimension for last GAT layer
+            in_dim = n_hidden * n_head
 
         # Also, we can add other layers here.
 
-        # Last out put layer
+        # Last output GAT layer
         self.last = Graph_Attention_Layer(
-            in_dim = n_hidden * n_head,
+            in_dim = in_dim,
             out_dim = en_dim,
             lr = lr,
             weight_decay = weight_decay,
@@ -204,7 +211,6 @@ class GAT(nn.Module):
             alpha = alpha,
             concat = False,
         )
-
         self.decision_layer = nn.Linear(en_dim, n_class)
 
     def forward(self, samples):
@@ -219,8 +225,10 @@ class GAT(nn.Module):
             x = sample[0]
             adj_mat = sample[1]
             x = F.dropout(x, self.dropout, training = self.training)
-            x = torch.cat([att(x, adj_mat) for att in self.attentions], dim = 1)
-            x = F.dropout(x, self.dropout, training = self.training)
+            # Multi-head attention mechanism
+            if self.attentions is not None:
+                x = torch.cat([a(x, adj_mat) for a in self.attentions], dim = 1)
+                x = F.dropout(x, self.dropout, training = self.training)
             x = F.elu(self.last(x, adj_mat))
             answer.append(x)
         answer = torch.stack(answer, 0)

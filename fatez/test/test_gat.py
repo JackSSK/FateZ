@@ -5,12 +5,16 @@ import torch.nn.functional as F
 import fatez.model.gat as gat
 import fatez.model.sparse_gat as sgat
 
-k = 4
+k = 5
+top_k = 2
 n = 1
 n_class = 2
-en_dim = 2
+in_dim = 3
+en_dim = 1
 
-sample = [torch.randn(k, 1), torch.randn(k, k)]
+
+adj_mat = torch.randn(top_k, k)
+sample = [torch.randn(k, in_dim), adj_mat]
 samples = [sample]*n
 print('# Fake feat:', k)
 print('# Sample:', len(samples))
@@ -18,7 +22,7 @@ print('# Sample:', len(samples))
 # print('here')
 print('Test plain GAT')
 labels = torch.tensor([[1, 0]])
-model_gat = gat.GAT(in_dim = 1, en_dim = en_dim)
+model_gat = gat.GAT(in_dim = in_dim, en_dim = en_dim)
 out_gat = model_gat(samples)
 
 # Activation and Decision
@@ -26,13 +30,14 @@ out_gat = model_gat.activation(out_gat)
 out_gat = model_gat.decision(out_gat)
 
 
-print(out_gat, len(out_gat))
-print('\n')
+# print(out_gat, len(out_gat))
+# print('\n')
 
 
 loss = nn.CrossEntropyLoss()(
     out_gat, labels
 )
+loss.backward()
 print(loss)
 
 loss = F.nll_loss(out_gat, labels)
