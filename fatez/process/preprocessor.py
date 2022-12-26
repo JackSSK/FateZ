@@ -409,8 +409,8 @@ class Preprocessor():
 
                 ### load target gene related tfs
                 ### then refine the list by gene_use
-                related_tf_array = np.array(self.tf_target_db[i])
-                tf_use = related_tf_array[[x in gene_use for x in related_tf_array]]
+                related_tf = self.tf_target_db[i]
+                #tf_use = related_tf_array[[x in gene_use for x in related_tf_array]]
 
                 self.peak_gene_links[network][i] = {}
                 all_overlap_peaks = list(self.peak_annotations[i].keys())
@@ -440,13 +440,13 @@ class Preprocessor():
                     self.peak_gene_links[network][i]['peak_correlation'] = cor_max
                     self.peak_gene_links[network][i]['peak_mean_count'] = peak_mean_count
                     self.peak_gene_links[network][i]['gene_mean_count'] = gene_mean_count
-                    self.peak_gene_links[network][i]['related_tf'] = tf_use
+                    self.peak_gene_links[network][i]['related_tf'] = related_tf
                 else:
                     self.peak_gene_links[network][i]['peak'] = None
                     self.peak_gene_links[network][i]['peak_correlation'] = 0
                     self.peak_gene_links[network][i]['peak_mean_count'] = 0
                     self.peak_gene_links[network][i]['gene_mean_count'] = gene_mean_count
-                    self.peak_gene_links[network][i]['related_tf'] = tf_use
+                    self.peak_gene_links[network][i]['related_tf'] = related_tf
 
     def __get_target_related_tf(self):
         motif1 = pd.read_table(self.tf_target_db_path)
