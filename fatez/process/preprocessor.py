@@ -32,11 +32,13 @@ class Preprocessor():
         rna_path:str = None,
         atac_path:str = None,
         gff_path:str = None,
+        tf_target_db_path:str = None,
         data_type:str = None
         ):
         self.rna_path = rna_path
         self.atac_path = atac_path
         self.gff_path = gff_path
+        self.tf_target_db_path = tf_target_db_path
         self.data_type = data_type
         self.rna_mt = list()
         self.atac_mt = list()
@@ -46,6 +48,7 @@ class Preprocessor():
         self.gene_region_df = pd.DataFrame()
         self.pseudo_network = dict()
         self.peak_gene_links = dict()
+        self.tf_target_db = dict()
 
     """
     :param rna_path: <class fatez.lib.preprocess.preprocess>
@@ -132,6 +135,9 @@ class Preprocessor():
         for i in range(len(peak_names)):
             peak_name = peak_names[i]
             self.peak_count[peak_name] = atac_array[i]
+
+        ### load tf target db
+        self.__get_target_related_tf()
 
 
     def rna_qc(self,rna_min_genes:int=3,rna_min_cells:int=200,
@@ -391,7 +397,6 @@ class Preprocessor():
 
              ### atac cell
              atac_cell_use = rna_cell_use = self.pseudo_network[network]['atac']
-
              ### overlapped genes
              mt_gene_array = np.array(self.rna_mt.var_names)
              gff_gene_array = np.array(list(self.peak_annotations.keys()))
@@ -401,6 +406,12 @@ class Preprocessor():
              print(gene_use)
              self.peak_gene_links[network] = {}
              for i in list(gene_use):
+
+                ### load target gene related tfs
+                ### then refine the list by gene_use
+                related_tf_array = np.array(self.tf_target_db[i])
+                tf_use = related_tf_array[[x in gene_use for x in related_tf_array]]
+
                 self.peak_gene_links[network][i] = {}
                 all_overlap_peaks = list(self.peak_annotations[i].keys())
                 peak_cor = []
@@ -429,14 +440,23 @@ class Preprocessor():
                     self.peak_gene_links[network][i]['peak_correlation'] = cor_max
                     self.peak_gene_links[network][i]['peak_mean_count'] = peak_mean_count
                     self.peak_gene_links[network][i]['gene_mean_count'] = gene_mean_count
+                    self.peak_gene_links[network][i]['related_tf'] = tf_use
                 else:
                     self.peak_gene_links[network][i]['peak'] = None
                     self.peak_gene_links[network][i]['peak_correlation'] = 0
                     self.peak_gene_links[network][i]['peak_mean_count'] = 0
                     self.peak_gene_links[network][i]['gene_mean_count'] = gene_mean_count
+                    self.peak_gene_links[network][i]['related_tf'] = tf_use
 
-    def __get_tf_related_motif(self):
-        print('under development')
+    def __get_target_related_tf(self):
+        motif1 = pd.read_table(self.tf_target_db_path)
+        target_tf_dict = {}
+        for i in motif1.index:
+            row = motif1.iloc[i,]
+            tf_str = motif1.iloc[0,][0]
+            tf_list = tf_str.split(';')
+            target_tf_dict[row[5]] = tf_list
+        self.tf_target_db = target_tf_dict
 
     def generate_grp(self):
         for network in [self.pseudo_network.keys()]:
