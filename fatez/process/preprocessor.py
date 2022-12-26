@@ -435,64 +435,6 @@ class Preprocessor():
                     self.peak_gene_links[network][i]['peak_mean_count'] = 0
                     self.peak_gene_links[network][i]['gene_mean_count'] = gene_mean_count
 
-
-
-    def find_linkages(self, overlap_size=250, cor_thr = 0.6):
-
-        ### find overlap
-        gene_chr_type = list(set())
-        gene_overlapped_peaks = {}
-        gene_related_peak = []
-        for i in gene_chr_type:
-            ### match chr
-            gene_df_use = self.gene_region_df[self.gene_region_df['chr'] == i]
-            peak_df_use = self.self.gene_region_df[self.gene_region_df['chr'] == i]
-
-            for row in self.gene_region_df.index:
-                ### narrow the range
-                gene_start = int(gene_df_use.loc[row]['start'])
-                peak_df_use = peak_df_use[int(peak_df_use['end'])<gene_start]
-                peak_df_use = peak_df_use[int(peak_df_use['start']) < gene_start+overlap_size]
-
-                peak_overlap = []
-                peak_cor = []
-                for j in peak_df_use.index:
-                    ### overlap
-                    peak_start = int(peak_df_use.loc[j]['start'])
-                    peak_end = int(peak_df_use.loc[j]['end'])
-
-                    if self.__is_overlapping(gene_start,gene_start+overlap_size,
-                                     peak_start,peak_end):
-                    ### calculate correlation between gene count and peak count
-                        rna_count = self.pseudo_network['rna'].loc[row,]
-                        atac_count = self.pseudo_network['atac'].loc[j,]
-
-                        pg_cor = stats.pearsonr(rna_count,
-                                 atac_count)
-                        if  pg_cor > cor_thr:
-                            peak_overlap.append(j)
-                            peak_cor.append(pg_cor)
-
-                pg_cor_se = pd.Series(peak_cor,index=peak_overlap)
-                ### select peak with the largest correlation
-
-                if len(pg_cor_se) >1:
-                    pg_cor_se = pg_cor_se[pg_cor_se==max(pg_cor_se)]
-
-                gene_related_peak.append(pg_cor_se.index[0])
-
-        gene_related_peak_region = self.peak_region_df.loc[gene_related_peak]
-        gene_related_peak_region.index = self.gene_region_df.index
-        ### modify the self.gene_region_df to let it contain gene related peak
-        self.gene_region_df = pd.concat([self.gene_region_df,gene_related_peak_region],
-                                axis=1,join='outer')
-
-
-
-
-        ###
-
-
     def __get_tf_related_motif(self):
         print('under development')
 
