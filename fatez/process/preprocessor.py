@@ -22,6 +22,7 @@ import fatez.tool.gff as gff1
 import fatez.tool.transfac as transfac
 import fatez.lib.template_grn as tgrn
 import fatez.process.grn_reconstructor as grn_recon
+import warnings
 class Preprocessor():
     """
     Preprocessing the scRNA-seq and scATAC-seq data to get
@@ -373,6 +374,10 @@ class Preprocessor():
                     # atac_pseudo_network = pd.DataFrame(atac_pseudo.X.todense().T)
                     # atac_pseudo_network.index = list(atac_pseudo.var_names.values)
                     # atac_pseudo_network.columns = atac_pseudo.obs_names.values
+
+                    ### select exist gene and peak
+
+
                     self.pseudo_network[i] = {'rna': [], 'atac': []}
                     self.pseudo_network[i]['rna'] = rna_cell_use
                     self.pseudo_network[i]['atac'] = atac_cell_use
@@ -383,8 +388,8 @@ class Preprocessor():
 
 
 
-    def cal_peak_gene_cor(self,cor_thr = 0.6):
-
+    def cal_peak_gene_cor(self,exp_thr = 0,cor_thr = 0.6):
+         warnings.filterwarnings('ignore')
          for network in list(self.pseudo_network.keys()):
 
              ### extract rna pseudo network
@@ -395,22 +400,22 @@ class Preprocessor():
              rna_pseudo_network.columns = rna_pseudo.obs_names.values
              rna_row_mean = rna_pseudo_network.mean(axis=1)
 
+             ### select expressed genes to reduce computional cost
+             rna_row_mean = rna_row_mean[rna_row_mean > exp_thr]
+
              ### atac cell
              atac_cell_use = rna_cell_use = self.pseudo_network[network]['atac']
              ### overlapped genes
-             mt_gene_array = np.array(self.rna_mt.var_names)
+             mt_gene_array = np.array(rna_row_mean.index)
              gff_gene_array = np.array(list(self.peak_annotations.keys()))
-             print(gff_gene_array)
-             print(mt_gene_array)
-             gene_use = mt_gene_array[[x in gff_gene_array for x in mt_gene_array]]
-             print(gene_use)
+             gene_use = np.intersect1d(mt_gene_array,gff_gene_array)
              self.peak_gene_links[network] = {}
              for i in list(gene_use):
 
                 ### load target gene related tfs
                 ### then refine the list by gene_use
-                related_tf = self.tf_target_db[i]
-                #tf_use = related_tf_array[[x in gene_use for x in related_tf_array]]
+                related_tf = np.array(self.tf_target_db[i])
+                #tf_use = np.intersect1d(related_tf,gene_use)
 
                 self.peak_gene_links[network][i] = {}
                 all_overlap_peaks = list(self.peak_annotations[i].keys())
@@ -458,48 +463,48 @@ class Preprocessor():
             target_tf_dict[row[5]] = tf_list
         self.tf_target_db = target_tf_dict
 
+
     def generate_grp(self):
-        for network in [self.pseudo_network.keys()]:
-            all_gene = network['rna'].index
+        pseudo_network_grp = {}
+        ### merge all genes used in pseudo cell
+        gene_all = []
+        for i in list(self.peak_gene_links.keys()):
+            gene_use = list(self.peak_gene_links[i].keys())
+            gene_all = gene_all +gene_use
+        gene_all = list(set(gene_all))
 
-            ### filter useless gens
-            rowmean = network.mean(axis=1)
-            rowstd = network.std(axis=1)
-            network = network[rowmean > 0.01]
-            network = network[rowstd > 0.1]
-            gene_use = network.index
-            ### extract tf
-            path = resource_filename(
-                __name__, '../data/' + specie + '/Transfac201803_MotifTFsF.txt.gz'
-            )
-            tf_motifs = transfac.Reader(path=path).get_tfs()
-            tfs = np.array(tf_motifs.keys())
-            tf_use = [x in np.array(network.index) for x in tfs]
-            tf_use = np.array(tfs)[tf_use]
+        ### calculate correlation between genes
+        ### then melt df to get all grps
+        mt_use = self.rna_mt[:, gene_all]
+        source = np.repeat(gene_all,len(gene_all))
+        target = gene_all*len(gene_all)
+        mt_cor = np.corrcoef(mt_use.X.todense().T)
+        mt_cor_df = pd.DataFrame(mt_cor)
+        all_grp = pd.melt(mt_cor_df)
+        all_grp['source'] = source
+        all_grp['target'] = target
+        all_grp = all_grp[['source','target','value']]
 
-            ### create dataframe with tf_number (row) x source_number (column)
-            grp_df = pd.DataFrame(np.zeros(((len(tf_use)*len(gene_use)), 7)))
+        for i in list(self.peak_gene_links.keys()):
+            ### filter grp based on genes in pseudo cell
+            gene_use = np.array(list(self.peak_gene_links[i].keys()))
+            source_idx = np.intersect1d(all_grp['source'],gene_use,return_indices=True)[1]
+            all_grp = all_grp.loc[source_idx]
+            target_idx = np.intersect1d(all_grp['target'], gene_use, return_indices=True)[1]
+            all_grp = all_grp.loc[target_idx]
 
-            ### fill the dataframe by expression, peak count, motif enrichment, and regulation type
-            for tf_num in range(len(tf_use)):
-                for gene_num in range(len(gene_use)):
-                    grp_df.iloc[(tf_num + 1) * (gene_num + 1), 0] = tf_use[tf_num]
-                    grp_df.iloc[(tf_num + 1) * (gene_num + 1), 1] = gene_use[gene_num]
-                    grp_df.iloc[(tf_num + 1) * (gene_num + 1), 2] = rowmean[tf_use[tf_num]]
-                    grp_df.iloc[(tf_num + 1) * (gene_num + 1), 3] = rowmean[gene_use[gene_num]]
+            for j in gene_use:
+                ### filter grp based on target gene related tfs
+                tf_use = self.peak_gene_links[i][j]['related_tf']
+                tf_drop = gene_use[~np.in1d(gene_use,tf_use)]
+                drop_grp = all_grp[all_grp['target'] == j]
+                drop_grp_idx = all_grp[np.in1d(drop_grp['source'],tf_drop)].index
+                all_grp.drop(index = drop_grp_idx)
+            pseudo_network_grp[i] = all_grp
+
+        return pseudo_network_grp
 
 
 
-        ### grp
-        df_gene = pd.DataFrame(np.zeros((len(self.rna_mt.var_names), len(self.rna_mt.var_names))))
-        df_gene.columns = self.rna_mt.var_names
-        df_gene.index = self.rna_mt.var_names
-        gene_melt = pd.melt(df_gene)
-        rownames = pd.Series(list(self.rna_mt.var_names)*len(self.rna_mt.var_names))
-        gene_melt = pd.concat([rownames,gene_melt ],axis=1,join='outer')
-        gene_melt = gene_melt.iloc[:,[0,1]]
-        gene_melt.columns = ['source','target']
-        gene_melt.iloc[:,[0]].tolist()
-        ### This part needed to be fixed
     def __is_overlapping(self,x1, x2, y1, y2):
         return max(x1, y1) <= min(x2, y2)
