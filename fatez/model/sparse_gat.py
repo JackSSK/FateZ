@@ -67,7 +67,7 @@ class Sparse_Graph_Attention_Layer(nn.Module):
     Sparse version GAT layer
     """
     def __init__(self,
-        in_dim:int = None,
+        d_model:int = None,
         out_dim:int = None,
         lr:float = 0.005,
         weight_decay:float = 5e-4,
@@ -76,7 +76,7 @@ class Sparse_Graph_Attention_Layer(nn.Module):
         concat:bool = True,
         ):
         """
-        :param in_dim:int = None
+        :param d_model:int = None
             Input feature dimension.
 
         :param out_dim:int = None
@@ -100,12 +100,12 @@ class Sparse_Graph_Attention_Layer(nn.Module):
         """
         super(Sparse_Graph_Attention_Layer, self).__init__()
         self.dropout = dropout
-        self.in_dim = in_dim
+        self.d_model = d_model
         self.out_dim = out_dim
         self.alpha = alpha
         self.concat = concat
         # Set up parameters
-        self.weights = nn.Parameter(torch.zeros(size = (in_dim, out_dim)))
+        self.weights = nn.Parameter(torch.zeros(size = (d_model, out_dim)))
         self.a_values = nn.Parameter(torch.zeros(size = (1, 2 * out_dim)))
         nn.init.xavier_normal_(self.weights.data, gain = 1.414)
         nn.init.xavier_normal_(self.a_values.data, gain = 1.414)
@@ -187,18 +187,18 @@ class Spare_GAT(nn.Module):
     Sparse version of GAT.
     """
     def __init__(self,
-        in_dim:int = None,
+        d_model:int = None,
         en_dim:int = 2,
         n_class:int = 2,
         n_hidden:int = 1,
-        n_head:int = None,
+        nhead:int = None,
         lr:float = 0.005,
         weight_decay:float = 5e-4,
         dropout:float = 0.2,
         alpha:float = 0.2,
         ):
         """
-        :param in_dim:int = None
+        :param d_model:int = None
             Number of each gene's input features.
 
         :param en_dim:int = 2
@@ -210,7 +210,7 @@ class Spare_GAT(nn.Module):
         :param n_hidden:int = None
             Number of hidden units.
 
-        :param n_head:int = 1
+        :param nhead:int = 1
             Number of attention heads.
 
         :param lr:float = 0.005
@@ -232,27 +232,27 @@ class Spare_GAT(nn.Module):
         self.attentions = None
 
         # Add attention heads
-        if n_head is not None and n_head > 0:
+        if nhead is not None and nhead > 0:
             self.attentions = [
                 Sparse_Graph_Attention_Layer(
-                    in_dim = in_dim,
+                    d_model = d_model,
                     out_dim = n_hidden,
                     lr = lr,
                     weight_decay = weight_decay,
                     dropout = dropout,
                     alpha = alpha,
                     concat = True
-                ) for _ in range(n_head)
+                ) for _ in range(nhead)
             ]
             for i, attention in enumerate(self.attentions):
                 self.add_module('attention_{}'.format(i), attention)
 
             # Change input dimension for last GAT layer
-            in_dim = n_hidden * n_head
+            d_model = n_hidden * nhead
 
         # Last output GAT layer
         self.last = Sparse_Graph_Attention_Layer(
-            in_dim = in_dim,
+            d_model = d_model,
             out_dim = en_dim,
             lr = lr,
             weight_decay = weight_decay,

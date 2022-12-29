@@ -9,13 +9,13 @@ k = 20000
 top_k = 1000
 n = 70
 n_class = 2
-n_head = None
-in_dim = 3
+nhead = None
+d_model = 3
 en_dim = 2
 
 
 adj_mat = torch.randn(top_k, k)
-sample = [torch.randn(k, in_dim), adj_mat]
+sample = [torch.randn(k, d_model), adj_mat]
 samples = [sample]*n
 labels = torch.tensor([1]*n)
 print('# Fake feat:', k)
@@ -24,7 +24,7 @@ print('# Sample:', len(samples))
 # print('here')
 print('Test plain GAT')
 
-model_gat = gat.GAT(in_dim = in_dim, en_dim = en_dim, n_head = n_head,)
+model_gat = gat.GAT(d_model = d_model, en_dim = en_dim, nhead = nhead,)
 out_gat = model_gat(samples)
 
 # Activation and Decision
@@ -44,7 +44,7 @@ print('GAT CEL:', loss)
 
 
 print('Test sparse GAT')
-model_sgat = sgat.Spare_GAT(in_dim = in_dim, en_dim = en_dim, n_head = n_head,)
+model_sgat = sgat.Spare_GAT(d_model = d_model, en_dim = en_dim, nhead = nhead,)
 out_sgat = model_sgat(samples)
 
 # Activation and Decision

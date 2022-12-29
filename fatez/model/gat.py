@@ -22,7 +22,7 @@ class Graph_Attention_Layer(nn.Module):
     Simple graph attention layer for GAT.
     """
     def __init__(self,
-        in_dim:int = None,
+        d_model:int = None,
         out_dim:int = None,
         lr:float = 0.005,
         weight_decay:float = 5e-4,
@@ -32,7 +32,7 @@ class Graph_Attention_Layer(nn.Module):
         concat:bool = True,
         ):
         """
-        :param in_dim:int = None
+        :param d_model:int = None
             Input feature dimension.
 
         :param out_dim:int = None
@@ -56,12 +56,12 @@ class Graph_Attention_Layer(nn.Module):
         """
         super(Graph_Attention_Layer, self).__init__()
         self.dropout = dropout
-        self.in_dim = in_dim
+        self.d_model = d_model
         self.out_dim = out_dim
         self.alpha = alpha
         self.concat = concat
         # Set up parameters
-        self.weights = nn.Parameter(torch.empty(size = (in_dim, out_dim)))
+        self.weights = nn.Parameter(torch.empty(size = (d_model, out_dim)))
         self.a_values = nn.Parameter(torch.empty(size = (2 * out_dim, 1)))
         nn.init.xavier_uniform_(self.weights.data, gain = gain)
         nn.init.xavier_uniform_(self.a_values.data, gain = gain)
@@ -143,18 +143,18 @@ class GAT(nn.Module):
     A typical GAT.
     """
     def __init__(self,
-        in_dim:int = None,
+        d_model:int = None,
         en_dim:int = 2,
         n_class:int = 2,
         n_hidden:int = 1,
-        n_head:int = None,
+        nhead:int = None,
         lr:float = 0.005,
         weight_decay:float = 5e-4,
         dropout:float = 0.2,
         alpha:float = 0.2,
         ):
         """
-        :param in_dim:int = None
+        :param d_model:int = None
             Number of each gene's input features.
 
         :param en_dim:int = 2
@@ -166,7 +166,7 @@ class GAT(nn.Module):
         :param n_hidden:int = None
             Number of hidden units.
 
-        :param n_head:int = None
+        :param nhead:int = None
             Number of attention heads.
 
         :param lr:float = 0.005
@@ -188,29 +188,29 @@ class GAT(nn.Module):
         self.attentions = None
 
         # Add attention heads
-        if n_head is not None and n_head > 0:
+        if nhead is not None and nhead > 0:
             self.attentions = [
                 Graph_Attention_Layer(
-                    in_dim = in_dim,
+                    d_model = d_model,
                     out_dim = n_hidden,
                     lr = lr,
                     weight_decay = weight_decay,
                     dropout = dropout,
                     alpha = alpha,
                     concat = True
-                ) for _ in range(n_head)
+                ) for _ in range(nhead)
             ]
             for i, attention in enumerate(self.attentions):
                 self.add_module('attention_{}'.format(i), attention)
 
             # Change input dimension for last GAT layer
-            in_dim = n_hidden * n_head
+            d_model = n_hidden * nhead
 
         # Also, we can add other layers here.
 
         # Last output GAT layer
         self.last = Graph_Attention_Layer(
-            in_dim = in_dim,
+            d_model = d_model,
             out_dim = en_dim,
             lr = lr,
             weight_decay = weight_decay,
@@ -236,7 +236,7 @@ class GAT(nn.Module):
             if self.attentions is not None:
                 x = torch.cat([a(x, adj_mat) for a in self.attentions], dim = 1)
                 x = F.dropout(x, self.dropout, training = self.training)
-                # Resize the adj_mat to top_k rows 
+                # Resize the adj_mat to top_k rows
                 x = F.elu(self.last(x, adj_mat.narrow(1, 0, adj_mat.size()[0])))
             else:
                 x = F.elu(self.last(x, adj_mat))

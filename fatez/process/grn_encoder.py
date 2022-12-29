@@ -21,20 +21,20 @@ class Encode(object):
         **kwargs
         ):
         super(Encode, self).__init__()
-        self.n_feas = None
-        self.n_enc_feas = n_enc_feas
+        self.d_model = d_model  # Must be initialized here
+        self.en_dim = en_dim
         self.n_hidden = n_hidden
-        self.n_head = n_head
+        self.nhead = nhead
         self.lr = lr
         self.weight_decay = weight_decay
         self.dropout = dropout
         self.alpha = alpha
 
         self.gat_model = gat.GAT(
-            in_dim = self.n_feas,
+            d_model = self.d_model,
             en_dim = self.n_enc_fea,
             n_hidden = self.n_hidden ,
-            n_head = self.n_head ,
+            nhead = self.nhead ,
             lr = self.lr,
             weight_decay = self.weight_decay,
             dropout = self.dropout,
