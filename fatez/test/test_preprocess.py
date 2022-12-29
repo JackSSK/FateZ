@@ -1,13 +1,15 @@
 import fatez.process.preprocessor as pre
 import os
 import time
+import pandas as pd
+import numpy as np
 import fatez.tool.sequence as seq
 os.chdir("D:\\Westlake\\pwk lab\\fatez\\FateZ\\fatez\\test")
 if __name__ == '__main__':
     peak_path = ('../data/mouse/filtered_feature_bc_matrix/')
     rna_path = ('../data/mouse/filtered_feature_bc_matrix/')
     gff_path = '../data/mouse/gencode.vM25.basic.annotation.gff3.gz'
-    tf_db_path = 'E:\\public/TF_target_tss_1500.txt'
+    tf_db_path = 'E:\\public/TF_target_tss_1500.txt.gz'
 
     ### load data
     network = pre.Preprocessor(rna_path, peak_path, gff_path,tf_db_path, data_type='paired')
@@ -45,7 +47,7 @@ if __name__ == '__main__':
     t2 = time.time()
     print(t2-t1)
     t1 = time.time()
-    #matrix2 = network.generate_grp()
+    matrix2 = network.generate_grp()
     t2 = time.time()
     print(t2-t1)
     ### construct grp with expressed genes and its tfs with motif enrichment in target promoter

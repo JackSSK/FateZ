@@ -530,6 +530,22 @@ class Preprocessor():
             pseudo_sample_dict[i]['atac'] = atac_pseudo_network
 
         return pseudo_sample_dict
+    def extract_motif_score(self, grps):
+
+        gene_use = list(set(grps['target']))
+        all_score = np.array([])
+        for j in gene_use:
+            target_gene_tf_score = self.tf_target_db[j]
+            tf = target_gene_tf_score['motif']
+            score = target_gene_tf_score['score']
+            df_use = grps[grps['target']==j]
+            db_tf_score_seires = pd.Series(score, index=tf)
+            score_use = db_tf_score_seires[list(df_use['source'])]
+            all_score = np.append(all_score,score_use)
+        grps['tf_motif_enrich'] = all_score
+        return grps
+
+
 
     def __is_overlapping(self,x1, x2, y1, y2):
         return max(x1, y1) <= min(x2, y2)
@@ -541,10 +557,10 @@ class Preprocessor():
         for i in motif1.index:
 
             row = motif1.iloc[i,]
-            target_tf_dict[row[5]] = {'motif': [], 'score': []}
+            target_tf_dict[row[4]] = {'motif': [], 'score': []}
             tf_str = motif1.iloc[0,][0]
             tf_list = tf_str.split(';')
-            target_tf_dict[row[5]]['motif'] = tf_list
+            target_tf_dict[row[4]]['motif'] = tf_list
 
             ### select motif score type
             if motif_score_type=='max':
@@ -553,6 +569,6 @@ class Preprocessor():
                 motif_score = motif1.iloc[0,][2]
             motif_score = motif_score.split(';')
 
-            target_tf_dict[row[5]]['score'] = motif_score
+            target_tf_dict[row[4]]['score'] = motif_score
 
         self.tf_target_db = target_tf_dict
