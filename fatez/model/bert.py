@@ -14,6 +14,7 @@ import math
 import torch
 import torch.nn as nn
 import torch.optim as optim
+import torch.nn.functional as F
 from torch.nn import LayerNorm
 from torch.nn import TransformerEncoder
 from torch.nn import TransformerEncoderLayer
@@ -37,22 +38,28 @@ class Encoder(nn.Module):
         ):
         super(Encoder, self).__init__()
         self.id = id
-        self.factory_kwargs={'d_model':d_model, 'device':device, 'dtype':dtype}
+        self.d_model = d_model
+        self.factory_kwargs={'device':device, 'dtype':dtype}
         if encoder is not None:
             self.encoder = encoder
         else:
             layer = TransformerEncoderLayer(
+                d_model,
                 nhead,
                 dim_feedforward,
                 dropout,
                 activation,
                 layer_norm_eps,
-                **factory_kwargs
+                **self.factory_kwargs
             )
-            encoder_norm = LayerNorm(eps = layer_norm_eps, **factory_kwargs)
+            encoder_norm = LayerNorm(
+                d_model,
+                eps = layer_norm_eps,
+                **self.factory_kwargs
+            )
             self.encoder = TransformerEncoder(layer, n_layer, encoder_norm)
 
-    def forward(self, input, mask):
+    def forward(self, input, mask = None):
         output = self.encoder(input, mask)
         return output
 
@@ -90,13 +97,16 @@ class Classifier(nn.Module):
     Easy classifier. Can be revised later.
     scBERT use 1D-Conv here
     """
-    def __init__(self, d_model:int = 512, n_class:int = 100,):
+    def __init__(self, d_model:int = 512, n_hidden:int = 2, n_class:int = 100,):
         super(Classifier, self).__init__()
-        self.linear = nn.Linear(d_model, n_class)
+        self.linear = nn.Linear(d_model, n_hidden)
         self.softmax = nn.LogSoftmax(dim = -1)
+        self.decision = nn.LazyLinear(n_class)
 
     def forward(self, input):
-        return self.softmax(self.linear(input))
+        output = self.softmax(self.linear(input))
+        output = torch.flatten(output, start_dim = 1)
+        return F.softmax(self.decision(output), dim = -1)
 
 
 
@@ -107,11 +117,12 @@ class Pre_Train_Model(nn.Module):
         device:str = None,
         dtype:str = None,
         ):
+        super(Pre_Train_Model, self).__init__()
         self.factory_kwargs = {'device': device, 'dtype': dtype}
         self.encoder = encoder
         self.encoder.to(self.factory_kwargs['device'])
         self.reconstructor = Data_Reconstructor(
-            d_model = self.encoder.factory_kwargs['d_model'], n_bin = n_bin
+            d_model = self.encoder.d_model, n_bin = n_bin
         )
         self.reconstructor.to(self.factory_kwargs['device'])
 
@@ -123,17 +134,21 @@ class Pre_Train_Model(nn.Module):
 class Fine_Tune_Model(nn.Module):
     def __init__(self,
         encoder:Encoder = None,
+        n_hidden:int = 2,
         n_class:int = 100,
         device:str = None,
         dtype:str = None,
         ):
+        super(Fine_Tune_Model, self).__init__()
         self.factory_kwargs = {'device': device, 'dtype': dtype}
         self.encoder = encoder
         self.encoder.to(self.factory_kwargs['device'])
         self.classifier = Classifier(
-            d_model = self.encoder.factory_kwargs['d_model'], n_class = n_class
+            d_model = self.encoder.d_model, n_hidden=n_hidden, n_class=n_class,
         )
         self.classifier.to(self.factory_kwargs['device'])
 
     def forward(self, input,):
-        return self.classifier(self.encoder(input))
+        output = self.encoder(input)
+        output = self.classifier(output)
+        return output

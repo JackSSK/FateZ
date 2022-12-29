@@ -12,10 +12,6 @@ import torch.optim as optim
 import torch.nn.functional as F
 import fatez.model.gat as gat
 
-# Ignoring warnings because of using LazyLinear
-import warnings
-warnings.filterwarnings('ignore')
-
 
 
 class Sparse_MatMul_Function(torch.autograd.Function):
@@ -297,5 +293,5 @@ class Spare_GAT(nn.Module):
         Use decsion layer
         """
         # Fully Connection First
-        input = torch.flatten(input, start_dim = 1)
-        return F.softmax(self.decision_layer(input), dim = -1)
+        output = torch.flatten(input, start_dim = 1)
+        return F.softmax(self.decision_layer(output), dim = -1)

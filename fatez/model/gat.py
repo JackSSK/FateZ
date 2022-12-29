@@ -11,10 +11,6 @@ import torch.nn as nn
 import torch.optim as optim
 import torch.nn.functional as F
 
-# Ignoring warnings because of using LazyLinear
-import warnings
-warnings.filterwarnings('ignore')
-
 
 
 class Graph_Attention_Layer(nn.Module):
@@ -255,5 +251,5 @@ class GAT(nn.Module):
         Use decsion layer
         """
         # Fully Connection First
-        input = torch.flatten(input, start_dim = 1)
-        return F.softmax(self.decision_layer(input), dim = -1)
+        output = torch.flatten(input, start_dim = 1)
+        return F.softmax(self.decision_layer(output), dim = -1)

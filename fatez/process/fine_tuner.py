@@ -7,11 +7,12 @@ Note: Developing~
 author: nkmtmsys
 """
 import torch
+import torch.nn as nn
 import fatez.model as model
 import fatez.model.bert as bert
 import fatez.model.gat as gat
 import fatez.model.sparse_gat as sgat
-import fatez.process.grn_encoder as grn_encoder
+
 
 
 class Model(nn.Module):
@@ -26,6 +27,7 @@ class Model(nn.Module):
         device:str = None,
         dtype:str = None,
         ):
+        super(Model, self).__init__()
         self.factory_kwargs = {'device': device, 'dtype': dtype}
         self.gat = gat
         self.bin_pro= bin_pro
@@ -45,8 +47,9 @@ class Tune(object):
     """
     def __init__(self,
         gat = None,
-        bin_pro:grn_encoder.Binning_Process = None,
+        bin_pro:model.Binning_Process = None,
         encoder:bert.Encoder = None,
+        n_class:int = 100,
         lr:float = 1e-4,
         betas:set = (0.9, 0.999),
         weight_decay:float = 0.01,
@@ -56,11 +59,12 @@ class Tune(object):
         cuda_devices:set = None,
         dtype:str = None,
         ):
+        super(Tune, self).__init__()
         # Setting device
         cuda_condition = torch.cuda.is_available() and with_cuda
         self.device = torch.device("cuda:0" if cuda_condition else "cpu")
 
-        self.factory_kwargs = {'n_bin':n_bin, 'device': device, 'dtype': dtype}
+        self.factory_kwargs = {'n_class':n_class,'device':device,'dtype':dtype}
         self.gat = gat
         self.bin_pro = bin_pro
         self.encoder = encoder
