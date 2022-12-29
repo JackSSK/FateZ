@@ -12,6 +12,8 @@ import torch
 from torch.autograd import Variable
 import fatez.model.gat as gat
 
+
+
 class Encode(object):
     """
     Encode GRNs with GAT.
@@ -40,6 +42,8 @@ class Encode(object):
             dropout = self.dropout,
             alpha = self.alpha,
         )
+
+        self.binning = None
 
     def process(self,
         grns:list = None,

@@ -21,6 +21,23 @@ class Error(Exception):
 
 
 
+class Binning_Process(nn.Module):
+    """
+    Binning data output by GAT.
+
+    We'd better implement this part after having a general idea about the
+    overall data distribution of GAT output in real world cases.
+    """
+
+    def __init__(self, n_bin):
+        super(Binning_Process, self).__init__()
+        self.n_bin = n_bin
+
+	def forward(self, input):
+		return input
+
+
+
 class LR_Scheduler(object):
 	"""
 	Automatically adjust learning rate based on learning steps.
