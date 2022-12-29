@@ -347,9 +347,11 @@ class Preprocessor():
         provides two strategies to make pseudo cell: 'sample_cells' and
         'slidewindow'
         """
+        #pseudo_sample_dict = {}
         ### sample cells
         if method == 'sample_cells':
             for i in range(network_number):
+                    #pseudo_sample_dict[i] = {'rna':[],'atac':[]}
                     ### sample cells
                     if data_type == 'paired':
                         #rna_cell_use = self.rna_mt.obs_names[random.sample(range(len(self.rna_mt.obs_names)),
@@ -364,23 +366,26 @@ class Preprocessor():
                         #                                           network_cell_size)]
                         rna_cell_use = random.sample(list(range(len(self.rna_mt.obs_names))), network_cell_size)
                         atac_cell_use = random.sample(list(range(len(self.atac_mt.obs_names))), network_cell_size)
-                    # rna_pseudo = self.rna_mt[rna_cell_use]
-                    # atac_pseudo = self.atac_mt[atac_cell_use]
-                    #
-                    # rna_pseudo_network = pd.DataFrame(rna_pseudo.X.todense().T)
-                    # rna_pseudo_network.index = list(rna_pseudo.var_names.values)
-                    # rna_pseudo_network.columns = rna_pseudo.obs_names.values
-                    #
-                    # atac_pseudo_network = pd.DataFrame(atac_pseudo.X.todense().T)
-                    # atac_pseudo_network.index = list(atac_pseudo.var_names.values)
-                    # atac_pseudo_network.columns = atac_pseudo.obs_names.values
 
-                    ### select exist gene and peak
 
 
                     self.pseudo_network[i] = {'rna': [], 'atac': []}
                     self.pseudo_network[i]['rna'] = rna_cell_use
                     self.pseudo_network[i]['atac'] = atac_cell_use
+            #         ### output gene and peak matrixs
+            #
+            #         rna_pseudo = self.rna_mt[rna_cell_use]
+            #         rna_pseudo_network = pd.DataFrame(rna_pseudo.X.todense().T)
+            #         rna_pseudo_network.index = list(rna_pseudo.var_names.values)
+            #         rna_pseudo_network.columns = rna_pseudo.obs_names.values
+            #         pseudo_sample_dict[i]['rna'] = rna_pseudo_network
+            #
+            #         atac_pseudo = self.atac_mt[atac_cell_use]
+            #         atac_pseudo_network = pd.DataFrame(atac_pseudo.X.todense().T)
+            #         atac_pseudo_network.index = list(atac_pseudo.var_names.values)
+            #         atac_pseudo_network.columns = atac_pseudo.obs_names.values
+            #         pseudo_sample_dict[i]['atac'] = atac_pseudo_network
+            # return pseudo_sample_dict
         elif method == 'slidewindow':
             print('under development')
 
@@ -404,7 +409,7 @@ class Preprocessor():
              rna_row_mean = rna_row_mean[rna_row_mean > exp_thr]
 
              ### atac cell
-             atac_cell_use = rna_cell_use = self.pseudo_network[network]['atac']
+             atac_cell_use = self.pseudo_network[network]['atac']
              ### overlapped genes
              mt_gene_array = np.array(rna_row_mean.index)
              gff_gene_array = np.array(list(self.peak_annotations.keys()))
@@ -414,7 +419,7 @@ class Preprocessor():
 
                 ### load target gene related tfs
                 ### then refine the list by gene_use
-                related_tf = np.array(self.tf_target_db[i])
+                related_tf = np.array(self.tf_target_db[i]['motif'])
                 #tf_use = np.intersect1d(related_tf,gene_use)
 
                 self.peak_gene_links[network][i] = {}
@@ -453,18 +458,15 @@ class Preprocessor():
                     self.peak_gene_links[network][i]['gene_mean_count'] = gene_mean_count
                     self.peak_gene_links[network][i]['related_tf'] = related_tf
 
-    def __get_target_related_tf(self):
-        motif1 = pd.read_table(self.tf_target_db_path)
-        target_tf_dict = {}
-        for i in motif1.index:
-            row = motif1.iloc[i,]
-            tf_str = motif1.iloc[0,][0]
-            tf_list = tf_str.split(';')
-            target_tf_dict[row[5]] = tf_list
-        self.tf_target_db = target_tf_dict
 
 
     def generate_grp(self):
+        ### This strategy is faster than using for
+        ### loop to ilterate millions grps
+        ### Basicaly, this strategy first using numpy
+        ### to calculate correlation between all genes (3S running time for 1.5W genes),
+        ### then filter the source and target genes using isin() in pandas.
+        ### So that we can ignore intersect part
         pseudo_network_grp = {}
         ### merge all genes used in pseudo cell
         gene_all = []
@@ -475,6 +477,7 @@ class Preprocessor():
 
         ### calculate correlation between genes
         ### then melt df to get all grps
+        ### correlation calculation method in numpy
         mt_use = self.rna_mt[:, gene_all]
         source = np.repeat(gene_all,len(gene_all))
         target = gene_all*len(gene_all)
@@ -486,25 +489,70 @@ class Preprocessor():
         all_grp = all_grp[['source','target','value']]
 
         for i in list(self.peak_gene_links.keys()):
+
             ### filter grp based on genes in pseudo cell
             gene_use = np.array(list(self.peak_gene_links[i].keys()))
-            source_idx = np.intersect1d(all_grp['source'],gene_use,return_indices=True)[1]
-            all_grp = all_grp.loc[source_idx]
-            target_idx = np.intersect1d(all_grp['target'], gene_use, return_indices=True)[1]
-            all_grp = all_grp.loc[target_idx]
+            grp_use = all_grp.loc[all_grp['source'].isin(gene_use)]
+            grp_use = grp_use.loc[grp_use['target'].isin(gene_use)]
 
             for j in gene_use:
                 ### filter grp based on target gene related tfs
                 tf_use = self.peak_gene_links[i][j]['related_tf']
-                tf_drop = gene_use[~np.in1d(gene_use,tf_use)]
-                drop_grp = all_grp[all_grp['target'] == j]
-                drop_grp_idx = all_grp[np.in1d(drop_grp['source'],tf_drop)].index
-                all_grp.drop(index = drop_grp_idx)
-            pseudo_network_grp[i] = all_grp
+                grp_use = grp_use.loc[grp_use['source'].isin(tf_use)]
+
+            pseudo_network_grp[i] = grp_use
 
         return pseudo_network_grp
 
+    def output_pseudo_samples(self):
 
+        pseudo_sample_dict = {}
+
+        for i in list(self.peak_gene_links.keys()):
+            pseudo_sample_dict[i] = {'rna': [], 'atac': []}
+            rna_cell_use = self.pseudo_network[i]['rna']
+            gene_use = np.array(list(self.peak_gene_links[i].keys()))
+            pseudo_sample_dict[i] = {'rna': [], 'atac': []}
+            rna_pseudo = self.rna_mt[rna_cell_use]
+            rna_pseudo_network = pd.DataFrame(rna_pseudo.X.todense().T)
+            rna_pseudo_network.index = list(rna_pseudo.var_names.values)
+            rna_pseudo_network.columns = rna_pseudo.obs_names.values
+            rna_pseudo_network = rna_pseudo_network.loc[gene_use]
+            pseudo_sample_dict[i]['rna'] = rna_pseudo_network
+
+
+
+            atac_cell_use = self.pseudo_network[i]['atac']
+            atac_pseudo = self.atac_mt[atac_cell_use]
+            atac_pseudo_network = pd.DataFrame(atac_pseudo.X.todense().T)
+            atac_pseudo_network.index = list(atac_pseudo.var_names.values)
+            atac_pseudo_network.columns = atac_pseudo.obs_names.values
+            pseudo_sample_dict[i]['atac'] = atac_pseudo_network
+
+        return pseudo_sample_dict
 
     def __is_overlapping(self,x1, x2, y1, y2):
         return max(x1, y1) <= min(x2, y2)
+
+    def __get_target_related_tf(self,motif_score_type:str = 'max'):
+        motif1 = pd.read_table(self.tf_target_db_path)
+        target_tf_dict = {}
+
+        for i in motif1.index:
+
+            row = motif1.iloc[i,]
+            target_tf_dict[row[5]] = {'motif': [], 'score': []}
+            tf_str = motif1.iloc[0,][0]
+            tf_list = tf_str.split(';')
+            target_tf_dict[row[5]]['motif'] = tf_list
+
+            ### select motif score type
+            if motif_score_type=='max':
+                motif_score = motif1.iloc[0,][2]
+            elif motif_score_type=='sum':
+                motif_score = motif1.iloc[0,][3]
+            motif_score = motif_score.split(';')
+
+            target_tf_dict[row[5]]['score'] = motif_score
+
+        self.tf_target_db = target_tf_dict

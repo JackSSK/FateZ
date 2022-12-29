@@ -28,7 +28,7 @@ if __name__ == '__main__':
 
     ### pseudo cell
 
-    network.make_pseudo_networks(data_type='paired')
+    network.make_pseudo_networks(data_type='paired',network_number=3)
     #print(network.pseudo_network)
 
     ### load gene peak annotation
@@ -39,11 +39,15 @@ if __name__ == '__main__':
     ### calculate correlation between gene and peak
     ### select peak with top correlation
     t1 = time.time()
-    network.cal_peak_gene_cor()
+    network.cal_peak_gene_cor(exp_thr = 0.1)
+    matrix1 = network.output_pseudo_samples()
+    print(matrix1)
     t2 = time.time()
     print(t2-t1)
-    a1=network.generate_grp()
-    print(a1[1])
+    t1 = time.time()
+    #matrix2 = network.generate_grp()
+    t2 = time.time()
+    print(t2-t1)
     ### construct grp with expressed genes and its tfs with motif enrichment in target promoter
 
 
