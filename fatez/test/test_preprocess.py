@@ -7,7 +7,7 @@ if __name__ == '__main__':
     peak_path = ('../data/mouse/filtered_feature_bc_matrix/')
     rna_path = ('../data/mouse/filtered_feature_bc_matrix/')
     gff_path = '../data/mouse/gencode.vM25.basic.annotation.gff3.gz'
-    tf_db_path = 'E:\\public/TF_target_tss1500.txt'
+    tf_db_path = 'E:\\public/TF_target_tss_1500.txt'
 
     ### load data
     network = pre.Preprocessor(rna_path, peak_path, gff_path,tf_db_path, data_type='paired')

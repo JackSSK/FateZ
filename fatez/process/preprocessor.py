@@ -548,9 +548,9 @@ class Preprocessor():
 
             ### select motif score type
             if motif_score_type=='max':
-                motif_score = motif1.iloc[0,][2]
+                motif_score = motif1.iloc[0,][1]
             elif motif_score_type=='sum':
-                motif_score = motif1.iloc[0,][3]
+                motif_score = motif1.iloc[0,][2]
             motif_score = motif_score.split(';')
 
             target_tf_dict[row[5]]['score'] = motif_score
