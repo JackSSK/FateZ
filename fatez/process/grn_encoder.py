@@ -68,8 +68,9 @@ class Encode(object):
         for sample in grns:
             print(sample)
 
-    def save(self, path):
-        print('under construction')
-
-    def load(self, path):
-        print('under construction')
+    # Use fatez.model.Save and fatez.model.Load
+    # def save(self, path):
+    #     print('under construction')
+    #
+    # def load(self, path):
+    #     print('under construction')
