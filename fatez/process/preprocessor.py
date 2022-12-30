@@ -61,13 +61,13 @@ class Preprocessor():
 
 
 
-    def load_data(self):
-
+    def load_data(self,matrix_format:str = '10x_paired'):
+        sc.settings.verbosity = 3
+        sc.logging.print_header()
+        sc.settings.set_figure_params(dpi=80, facecolor='white')
         ### 10x paired data
-        if self.data_type == 'paired':
-            sc.settings.verbosity = 3
-            sc.logging.print_header()
-            sc.settings.set_figure_params(dpi=80, facecolor='white')
+        if matrix_format == 'paired':
+
 
             self.rna_mt = sc.read_10x_mtx(
                 self.rna_path,
@@ -86,7 +86,7 @@ class Preprocessor():
 
 
         ### load unparied data or ???
-        elif self.data_type == 'unpaired':
+        elif matrix_format == '10x_unpaired':
             self.rna_mt = sc.read_10x_mtx(
                 self.rna_path,
                 var_names = 'gene_ids',
@@ -94,7 +94,10 @@ class Preprocessor():
             )
             self.atac_mt = ad.read(self.atac_path)
 
-        ### load gff
+        elif matrix_format == 'text_unpaired':
+            self.rna_mt = sc.read_text(self.rna_path)
+            self.atac_mt = sc.read_text(self.atac_path)
+            ### load gff
         # gff = gff1.Reader(self.gff_path)
         # gff_template = gff.get_genes_gencode()
         #
@@ -234,9 +237,11 @@ class Preprocessor():
 
     def add_cell_label(self,cell_types,modality:str = 'rna'):
         if modality == 'rna':
+            self.rna_mt = self.rna_mt[np.intersect1d(cell_types.index,self.rna_mt.obs_names)]
             cell_types = cell_types[cell_types.index.isin(list(self.rna_mt.obs_names))]
             self.rna_mt.obs['cell_types'] = list(cell_types)
         elif modality == 'atac':
+            self.atac_mt = self.atac_mt[cell_types.index]
             cell_types = cell_types[cell_types.index.isin(list(self.atac_mt.obs_names))]
             self.atac_mt.obs['cell_types'] = list(cell_types)
         else:

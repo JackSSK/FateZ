@@ -35,11 +35,12 @@ if __name__ == '__main__':
     cell_type = cell_type['Cluster']
     cell_type = cell_type[cell_type.isin([1,4])]
     network.add_cell_label(cell_type)
+    print(len(network.pseudo_network))
 
 
     ### pseudo cell
     t1 = time.time()
-    network.make_pseudo_networks(data_type='paired',network_number=1)
+    network.make_pseudo_networks(data_type='paired',network_number=2)
     t2 = time.time()
     print(t2 - t1)
     print(network.pseudo_network.keys())
@@ -55,13 +56,16 @@ if __name__ == '__main__':
     t1 = time.time()
     network.cal_peak_gene_cor(exp_thr = 0.1)
     matrix1 = network.output_pseudo_samples()
-    print(matrix1[50])
+    print(matrix1['10'])
     t2 = time.time()
     print(t2-t1)
     t1 = time.time()
     matrix2 = network.generate_grp()
     t2 = time.time()
     print(t2-t1)
+    print('network network')
+    print(len(matrix1))
+    print(len(matrix2))
     ### construct grp with expressed genes and its tfs with motif enrichment in target promoter
 
 
