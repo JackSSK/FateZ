@@ -18,14 +18,18 @@ peak_path = ('../data/mouse/filtered_feature_bc_matrix/')
 rna_path = ('../data/mouse/filtered_feature_bc_matrix/')
 gff_path = '../data/mouse/gencode.vM25.basic.annotation.gff3.gz'
 tf_db_path = 'E:\\public/TF_target_tss_1500.txt.gz'
+cell_type_path = 'E:\\public\\public data\\10X\\e18_mouse_brain_fresh_5k\\e18_mouse_brain_fresh_5k_analysis\\analysis\\clustering\\gex\\graphclust/clusters.csv'
+
+# Added data/ignore to .gitignore, so we can put data there
+tf_db_path = '../data/ignore/TF_target_tss_1500.txt.gz'
+cell_type_path = '../data/ignore/e18_mouse_brain_fresh_5k/analysis/clustering/gex/graphclust/clusters.csv'
 network = pre.Preprocessor(rna_path, peak_path, gff_path, tf_db_path, data_type='paired')
 network.load_data()
 ### qc
 network.rna_qc(rna_min_genes=5, rna_min_cells=250, rna_max_cells=2500)
 network.atac_qc(atac_min_features=5, )
 ### select cell type
-cell_type = pd.read_csv(
-    'E:\\public\\public data\\10X\\e18_mouse_brain_fresh_5k\\e18_mouse_brain_fresh_5k_analysis\\analysis\\clustering\\gex\\graphclust/clusters.csv')
+cell_type = pd.read_csv(cell_type_path)
 cell_type.index = cell_type['Barcode']
 cell_type = cell_type['Cluster']
 cell_type = cell_type[cell_type.isin([1,4])]
@@ -51,8 +55,11 @@ for i in range(len(matrix1)):
     m1 = torch.from_numpy(m1.to_numpy())
     m2 = matrix2[list(matrix2.keys())[i]]
     m2 = torch.from_numpy(m2.to_numpy())
-    samples.append(m1)
-    samples.append(m2)
+    # samples.append(m1)
+    # samples.append(m2)
+
+    # Probably it should be, but u need to debug preprocessor first to test
+    samples.append([m1, m2])
 
 
 

@@ -4,12 +4,16 @@ import time
 import pandas as pd
 import numpy as np
 import fatez.tool.sequence as seq
-os.chdir("D:\\Westlake\\pwk lab\\fatez\\FateZ\\fatez\\test")
+# os.chdir("D:\\Westlake\\pwk lab\\fatez\\FateZ\\fatez\\test")
+
 if __name__ == '__main__':
     peak_path = ('../data/mouse/filtered_feature_bc_matrix/')
     rna_path = ('../data/mouse/filtered_feature_bc_matrix/')
     gff_path = '../data/mouse/gencode.vM25.basic.annotation.gff3.gz'
     tf_db_path = 'E:\\public/TF_target_tss_1500.txt.gz'
+    cell_type_path = 'E:\\public\\public data\\10X\\e18_mouse_brain_fresh_5k\\e18_mouse_brain_fresh_5k_analysis\\analysis\\clustering\\gex\\graphclust/clusters.csv'
+    tf_db_path = '../data/ignore/TF_target_tss_1500.txt.gz'
+    cell_type_path = '../data/ignore/e18_mouse_brain_fresh_5k/analysis/clustering/gex/graphclust/clusters.csv'
 
     ### load data
     network = pre.Preprocessor(rna_path, peak_path, gff_path,tf_db_path, data_type='paired')
@@ -30,7 +34,7 @@ if __name__ == '__main__':
 
 
     ### load cell type
-    cell_type = pd.read_csv('E:\\public\\public data\\10X\\e18_mouse_brain_fresh_5k\\e18_mouse_brain_fresh_5k_analysis\\analysis\\clustering\\gex\\graphclust/clusters.csv')
+    cell_type = pd.read_csv(cell_type_path)
     cell_type.index = cell_type['Barcode']
     cell_type = cell_type['Cluster']
     cell_type = cell_type[cell_type.isin([1,4])]
@@ -67,6 +71,3 @@ if __name__ == '__main__':
     print(len(matrix1))
     print(len(matrix2))
     ### construct grp with expressed genes and its tfs with motif enrichment in target promoter
-
-
-
