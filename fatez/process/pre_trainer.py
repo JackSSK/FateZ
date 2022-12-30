@@ -98,3 +98,8 @@ class Train(object):
         #     loss.backward()
         #     self.optim_schedule.step_and_update_lr()
         return
+
+    def make_square_subsequent_mask(self, size):
+        mask = (torch.triu(torch.ones(size[0], size[1])) == 1).transpose(0, 1)
+        return mask.float(
+            ).masked_fill(mask==0,float('-inf')).masked_fill(mask==1,float(0.0))

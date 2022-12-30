@@ -154,7 +154,7 @@ class Pre_Train_Model(nn.Module):
         )
         self.reconstructor.to(self.factory_kwargs['device'])
 
-    def forward(self, input, mask):
+    def forward(self, input, mask = None):
         return self.reconstructor(self.encoder(input, mask))
 
 

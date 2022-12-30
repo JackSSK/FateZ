@@ -14,7 +14,7 @@ warnings.filterwarnings('ignore')
 
 
 def test_gat(input, label, gat_param):
-    print('Test plain GAT')
+    print('Testing plain GAT')
     model_gat = gat.GAT(**gat_param)
     out_gat = model_gat(input)
     out_gat = model_gat.activation(out_gat)
@@ -28,7 +28,7 @@ def test_gat(input, label, gat_param):
 
 
 def test_sparse_gat(input, label, gat_param):
-    print('Test sparse GAT')
+    print('Testing sparse GAT')
     model_sgat = sgat.Spare_GAT(**gat_param)
     out_sgat = model_sgat(input)
     out_sgat = model_sgat.activation(out_sgat)
@@ -42,7 +42,7 @@ def test_sparse_gat(input, label, gat_param):
 
 
 def test_fine_tune(input, label, n_bin, n_class, gat_model, bert_encoder):
-    print('Test Fine Tune Model')
+    print('Testing Fine-Tune Model')
     fine_tuning = fine_tuner.Model(
         gat = gat_model,
         bin_pro = model.Binning_Process(n_bin = n_bin),
@@ -56,6 +56,21 @@ def test_fine_tune(input, label, n_bin, n_class, gat_model, bert_encoder):
     print('Fine Tuner CEL:', loss, '\n')
     return fine_tuning
 
+
+def test_pre_train(input, mask, n_bin, n_class, gat_model, bert_encoder):
+    print('Testing Pre-Train Model')
+    fine_tuning = fine_tuner.Model(
+        gat = gat_model,
+        bin_pro = model.Binning_Process(n_bin = n_bin),
+        bert_model = bert.Fine_Tune_Model(bert_encoder, n_class = n_class)
+    )
+    output = fine_tuning(input)
+    loss = nn.CrossEntropyLoss()(
+        output, label
+    )
+    loss.backward()
+    print('Pre-Trainer CEL:', loss, '\n')
+    return fine_tuning
 
 
 if __name__ == '__main__':
