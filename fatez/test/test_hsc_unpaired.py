@@ -15,12 +15,12 @@ pseudo_cell_num_per_cell_type = 2
 correlation_thr_to_get_gene_related_peak = 0.6
 rowmean_thr_to_get_variable_gene = 0.1
 ### preprocess
-peak_path = ('D:\\Westlake\\pwk lab\\HSC development\\data\\GSE137117/AE_preHE_atac.txt')
-rna_path = ('D:\\Westlake\\pwk lab\\HSC development\\data\\GSE137117/AE_preHE_rna.txt')
+peak_path = ('D:\\Westlake\\pwk lab\\HSC development\\data\\GSE137117/atac_10x/')
+rna_path = ('D:\\Westlake\\pwk lab\\HSC development\\data\\GSE137117/rna_10x/')
 gff_path = '../data/mouse/gencode.vM25.basic.annotation.gff3.gz'
 tf_db_path = 'E:\\public/TF_target_tss_1500.txt.gz'
 network = pre.Preprocessor(rna_path, peak_path, gff_path, tf_db_path, data_type='paired')
-network.load_data(matrix_format='text_unpaired')
+network.load_data(matrix_format='10x_unpaired')
 ### qc
 network.rna_qc(rna_min_genes=2, rna_min_cells=0, rna_max_cells=2500)
 network.atac_qc(atac_min_features=5, )

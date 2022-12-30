@@ -108,7 +108,11 @@ class Preprocessor():
                 var_names = 'gene_ids',
                 cache = True
             )
-            self.atac_mt = ad.read(self.atac_path)
+            self.atac_mt = sc.read_10x_mtx(
+                self.atac_path,
+                var_names='gene_ids',
+                cache=True,
+                gex_only=False)
 
         elif matrix_format == 'text_unpaired':
             self.rna_mt = sc.read_text(self.rna_path)
