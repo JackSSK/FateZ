@@ -232,6 +232,18 @@ class Preprocessor():
                                             'end': final_end}, index=row_name_list)
 
 
+    def add_cell_label(self,cell_types,modality:str = 'rna'):
+        if modality == 'rna':
+            cell_types = cell_types[cell_types.index.isin(list(self.rna_mt.obs_names))]
+            self.rna_mt.obs['cell_types'] = list(cell_types)
+        elif modality == 'atac':
+            cell_types = cell_types[cell_types.index.isin(list(self.atac_mt.obs_names))]
+            self.atac_mt.obs['cell_types'] = list(cell_types)
+        else:
+            print('input correct modality')
+
+
+
     def annotate_peaks(self):
         template = tgrn.Template_GRN(id='gff')
         template.load_genes(gff_path=self.gff_path)
@@ -336,7 +348,8 @@ class Preprocessor():
 
     def make_pseudo_networks(self,
         network_cell_size:int = 10,
-        data_type:str = None,
+        data_type:str = 'paired',
+        same_cell_type = True,
         network_number:int = 10,
         method = 'sample_cells'
         ):
@@ -350,28 +363,72 @@ class Preprocessor():
         #pseudo_sample_dict = {}
         ### sample cells
         if method == 'sample_cells':
-            for i in range(network_number):
-                    #pseudo_sample_dict[i] = {'rna':[],'atac':[]}
-                    ### sample cells
-                    if data_type == 'paired':
-                        #rna_cell_use = self.rna_mt.obs_names[random.sample(range(len(self.rna_mt.obs_names)),
-                        #                                                  network_cell_size)]
-                        rna_cell_use = random.sample(list(range(len(self.rna_mt.obs_names))),network_cell_size)
-                        atac_cell_use = rna_cell_use
+            if same_cell_type:
 
+                ### intersect cell types
+                if data_type == 'unpaired':
+                    cell_type_use = np.intersect1d(set(self.rna_mt.obs.cell_types),set(self.atac_mt.obs.cell_types))
+                elif data_type == 'paired':
+                    cell_type_use = set(self.rna_mt.obs.cell_types)
+
+                for i in cell_type_use:
+                    rna_network_cell_type = self.rna_mt[self.rna_mt.obs.cell_types == i]
                     if data_type == 'unpaired':
-                        #rna_cell_use = self.rna_mt.obs_names[random.sample(range(len(self.rna_mt.obs_names)),
-                        #                                                   network_cell_size)]
-                        #atac_cell_use = self.atac_mt.obs_names[random.sample(range(len(self.atac_mt.obs_names)),
-                        #                                           network_cell_size)]
-                        rna_cell_use = random.sample(list(range(len(self.rna_mt.obs_names))), network_cell_size)
-                        atac_cell_use = random.sample(list(range(len(self.atac_mt.obs_names))), network_cell_size)
+                        atac_network_cell_type = self.atac_mt[self.atac_mt.obs.cell_types == i]
+                    for j in range(network_number):
+                        if data_type == 'paired':
+                            # rna_cell_use = self.rna_mt.obs_names[random.sample(range(len(self.rna_mt.obs_names)),
+                            #                                                  network_cell_size)]
+                            rna_cell_use = random.sample(list(range(len(rna_network_cell_type))), network_cell_size)
+                            cell_name = list(rna_network_cell_type[rna_cell_use].obs_names)
+                            rna_cell_use = []
+                            for cell in cell_name:
+                                rna_cell_use.append(list(self.rna_mt.obs_names).index(cell))
+
+                            atac_cell_use = rna_cell_use
+
+                        if data_type == 'unpaired':
+
+                            rna_cell_use = random.sample(list(range(len(rna_network_cell_type))), network_cell_size)
+                            cell_name = list(rna_network_cell_type[rna_cell_use].obs_names)
+                            rna_cell_use = []
+                            for cell in cell_name:
+                                rna_cell_use.append(list(self.rna_mt.obs_names).index(cell))
+
+                            atac_cell_use = random.sample(list(range(len(self.atac_mt.obs_names))), network_cell_size)
+                            cell_name = list(atac_network_cell_type[atac_cell_use].obs_names)
+                            atac_cell_use = []
+                            for cell in cell_name:
+                                atac_cell_use.append(list(self.atac_mt.obs_names).index(cell))
+
+                        key_name = str(i) + str(j)
+                        self.pseudo_network[key_name] = {'rna': [], 'atac': []}
+                        self.pseudo_network[key_name]['rna'] = rna_cell_use
+                        self.pseudo_network[key_name]['atac'] = atac_cell_use
+
+            else:
+                for i in range(network_number):
+                        #pseudo_sample_dict[i] = {'rna':[],'atac':[]}
+                        ### sample cells
+                        if data_type == 'paired':
+                            #rna_cell_use = self.rna_mt.obs_names[random.sample(range(len(self.rna_mt.obs_names)),
+                            #                                                  network_cell_size)]
+                            rna_cell_use = random.sample(list(range(len(self.rna_mt.obs_names))),network_cell_size)
+                            atac_cell_use = rna_cell_use
+
+                        if data_type == 'unpaired':
+                            #rna_cell_use = self.rna_mt.obs_names[random.sample(range(len(self.rna_mt.obs_names)),
+                            #                                                   network_cell_size)]
+                            #atac_cell_use = self.atac_mt.obs_names[random.sample(range(len(self.atac_mt.obs_names)),
+                            #                                           network_cell_size)]
+                            rna_cell_use = random.sample(list(range(len(self.rna_mt.obs_names))), network_cell_size)
+                            atac_cell_use = random.sample(list(range(len(self.atac_mt.obs_names))), network_cell_size)
 
 
 
-                    self.pseudo_network[i] = {'rna': [], 'atac': []}
-                    self.pseudo_network[i]['rna'] = rna_cell_use
-                    self.pseudo_network[i]['atac'] = atac_cell_use
+                        self.pseudo_network[i] = {'rna': [], 'atac': []}
+                        self.pseudo_network[i]['rna'] = rna_cell_use
+                        self.pseudo_network[i]['atac'] = atac_cell_use
             #         ### output gene and peak matrixs
             #
             #         rna_pseudo = self.rna_mt[rna_cell_use]
@@ -465,8 +522,7 @@ class Preprocessor():
         ### loop to ilterate millions grps
         ### Basicaly, this strategy first using numpy
         ### to calculate correlation between all genes (3S running time for 1.5W genes),
-        ### then filter the source and target genes using isin() in pandas.
-        ### So that we can ignore intersect part
+        ### then filter the source and target genes
         pseudo_network_grp = {}
         ### merge all genes used in pseudo cell
         gene_all = []
@@ -479,28 +535,32 @@ class Preprocessor():
         ### then melt df to get all grps
         ### correlation calculation method in numpy
         mt_use = self.rna_mt[:, gene_all]
-        source = np.repeat(gene_all,len(gene_all))
-        target = gene_all*len(gene_all)
         mt_cor = np.corrcoef(mt_use.X.todense().T)
         mt_cor_df = pd.DataFrame(mt_cor)
-        all_grp = pd.melt(mt_cor_df)
-        all_grp['source'] = source
-        all_grp['target'] = target
-        all_grp = all_grp[['source','target','value']]
+        mt_cor_df.index = gene_all
+        mt_cor_df.columns = gene_all
+        # all_grp = pd.melt(mt_cor_df)
+        # all_grp['source'] = source
+        # all_grp['target'] = target
+        # all_grp = all_grp[['source','target','value']]
 
         for i in list(self.peak_gene_links.keys()):
 
             ### filter grp based on genes in pseudo cell
-            gene_use = np.array(list(self.peak_gene_links[i].keys()))
-            grp_use = all_grp.loc[all_grp['source'].isin(gene_use)]
-            grp_use = grp_use.loc[grp_use['target'].isin(gene_use)]
+            gene_use = list(self.peak_gene_links[i].keys())
+            df_use = mt_cor_df[gene_use]
+            df_use = df_use.loc[gene_use]
+            # grp_use = all_grp.loc[all_grp['source'].isin(gene_use)]
+            # grp_use = grp_use.loc[grp_use['target'].isin(gene_use)]
 
             for j in gene_use:
                 ### filter grp based on target gene related tfs
                 tf_use = self.peak_gene_links[i][j]['related_tf']
-                grp_use = grp_use.loc[grp_use['source'].isin(tf_use)]
+                tf_use = np.intersect1d(tf_use,list(df_use.index))
+                df_use = df_use.loc[tf_use]
+                # grp_use = grp_use.loc[grp_use['source'].isin(tf_use)]
 
-            pseudo_network_grp[i] = grp_use
+            pseudo_network_grp[i] = df_use
 
         return pseudo_network_grp
 
@@ -509,6 +569,7 @@ class Preprocessor():
         pseudo_sample_dict = {}
 
         for i in list(self.peak_gene_links.keys()):
+            ### pseudo sample
             pseudo_sample_dict[i] = {'rna': [], 'atac': []}
             rna_cell_use = self.pseudo_network[i]['rna']
             gene_use = np.array(list(self.peak_gene_links[i].keys()))
@@ -518,16 +579,19 @@ class Preprocessor():
             rna_pseudo_network.index = list(rna_pseudo.var_names.values)
             rna_pseudo_network.columns = rna_pseudo.obs_names.values
             rna_pseudo_network = rna_pseudo_network.loc[gene_use]
-            pseudo_sample_dict[i]['rna'] = rna_pseudo_network
 
+            ### first feature mean expression
+            gene_mean_exp = rna_pseudo_network.mean(axis=1)
 
+            ### second feature  overlapped peak count
+            peak_mean_count = []
+            for j in gene_use:
+                count = self.peak_gene_links[i][j]['peak_mean_count']
+                peak_mean_count.append(count)
+            pseudo_df = pd.DataFrame({'gene_mean_exp':list(gene_mean_exp),'peak_mean_count':peak_mean_count},index=gene_use)
 
-            atac_cell_use = self.pseudo_network[i]['atac']
-            atac_pseudo = self.atac_mt[atac_cell_use]
-            atac_pseudo_network = pd.DataFrame(atac_pseudo.X.todense().T)
-            atac_pseudo_network.index = list(atac_pseudo.var_names.values)
-            atac_pseudo_network.columns = atac_pseudo.obs_names.values
-            pseudo_sample_dict[i]['atac'] = atac_pseudo_network
+            pseudo_sample_dict[i] = pseudo_df
+
 
         return pseudo_sample_dict
     def extract_motif_score(self, grps):
