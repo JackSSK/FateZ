@@ -23,7 +23,7 @@ def test_gat(input, label, gat_param):
         out_gat, label
     )
     loss.backward()
-    print('GAT CEL:', loss)
+    print('GAT CEL:', loss, '\n')
     return model_gat
 
 
@@ -37,7 +37,7 @@ def test_sparse_gat(input, label, gat_param):
         out_sgat, label
     )
     loss.backward()
-    print('SGAT CEL:', loss)
+    print('SGAT CEL:', loss, '\n')
     return model_sgat
 
 
@@ -53,7 +53,7 @@ def test_fine_tune(input, label, n_bin, n_class, gat_model, bert_encoder):
         output, label
     )
     loss.backward()
-    print('Fine Tuner CEL:', loss)
+    print('Fine Tuner CEL:', loss, '\n')
     return fine_tuning
 
 
@@ -87,7 +87,7 @@ if __name__ == '__main__':
     print('Fake gene num:', k)
     print('Fake TF num:', top_k)
     print('Fake Sample Number:', len(input))
-    print('Class Number:', n_class)
+    print('Class Number:', n_class, '\n')
 
     temp = test_sparse_gat(input, label, gat_param = gat_param)
     model.Save(temp, '../data/ignore/gat.model')
