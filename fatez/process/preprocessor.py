@@ -84,6 +84,22 @@ class Preprocessor():
 
             self.atac_mt = self.atac_mt[:, len(self.rna_mt.var_names):(len(self.atac_mt.var_names) - 1)]
 
+            peak_names = list(self.atac_mt.var_names)
+            chr_list = list()
+            start_list = list()
+            end_list = list()
+            # ### extract chromosome start and end
+            for i in peak_names:
+                peak = i.split(':')
+                peak1 = peak[1].split('-')
+                chr_list.append(peak[0])
+                start_list.append(peak1[0])
+                end_list.append(peak1[1])
+            atac_array = self.atac_mt.X.toarray().T
+            for i in range(len(peak_names)):
+                peak_name = peak_names[i]
+                self.peak_count[peak_name] = atac_array[i]
+
 
         ### load unparied data or ???
         elif matrix_format == '10x_unpaired':
@@ -97,6 +113,23 @@ class Preprocessor():
         elif matrix_format == 'text_unpaired':
             self.rna_mt = sc.read_text(self.rna_path)
             self.atac_mt = sc.read_text(self.atac_path)
+
+            atac_array = self.atac_mt.X.T
+
+            peak_names = list(self.atac_mt.var_names)
+            chr_list = list()
+            start_list = list()
+            end_list = list()
+            # ### extract chromosome start and end
+            for i in peak_names:
+                peak = i.split(':')
+                peak1 = peak[1].split('-')
+                chr_list.append(peak[0])
+                start_list.append(peak1[0])
+                end_list.append(peak1[1])
+            for i in range(len(peak_names)):
+                peak_name = peak_names[i]
+                self.peak_count[peak_name] = atac_array[i]
             ### load gff
         # gff = gff1.Reader(self.gff_path)
         # gff_template = gff.get_genes_gencode()
@@ -120,25 +153,10 @@ class Preprocessor():
         # self.atac_h5ad = ad.read(self.atac_path)
         #
         #
-        peak_names = list(self.atac_mt.var_names)
-        chr_list = list()
-        start_list = list()
-        end_list = list()
-        # ### extract chromosome start and end
-        for i in peak_names:
-             peak = i.split(':')
-             peak1 = peak[1].split('-')
-             chr_list.append(peak[0])
-             start_list.append(peak1[0])
-             end_list.append(peak1[1])
 
         self.peak_region_df = pd.DataFrame({'chr':chr_list,'start':start_list,'end':end_list},index=peak_names)
         # self.gene_region_df = pd.DataFrame({'chr':gene_chr_list, 'start':gene_start_list,
         #                                                                 'end':gene_end_list},index=row_name_list)
-        atac_array = self.atac_mt.X.toarray().T
-        for i in range(len(peak_names)):
-            peak_name = peak_names[i]
-            self.peak_count[peak_name] = atac_array[i]
 
         ### load tf target db
         self.__get_target_related_tf()
