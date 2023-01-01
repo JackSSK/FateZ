@@ -13,36 +13,37 @@ import pandas as pd
 pseudo_cell_num_per_cell_type = 2
 correlation_thr_to_get_gene_related_peak = 0.6
 rowmean_thr_to_get_variable_gene = 0.1
+cluster_use =[1,4]
 ### preprocess
 peak_path = ('../data/mouse/filtered_feature_bc_matrix/')
 rna_path = ('../data/mouse/filtered_feature_bc_matrix/')
 gff_path = '../data/mouse/gencode.vM25.basic.annotation.gff3.gz'
 tf_db_path = 'E:\\public/TF_target_tss_1500.txt.gz'
 network = pre.Preprocessor(rna_path, peak_path, gff_path, tf_db_path, data_type='paired')
-network.load_data()
+network.load_data(matrix_format='10x_paired')
 ### qc
-network.rna_qc(rna_min_genes=5, rna_min_cells=250, rna_max_cells=2500)
-network.atac_qc(atac_min_features=5, )
+network.rna_qc(rna_min_genes=3, rna_min_cells=250, rna_max_cells=2500)
+network.atac_qc(atac_min_features=3, )
 ### select cell type
 cell_type = pd.read_csv(
     'E:\\public\\public data\\10X\\e18_mouse_brain_fresh_5k\\e18_mouse_brain_fresh_5k_analysis\\analysis\\clustering\\gex\\graphclust/clusters.csv')
 cell_type.index = cell_type['Barcode']
 cell_type = cell_type['Cluster']
-cell_type = cell_type[cell_type.isin([1,4])]
+cell_type = cell_type[cell_type.isin(cluster_use)]
 network.add_cell_label(cell_type)
-
+network.annotate_peaks()
 network.make_pseudo_networks(data_type='paired',network_number=pseudo_cell_num_per_cell_type)
 network.cal_peak_gene_cor(exp_thr = rowmean_thr_to_get_variable_gene,
                           cor_thr=correlation_thr_to_get_gene_related_peak)
 matrix1 = network.output_pseudo_samples() ### exp count mt
 matrix2 = network.generate_grp() ### correlation mt
-
+print(matrix2['11'])
 k = 8000
 top_k = 1000
 n = 2
-n_class = 2
+n_class = 4
 nhead = None
-d_model = 2
+d_model = 4
 en_dim = 8
 
 samples = []
@@ -51,6 +52,8 @@ for i in range(len(matrix1)):
     m1 = torch.from_numpy(m1.to_numpy())
     m2 = matrix2[list(matrix2.keys())[i]]
     m2 = torch.from_numpy(m2.to_numpy())
+    print(m1.shape)
+    print(m2.shape)
     samples.append(m1)
     samples.append(m2)
 
@@ -60,7 +63,7 @@ for i in range(len(matrix1)):
 adj_mat = torch.randn(top_k, k)
 sample = [torch.randn(k, d_model), adj_mat]
 samples = [sample]*n
-labels = torch.tensor([1]*n)
+labels = torch.from_numpy(np.repeat(cluster_use,pseudo_cell_num_per_cell_type))
 print('# Fake feat:', k)
 print('# Sample:', len(samples))
 

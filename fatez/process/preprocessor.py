@@ -66,7 +66,7 @@ class Preprocessor():
         sc.logging.print_header()
         sc.settings.set_figure_params(dpi=80, facecolor='white')
         ### 10x paired data
-        if matrix_format == 'paired':
+        if matrix_format == '10x_paired':
 
 
             self.rna_mt = sc.read_10x_mtx(
@@ -99,7 +99,6 @@ class Preprocessor():
             for i in range(len(peak_names)):
                 peak_name = peak_names[i]
                 self.peak_count[peak_name] = atac_array[i]
-
 
         ### load unparied data or ???
         elif matrix_format == '10x_unpaired':
@@ -134,7 +133,7 @@ class Preprocessor():
             for i in range(len(peak_names)):
                 peak_name = peak_names[i]
                 self.peak_count[peak_name] = atac_array[i]
-            ### load gff
+
         # gff = gff1.Reader(self.gff_path)
         # gff_template = gff.get_genes_gencode()
         #
@@ -157,8 +156,9 @@ class Preprocessor():
         # self.atac_h5ad = ad.read(self.atac_path)
         #
         #
+        self.peak_region_df = pd.DataFrame({'chr': chr_list, 'start': start_list, 'end': end_list},
+                                           index=peak_names)
 
-        self.peak_region_df = pd.DataFrame({'chr':chr_list,'start':start_list,'end':end_list},index=peak_names)
         # self.gene_region_df = pd.DataFrame({'chr':gene_chr_list, 'start':gene_start_list,
         #                                                                 'end':gene_end_list},index=row_name_list)
 

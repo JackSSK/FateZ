@@ -7,8 +7,25 @@ import fatez.model.gat as gat
 import fatez.model.sparse_gat as sgat
 import fatez.model.bert as bert
 import fatez.process.fine_tuner as fine_tuner
+import fatez.process.preprocessor as pre
+import pandas as pd
 
-# Ignoring warnings because of using LazyLinear
+peak_path = ('../data/mouse/filtered_feature_bc_matrix/')
+rna_path = ('../data/mouse/filtered_feature_bc_matrix/')
+gff_path = '../data/mouse/gencode.vM25.basic.annotation.gff3.gz'
+tf_db_path = 'E:\\public/TF_target_tss_1500.txt.gz'
+network = pre.Preprocessor(rna_path, peak_path, gff_path, tf_db_path, data_type='paired')
+network.load_data()
+network.rna_qc(rna_min_genes=5, rna_min_cells=250, rna_max_cells=2500)
+network.atac_qc(atac_min_features=5, )
+### load cell type
+cell_type = pd.read_csv(
+    'E:\\public\\public data\\10X\\e18_mouse_brain_fresh_5k\\e18_mouse_brain_fresh_5k_analysis\\analysis\\clustering\\gex\\graphclust/clusters.csv')
+cell_type.index = cell_type['Barcode']
+cell_type = cell_type['Cluster']
+cell_type = cell_type[cell_type.isin([1,4])]
+network.add_cell_label(cell_type)
+
 import warnings
 warnings.filterwarnings('ignore')
 

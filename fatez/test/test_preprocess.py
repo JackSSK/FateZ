@@ -13,7 +13,7 @@ if __name__ == '__main__':
 
     ### load data
     network = pre.Preprocessor(rna_path, peak_path, gff_path,tf_db_path, data_type='paired')
-    network.load_data()
+    network.load_data(matrix_format='10x_paired')
     #print(network.rna_mt)
     #print(network.atac_mt)
     #print(network.tf_target_db.keys())
