@@ -25,6 +25,11 @@ share/python-wheels/
 *.egg
 MANIFEST
 
+# Irrelevant data
+fatez/data/ignore/
+fatez/test/cache/
+cache/
+
 # PyInstaller
 #  Usually these files are written by a python script from a template
 #  before PyInstaller builds the exe, so as to inject date/other infos into it.
@@ -156,5 +161,3 @@ cython_debug/
 .idea/modules.xml
 .idea/vcs.xml
 .idea/workspace.xml
-cache/D-Westlake-pwk lab-fatez-hg19-matrix.h5ad
-fatez/test/cache/D-Westlake-pwk lab-fatez-hg19-matrix.h5ad

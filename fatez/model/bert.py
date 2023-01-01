@@ -23,23 +23,61 @@ import fatez.model as model
 
 
 class Encoder(nn.Module):
+    """
+    The Encoder for BERT model.
+    """
     def __init__(self,
-        id:str = 'encoder',                 # model id
-        encoder:TransformerEncoder = None,  # Load encoder
-        d_model:int = 512,                  # number of expected features in the inputs
-        n_layer:int = 6,                    # number of encoder layers
-        nhead:int = 8,                      # number of heads in multi-head attention
-        dim_feedforward:int = 2048,         # dimension of the feedforward network model
-        dropout:float = 0.05,               # dropout ratio
-        activation:str = 'gelu',            # original bert used gelu instead of relu
-        layer_norm_eps:float = 1e-05,       # the eps value in layer normalization component
-        device:str = None,
+        id:str = 'encoder',
+        encoder:TransformerEncoder = None,
+        d_model:int = 512,
+        n_layer:int = 6,
+        nhead:int = 8,
+        dim_feedforward:int = 2048,
+        dropout:float = 0.05,
+        activation:str = 'gelu',
+        layer_norm_eps:float = 1e-05,
+        device:str = 'cpu',
         dtype:str = None,
         ):
+        """
+        :param encoder <torch.nn.TransformerEncoder = None>
+            The encoder to load.
+
+    	:param encoder <torch.nn.TransformerEncoder = None>
+            The encoder to load.
+
+        :param d_model <int = 512>
+            Number of expected features in the inputs.
+
+        :param n_layer <int = 6>
+            Number of encoder layers.
+
+        :param nhead <int = 8>
+            Number of heads in multi-head attention.
+
+        :param dim_feedforward <int = 2048>
+            Dimension of the feedforward network model.
+
+        :param dropout <float = 0.05>
+            The dropout ratio.
+
+        :param activation <str = 'gelu'>
+            The activation method.
+            Note: Original BERT used gelu instead of relu
+
+        :param layer_norm_eps <float = 1e-05>
+            The eps value in layer normalization component.
+
+        :param device <str = 'cpu'>
+            The device to load model.
+
+        :param dtype <str = None>
+            Data type of input tensor.
+        """
         super(Encoder, self).__init__()
         self.id = id
         self.d_model = d_model
-        self.factory_kwargs={'device':device, 'dtype':dtype}
+        self.factory_kwargs = {'device':device, 'dtype':dtype}
         if encoder is not None:
             self.encoder = encoder
         else:
@@ -62,19 +100,6 @@ class Encoder(nn.Module):
     def forward(self, input, mask = None):
         output = self.encoder(input, mask)
         return output
-
-    def save(self, epoch, file_path:str = "output/encoder_trained.model"):
-        """
-        Saving the current BERT encoder
-
-        :param epoch: current epoch number
-        :param file_path: model output path
-        :return: final_output_path
-        """
-        output_path = file_path + ".ep%d" % epoch
-        torch.save(self.encoder.cpu(), output_path)
-        self.encoder.to(self.factory_kwargs['device'])
-        return output_path
 
 
 
@@ -111,6 +136,9 @@ class Classifier(nn.Module):
 
 
 class Pre_Train_Model(nn.Module):
+    """
+    The model for pre-training process.
+    """
     def __init__(self,
         encoder:Encoder = None,
         n_bin:int = 100,
@@ -126,12 +154,15 @@ class Pre_Train_Model(nn.Module):
         )
         self.reconstructor.to(self.factory_kwargs['device'])
 
-    def forward(self, input, mask):
+    def forward(self, input, mask = None):
         return self.reconstructor(self.encoder(input, mask))
 
 
 
 class Fine_Tune_Model(nn.Module):
+    """
+    The model for fine-tuning process.
+    """
     def __init__(self,
         encoder:Encoder = None,
         n_hidden:int = 2,
