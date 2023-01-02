@@ -59,10 +59,19 @@ for i in range(len(matrix1)):
 
 
 
+"""
+↑
+samples.append([m1, m1])
+じゃないの？
+
+このパーツもういらない
+↓
 
 adj_mat = torch.randn(top_k, k)
 sample = [torch.randn(k, d_model), adj_mat]
 samples = [sample]*n
+"""
+
 labels = torch.from_numpy(np.repeat(cluster_use,pseudo_cell_num_per_cell_type))
 print('# Fake feat:', k)
 print('# Sample:', len(samples))
