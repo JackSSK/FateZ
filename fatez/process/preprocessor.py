@@ -65,10 +65,16 @@ class Preprocessor():
         sc.settings.verbosity = 3
         sc.logging.print_header()
         sc.settings.set_figure_params(dpi=80, facecolor='white')
+
+        """
+        initはこれで
+        """
+        chr_list = list()
+        start_list = list()
+        end_list = list()
+
         ### 10x paired data
         if matrix_format == '10x_paired':
-
-
             self.rna_mt = sc.read_10x_mtx(
                 self.rna_path,
                 var_names = 'gene_ids',
@@ -82,12 +88,18 @@ class Preprocessor():
                 gex_only=False
             )
 
-            self.atac_mt = self.atac_mt[:, len(self.rna_mt.var_names):(len(self.atac_mt.var_names) - 1)]
+            # ながすぎ
+            self.atac_mt = self.atac_mt[
+                :, len(self.rna_mt.var_names):(len(self.atac_mt.var_names) - 1)
+            ]
 
             peak_names = list(self.atac_mt.var_names)
+            """
+            initはそとで
             chr_list = list()
             start_list = list()
             end_list = list()
+            """
             # ### extract chromosome start and end
             for i in peak_names:
                 peak = i.split(':')
@@ -120,9 +132,12 @@ class Preprocessor():
             atac_array = self.atac_mt.X.T
 
             peak_names = list(self.atac_mt.var_names)
+            """
+            initはそとで
             chr_list = list()
             start_list = list()
             end_list = list()
+            """
             # ### extract chromosome start and end
             for i in peak_names:
                 peak = i.split(':')
@@ -156,8 +171,11 @@ class Preprocessor():
         # self.atac_h5ad = ad.read(self.atac_path)
         #
         #
-        self.peak_region_df = pd.DataFrame({'chr': chr_list, 'start': start_list, 'end': end_list},
-                                           index=peak_names)
+        #　こちらもながぁぁぁぁぁぁぁぁぁぁぁい
+        self.peak_region_df = pd.DataFrame(
+            {'chr': chr_list, 'start': start_list, 'end': end_list},
+            index = peak_names
+        )
 
         # self.gene_region_df = pd.DataFrame({'chr':gene_chr_list, 'start':gene_start_list,
         #                                                                 'end':gene_end_list},index=row_name_list)
@@ -166,15 +184,30 @@ class Preprocessor():
         self.__get_target_related_tf()
 
 
-    def rna_qc(self,rna_min_genes:int=3,rna_min_cells:int=200,
-                  rna_max_cells:int=2000,rna_mt_counts:int=5):
+    def rna_qc(self,
+        rna_min_genes:int = 3,
+        rna_min_cells:int = 200,
+        rna_max_cells:int = 2000,
+        rna_mt_counts:int = 5
+        ):
         sc.pp.filter_cells(self.rna_mt, min_genes=rna_min_genes)
         sc.pp.filter_genes(self.rna_mt, min_cells=rna_min_cells)
         ###
         self.rna_mt.var['mt'] = self.rna_mt.var_names.str.startswith('MT-')
-        sc.pp.calculate_qc_metrics(self.rna_mt, qc_vars=['mt'], percent_top=None, log1p=False, inplace=True)
-        self.rna_mt = self.rna_mt[self.rna_mt.obs.n_genes_by_counts < rna_max_cells, :]
-        self.rna_mt = self.rna_mt[self.rna_mt.obs.pct_counts_mt < rna_mt_counts, :]
+        #　こちらもながぁぁぁぁぁぁぁぁぁぁぁい
+        sc.pp.calculate_qc_metrics(
+            self.rna_mt,
+            qc_vars = ['mt'],
+            percent_top = None,
+            log1p = False,
+            inplace = True
+        )
+        self.rna_mt = self.rna_mt[
+            self.rna_mt.obs.n_genes_by_counts < rna_max_cells, :
+        ]
+        self.rna_mt = self.rna_mt[
+            self.rna_mt.obs.pct_counts_mt < rna_mt_counts, :
+        ]
 
 
     def atac_qc(self,atac_min_features:int=3,atac_min_cells:int=100,
@@ -218,6 +251,7 @@ class Preprocessor():
             end2 = int(peak_df.iloc[i,2])
             peak_count2 = atac_array[i]
             ### merge peak
+            # 読めないから自分でやってください
             if (chr1 == chr2) & (((start1>=start2) & (start1<=end2)) | ((end1>=start2) & (end1<=end2)) |
                                ((start1<=start2) & (end1 >end2)) | ((start2>end1) & ((end2-start1) < width*2) ) |
                                ((start1>end2) & ((end1-start2) < width*2) ) ):
@@ -253,18 +287,26 @@ class Preprocessor():
         # final_end.append(peak_df.iloc[len(peak_df.index)-1,2])
         # peak_count_dict[peak_df.index[len(peak_df.index)]] = atac_array[len(peak_df.index)]
         self.peak_count = peak_count_dict
-        self.gene_region_df = pd.DataFrame({'chr': final_chr, 'start': final_start,
-                                            'end': final_end}, index=row_name_list)
+        self.gene_region_df = pd.DataFrame(
+            {'chr':final_chr, 'start':final_start, 'end':final_end},
+            index = row_name_list
+        )
 
 
     def add_cell_label(self,cell_types,modality:str = 'rna'):
         if modality == 'rna':
-            self.rna_mt = self.rna_mt[np.intersect1d(cell_types.index,self.rna_mt.obs_names)]
-            cell_types = cell_types[cell_types.index.isin(list(self.rna_mt.obs_names))]
+            self.rna_mt = self.rna_mt[
+                np.intersect1d(cell_types.index, self.rna_mt.obs_names)
+            ]
+            cell_types = cell_types[
+                cell_types.index.isin(list(self.rna_mt.obs_names))
+            ]
             self.rna_mt.obs['cell_types'] = list(cell_types)
         elif modality == 'atac':
             self.atac_mt = self.atac_mt[cell_types.index]
-            cell_types = cell_types[cell_types.index.isin(list(self.atac_mt.obs_names))]
+            cell_types = cell_types[
+                cell_types.index.isin(list(self.atac_mt.obs_names))
+            ]
             self.atac_mt.obs['cell_types'] = list(cell_types)
         else:
             print('input correct modality')
@@ -618,9 +660,8 @@ class Preprocessor():
             pseudo_df = pd.DataFrame({'gene_mean_exp':list(gene_mean_exp),'peak_mean_count':peak_mean_count},index=gene_use)
 
             pseudo_sample_dict[i] = pseudo_df
-
-
         return pseudo_sample_dict
+
     def extract_motif_score(self, grps):
 
         gene_use = list(set(grps['target']))
