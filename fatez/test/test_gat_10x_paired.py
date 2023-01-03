@@ -30,7 +30,8 @@ gff_path = '../data/mouse/gencode.vM25.basic.annotation.gff3.gz'
 tf_db_path = 'E:\\public/TF_target_tss_1500.txt.gz'
 cell_type_path = 'E:\\public\\public data\\10X\\e18_mouse_brain_fresh_5k\\e18_mouse_brain_fresh_5k_analysis\\analysis\\clustering\\gex\\graphclust/clusters.csv'
 
-network = pre.Preprocessor(rna_path, peak_path, gff_path, tf_db_path, data_type='paired')
+network = pre.Preprocessor(rna_path, peak_path, gff_path, tf_db_path,
+                           data_type='paired')
 network.load_data(matrix_format='10x_paired')
 ### qc
 network.rna_qc(rna_min_genes=3, rna_min_cells=250, rna_max_cells=2500)
@@ -42,7 +43,8 @@ cell_type = cell_type['Cluster']
 cell_type = cell_type[cell_type.isin(cluster_use)]
 network.add_cell_label(cell_type)
 network.annotate_peaks()
-network.make_pseudo_networks(data_type='paired',network_number=pseudo_cell_num_per_cell_type)
+network.make_pseudo_networks(data_type='paired',
+                             network_number=pseudo_cell_num_per_cell_type)
 network.cal_peak_gene_cor(exp_thr = rowmean_thr_to_get_variable_gene,
                           cor_thr=correlation_thr_to_get_gene_related_peak)
 matrix1 = network.output_pseudo_samples() ### exp count mt
@@ -77,7 +79,8 @@ sample = [torch.randn(k, d_model), adj_mat]
 samples = [sample]*n
 """
 
-labels = torch.from_numpy(np.repeat(range(len(cluster_use)),pseudo_cell_num_per_cell_type))
+labels = torch.from_numpy(np.repeat(range(len(cluster_use))
+                                    ,pseudo_cell_num_per_cell_type))
 labels = labels.long()
 # print('# Fake feat:', k)
 print('# Sample:', len(samples))
