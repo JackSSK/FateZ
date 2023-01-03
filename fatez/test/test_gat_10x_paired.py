@@ -22,14 +22,14 @@ peak_path = ('../data/mouse/filtered_feature_bc_matrix/')
 rna_path = ('../data/mouse/filtered_feature_bc_matrix/')
 gff_path = '../data/mouse/gencode.vM25.basic.annotation.gff3.gz'
 
-tf_db_path = '../data/ignore/TF_target_tss_1500.txt.gz'
-cell_type_path = '..data/ignore/e18_mouse_brain_fresh_5k/analysis/clustering/gex/graphclust/clusters.csv'
+# tf_db_path = '../data/ignore/TF_target_tss_1500.txt.gz'
+# cell_type_path = '..data/ignore/e18_mouse_brain_fresh_5k/analysis/clustering/gex/graphclust/clusters.csv'
 
-"""
-↑のpath使ってください
+
+#↑のpath使ってください
 tf_db_path = 'E:\\public/TF_target_tss_1500.txt.gz'
 cell_type_path = 'E:\\public\\public data\\10X\\e18_mouse_brain_fresh_5k\\e18_mouse_brain_fresh_5k_analysis\\analysis\\clustering\\gex\\graphclust/clusters.csv'
-"""
+
 network = pre.Preprocessor(rna_path, peak_path, gff_path, tf_db_path, data_type='paired')
 network.load_data(matrix_format='10x_paired')
 ### qc
@@ -48,13 +48,9 @@ network.cal_peak_gene_cor(exp_thr = rowmean_thr_to_get_variable_gene,
 matrix1 = network.output_pseudo_samples() ### exp count mt
 matrix2 = network.generate_grp() ### correlation mt
 print(matrix2['11'])
-k = 8000
-top_k = 1000
-n = 2
-n_class = 4
-nhead = None
-d_model = 4
-en_dim = 8
+
+# Parameters
+
 
 samples = []
 for i in range(len(matrix1)):
@@ -62,12 +58,11 @@ for i in range(len(matrix1)):
     m1 = torch.from_numpy(m1.to_numpy())
     m2 = matrix2[list(matrix2.keys())[i]]
     m2 = torch.from_numpy(m2.to_numpy())
+    m1 = m1.to(torch.float32)
+    m2 = m2.to(torch.float32)
     print(m1.shape)
     print(m2.shape)
-    samples.append(m1)
-    samples.append(m2)
-
-
+    samples.append([m1, m2])
 
 """
 ↑
@@ -83,13 +78,13 @@ samples = [sample]*n
 """
 
 labels = torch.from_numpy(np.repeat(cluster_use,pseudo_cell_num_per_cell_type))
-print('# Fake feat:', k)
+# print('# Fake feat:', k)
 print('# Sample:', len(samples))
 
 # print('here')
 print('Test plain GAT')
 
-model_gat = gat.GAT(d_model = d_model, en_dim = en_dim, nhead = nhead,)
+model_gat = gat.GAT(d_model = 2, en_dim = 8, nhead = None,)
 
 # Test GAT
 out_gat = model_gat(samples)
@@ -100,7 +95,7 @@ out_gat = model_gat.decision(out_gat)
 
 # Need to make sure d_model is divisible by nhead
 bert_encoder = bert.Encoder(
-    d_model = en_dim,
+    d_model = 8,
     n_layer = 6,
     nhead = 8,
     dim_feedforward = 2,
@@ -109,7 +104,7 @@ bert_encoder = bert.Encoder(
 test_model = fine_tuner.Model(
     gat = model_gat,
     bin_pro = model.Binning_Process(n_bin = 100),
-    bert_model = bert.Fine_Tune_Model(bert_encoder, n_class = n_class)
+    bert_model = bert.Fine_Tune_Model(bert_encoder, n_class = 2)
 )
 output = test_model(samples)
 
