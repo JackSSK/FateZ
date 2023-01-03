@@ -616,7 +616,7 @@ class Preprocessor():
 
 
 
-    def generate_grp(self):
+    def generate_grp(self,expressed_cell_percent_thr:int=0.05):
         ### This strategy is faster than using for
         ### loop to ilterate millions grps
         ### Basicaly, this strategy first using numpy
@@ -639,26 +639,26 @@ class Preprocessor():
         mt_cor_df = pd.DataFrame(mt_cor)
         mt_cor_df.index = gene_all
         mt_cor_df.columns = gene_all
-        # all_grp = pd.melt(mt_cor_df)
-        # all_grp['source'] = source
-        # all_grp['target'] = target
-        # all_grp = all_grp[['source','target','value']]
+        ### extract expressed tfs
+        expressed_tfs = self.__extract_expressed_tfs(
+            expressed_cell_percent=expressed_cell_percent_thr)
+        expressed_tfs = np.intersect1d(expressed_tfs,gene_all)
 
         for i in list(self.peak_gene_links.keys()):
 
             ### filter grp based on genes in pseudo cell
             gene_use = list(self.peak_gene_links[i].keys())
             df_use = mt_cor_df[gene_use]
-            df_use = df_use.loc[gene_use]
+            df_use = df_use.loc[expressed_tfs]
             # grp_use = all_grp.loc[all_grp['source'].isin(gene_use)]
             # grp_use = grp_use.loc[grp_use['target'].isin(gene_use)]
 
-            for j in gene_use:
-                ### filter grp based on target gene related tfs
-                tf_use = self.peak_gene_links[i][j]['related_tf']
-                tf_use = np.intersect1d(tf_use,list(df_use.index))
-                df_use = df_use.loc[tf_use]
-                # grp_use = grp_use.loc[grp_use['source'].isin(tf_use)]
+            # for j in gene_use:
+            #     ### filter grp based on target gene related tfs
+            #     tf_use = self.peak_gene_links[i][j]['related_tf']
+            #     tf_use = np.intersect1d(tf_use,list(df_use.index))
+            #     df_use = df_use.loc[tf_use]
+            #     # grp_use = grp_use.loc[grp_use['source'].isin(tf_use)]
 
             pseudo_network_grp[i] = df_use
 
@@ -709,6 +709,27 @@ class Preprocessor():
             all_score = np.append(all_score,score_use)
         grps['tf_motif_enrich'] = all_score
         return grps
+
+    def __extract_expressed_tfs(self,expressed_cell_percent:int=0.05):
+        path = resource_filename(
+            __name__, '../data/' + 'mouse' + '/Transfac201803_MotifTFsF.txt.gz'
+        )
+        ### make TFs motifs dict
+        expressed_cell_thr = int(
+            expressed_cell_percent*len(self.rna_mt.obs_names))
+        tf_motifs = transfac.Reader(path=path).get_tfs()
+        tf_all = list(tf_motifs.keys())
+        gene_all = list(self.rna_mt.var_names)
+        tf_use = np.intersect1d(tf_all,gene_all)
+        tf_exp = self.rna_mt[:,tf_use].to_df().T
+        tf_use_idx = []
+        for i in range(tf_exp.shape[0]):
+            expressed_num = tf_exp.iloc[i][tf_exp.iloc[i] != 0].shape[0]
+            if expressed_num >= expressed_cell_thr:
+                tf_use_idx.append(i)
+        tf_use = tf_use[tf_use_idx]
+        return tf_use
+
 
 
 

@@ -10,7 +10,7 @@ import fatez.process.fine_tuner as fine_tuner
 import fatez.process.preprocessor as pre
 import pandas as pd
 ### preprocess parameters
-pseudo_cell_num_per_cell_type = 2
+pseudo_cell_num_per_cell_type = 10
 correlation_thr_to_get_gene_related_peak = 0.6
 rowmean_thr_to_get_variable_gene = 0.1
 cluster_use =[1,4]
@@ -77,7 +77,8 @@ sample = [torch.randn(k, d_model), adj_mat]
 samples = [sample]*n
 """
 
-labels = torch.from_numpy(np.repeat(cluster_use,pseudo_cell_num_per_cell_type))
+labels = torch.from_numpy(np.repeat(range(len(cluster_use)),pseudo_cell_num_per_cell_type))
+labels = labels.long()
 # print('# Fake feat:', k)
 print('# Sample:', len(samples))
 
