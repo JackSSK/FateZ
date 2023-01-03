@@ -26,6 +26,8 @@ class Graph_Attention_Layer(nn.Module):
         dropout:float = 0.2,
         alpha:float = 0.2,
         concat:bool = True,
+        device:str = None,
+        dtype:str = None,
         ):
         """
         :param d_model:int = None
@@ -49,6 +51,10 @@ class Graph_Attention_Layer(nn.Module):
         :param concat:bool = True
             Whether concatenating with other layers.
             Note: False for last layer.
+
+        :param dtype:str = None
+            Data type of values in matrices.
+            Note: torch default using float32, numpy default using float64
         """
         super(Graph_Attention_Layer, self).__init__()
         self.dropout = dropout
@@ -57,8 +63,12 @@ class Graph_Attention_Layer(nn.Module):
         self.alpha = alpha
         self.concat = concat
         # Set up parameters
-        self.weights = nn.Parameter(torch.empty(size = (d_model, out_dim)))
-        self.a_values = nn.Parameter(torch.empty(size = (2 * out_dim, 1)))
+        self.weights = nn.Parameter(
+            torch.empty(size = (d_model, out_dim), dtype = dtype)
+        )
+        self.a_values = nn.Parameter(
+            torch.empty(size = (2 * out_dim, 1), dtype = dtype)
+        )
         nn.init.xavier_uniform_(self.weights.data, gain = gain)
         nn.init.xavier_uniform_(self.a_values.data, gain = gain)
 
@@ -148,6 +158,8 @@ class GAT(nn.Module):
         weight_decay:float = 5e-4,
         dropout:float = 0.2,
         alpha:float = 0.2,
+        device:str = None,
+        dtype:str = None,
         ):
         """
         :param d_model:int = None
@@ -176,12 +188,17 @@ class GAT(nn.Module):
 
         :param alpha:float = 0.2
             Alpha value for the LeakyRelu layer.
+
+        :param dtype:str = None
+            Data type of values in matrices.
+            Note: torch default using float32, numpy default using float64
         """
         super(GAT, self).__init__()
         self.dropout = dropout
         self.lr = lr
         self.weight_decay = weight_decay
         self.attentions = None
+        self.factory_kwargs = {'device': device, 'dtype': dtype}
 
         # Add attention heads
         if nhead is not None and nhead > 0:
@@ -193,7 +210,8 @@ class GAT(nn.Module):
                     weight_decay = weight_decay,
                     dropout = dropout,
                     alpha = alpha,
-                    concat = True
+                    concat = True,
+                    **self.factory_kwargs,
                 ) for _ in range(nhead)
             ]
             for i, attention in enumerate(self.attentions):
@@ -213,8 +231,9 @@ class GAT(nn.Module):
             dropout = dropout,
             alpha = alpha,
             concat = False,
+            **self.factory_kwargs,
         )
-        self.decision_layer = nn.LazyLinear(n_class)
+        self.decision_layer = nn.LazyLinear(n_class, dtype = dtype)
 
     def forward(self, samples):
         """

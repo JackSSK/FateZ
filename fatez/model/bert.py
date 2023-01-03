@@ -107,9 +107,13 @@ class Data_Reconstructor(nn.Module):
     """
     Data_Reconstructor can be revised later
     """
-    def __init__(self, d_model:int = 512, n_bin:int = 100,):
+    def __init__(self,
+        d_model:int = 512,
+        n_bin:int = 100,
+        device:str = None,
+        dtype:str = None,):
         super(Data_Reconstructor, self).__init__()
-        self.linear = nn.Linear(d_model, n_bin)
+        self.linear = nn.Linear(d_model, n_bin, dtype = dtype)
         self.softmax = nn.LogSoftmax(dim = -1)
 
     def forward(self, input):
@@ -122,11 +126,17 @@ class Classifier(nn.Module):
     Easy classifier. Can be revised later.
     scBERT use 1D-Conv here
     """
-    def __init__(self, d_model:int = 512, n_hidden:int = 2, n_class:int = 100,):
+    def __init__(self,
+        d_model:int = 512,
+        n_hidden:int = 2,
+        n_class:int = 100,
+        device:str = None,
+        dtype:str = None,
+        ):
         super(Classifier, self).__init__()
-        self.linear = nn.Linear(d_model, n_hidden)
+        self.linear = nn.Linear(d_model, n_hidden, dtype = dtype)
         self.softmax = nn.LogSoftmax(dim = -1)
-        self.decision = nn.LazyLinear(n_class)
+        self.decision = nn.LazyLinear(n_class, dtype = dtype)
 
     def forward(self, input):
         output = self.softmax(self.linear(input))
@@ -142,15 +152,18 @@ class Pre_Train_Model(nn.Module):
     def __init__(self,
         encoder:Encoder = None,
         n_bin:int = 100,
-        device:str = None,
-        dtype:str = None,
         ):
         super(Pre_Train_Model, self).__init__()
-        self.factory_kwargs = {'device': device, 'dtype': dtype}
         self.encoder = encoder
+        self.factory_kwargs = {
+            'device': self.encoder.factory_kwargs['device'],
+            'dtype': self.encoder.factory_kwargs['dtype']
+        }
         self.encoder.to(self.factory_kwargs['device'])
         self.reconstructor = Data_Reconstructor(
-            d_model = self.encoder.d_model, n_bin = n_bin
+            d_model = self.encoder.d_model,
+            n_bin = n_bin,
+            **self.factory_kwargs
         )
         self.reconstructor.to(self.factory_kwargs['device'])
 
@@ -167,15 +180,19 @@ class Fine_Tune_Model(nn.Module):
         encoder:Encoder = None,
         n_hidden:int = 2,
         n_class:int = 100,
-        device:str = None,
-        dtype:str = None,
         ):
         super(Fine_Tune_Model, self).__init__()
-        self.factory_kwargs = {'device': device, 'dtype': dtype}
         self.encoder = encoder
-        self.encoder.to(self.factory_kwargs['device'])
+        self.factory_kwargs = {
+            'device': self.encoder.factory_kwargs['device'],
+            'dtype': self.encoder.factory_kwargs['dtype']
+        }
+        self.encoder.to(self.encoder.factory_kwargs['device'])
         self.classifier = Classifier(
-            d_model = self.encoder.d_model, n_hidden=n_hidden, n_class=n_class,
+            d_model = self.encoder.d_model,
+            n_hidden = n_hidden,
+            n_class = n_class,
+            **self.factory_kwargs
         )
         self.classifier.to(self.factory_kwargs['device'])
 

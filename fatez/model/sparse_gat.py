@@ -19,9 +19,11 @@ class Sparse_MatMul_Function(torch.autograd.Function):
     Matrix maultiplication for sparse region backpropataion layer.
     """
     @staticmethod
-    def forward(ctx, indices, values, shape, mat_2):
+    def forward(ctx, indices, values, shape, mat_2,):
         assert indices.requires_grad == False
-        mat_1 = torch.sparse_coo_tensor(indices, values, shape)
+        mat_1 = torch.sparse_coo_tensor(
+            indices, values, shape, dtype = mat_2.dtype
+        )
         ctx.save_for_backward(mat_1, mat_2)
         ctx.N = shape[0]
         return torch.matmul(mat_1, mat_2)
@@ -70,6 +72,8 @@ class Sparse_Graph_Attention_Layer(nn.Module):
         dropout:float = 0.2,
         alpha:float = 0.2,
         concat:bool = True,
+        device:str = None,
+        dtype:str = None,
         ):
         """
         :param d_model:int = None
@@ -93,6 +97,10 @@ class Sparse_Graph_Attention_Layer(nn.Module):
         :param concat:bool = True
             Whether concatenating with other layers.
             Note: False for last layer.
+
+        :param dtype:str = None
+            Data type of values in matrices.
+            Note: torch default using float32, numpy default using float64
         """
         super(Sparse_Graph_Attention_Layer, self).__init__()
         self.dropout = dropout
@@ -101,8 +109,12 @@ class Sparse_Graph_Attention_Layer(nn.Module):
         self.alpha = alpha
         self.concat = concat
         # Set up parameters
-        self.weights = nn.Parameter(torch.zeros(size = (d_model, out_dim)))
-        self.a_values = nn.Parameter(torch.zeros(size = (1, 2 * out_dim)))
+        self.weights = nn.Parameter(
+            torch.zeros(size = (d_model, out_dim), dtype = dtype)
+        )
+        self.a_values = nn.Parameter(
+            torch.zeros(size = (1, 2 * out_dim), dtype = dtype)
+        )
         nn.init.xavier_normal_(self.weights.data, gain = 1.414)
         nn.init.xavier_normal_(self.a_values.data, gain = 1.414)
 
@@ -192,6 +204,8 @@ class Spare_GAT(nn.Module):
         weight_decay:float = 5e-4,
         dropout:float = 0.2,
         alpha:float = 0.2,
+        device:str = None,
+        dtype:str = None,
         ):
         """
         :param d_model:int = None
@@ -220,12 +234,17 @@ class Spare_GAT(nn.Module):
 
         :param alpha:float = 0.2
             Alpha value for the LeakyRelu layer.
+
+        :param dtype:str = None
+            Data type of values in matrices.
+            Note: torch default using float32, numpy default using float64
         """
         super(Spare_GAT, self).__init__()
         self.dropout = dropout
         self.lr = lr
         self.weight_decay = weight_decay
         self.attentions = None
+        self.factory_kwargs = {'device': device, 'dtype': dtype}
 
         # Add attention heads
         if nhead is not None and nhead > 0:
@@ -237,7 +256,8 @@ class Spare_GAT(nn.Module):
                     weight_decay = weight_decay,
                     dropout = dropout,
                     alpha = alpha,
-                    concat = True
+                    concat = True,
+                    **self.factory_kwargs,
                 ) for _ in range(nhead)
             ]
             for i, attention in enumerate(self.attentions):
@@ -255,8 +275,9 @@ class Spare_GAT(nn.Module):
             dropout = dropout,
             alpha = alpha,
             concat = False,
+            **self.factory_kwargs,
         )
-        self.decision_layer = nn.LazyLinear(n_class)
+        self.decision_layer = nn.LazyLinear(n_class, dtype = dtype,)
 
     def forward(self, samples):
         """
