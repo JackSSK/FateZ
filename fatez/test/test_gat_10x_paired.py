@@ -66,7 +66,7 @@ for i in range(len(matrix1)):
 
 """
 ↑
-samples.append([m1, m1])
+samples.append([m1, m2])
 じゃないの？
 
 このパーツもういらない

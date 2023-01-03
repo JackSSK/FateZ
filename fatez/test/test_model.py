@@ -89,6 +89,7 @@ if __name__ == '__main__':
         'en_dim': 8,
         'nhead': None,
         'n_class': n_class,
+        'dtype': torch.float64,
     }
     # Need to make sure d_model is divisible by nhead
     bert_encoder_param = {
@@ -96,15 +97,17 @@ if __name__ == '__main__':
         'n_layer': 6,
         'nhead': 8,
         'dim_feedforward': 3,
+        'dtype': torch.float64,
     }
     n_bin = 100
 
     # Generate Fake data
-    adj_mat = torch.randn(top_k, k)
-    sample = [torch.randn(k, gat_param['d_model']), adj_mat]
+    adj_mat = torch.randn(top_k, k, dtype = torch.float64)
+    sample = [torch.randn(k, gat_param['d_model'], dtype = torch.float64), adj_mat]
+
     # FYI
     print(sample[0].size(), sample[1].size())
-    
+
     input = [sample] * n_sample
     label = torch.tensor([1] * n_sample)
     print('Fake gene num:', k)
