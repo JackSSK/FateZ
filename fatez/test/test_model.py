@@ -1,7 +1,8 @@
-import numpy as np
+import os
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
+import numpy as np
 import fatez.model as model
 import fatez.model.gat as gat
 import fatez.model.sparse_gat as sgat
@@ -74,13 +75,17 @@ def test_pre_train(input, mask, n_bin, n_class, gat_model, bert_encoder):
 
 
 if __name__ == '__main__':
+    # Create the cache directory if not present
+    if not os.path.exists('../data/ignore'):
+        os.makedirs('../data/ignore')
+
     # Parameters
-    k = 20000
-    top_k = 1000
-    n_sample = 2
-    n_class = 2
+    k = 5000
+    top_k = 200
+    n_sample = 4
+    n_class = 4
     gat_param = {
-        'd_model': 3,
+        'd_model': 2,   # Feature dim
         'en_dim': 8,
         'nhead': None,
         'n_class': n_class,
@@ -90,13 +95,16 @@ if __name__ == '__main__':
         'd_model': gat_param['en_dim'],
         'n_layer': 6,
         'nhead': 8,
-        'dim_feedforward': 2,
+        'dim_feedforward': 3,
     }
     n_bin = 100
 
     # Generate Fake data
     adj_mat = torch.randn(top_k, k)
     sample = [torch.randn(k, gat_param['d_model']), adj_mat]
+    # FYI
+    print(sample[0].size(), sample[1].size())
+    
     input = [sample] * n_sample
     label = torch.tensor([1] * n_sample)
     print('Fake gene num:', k)
