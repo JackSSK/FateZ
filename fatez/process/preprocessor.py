@@ -7,7 +7,6 @@ Note: Try to keep line length within 81 Chars
 author: jjy
 """
 import time
-
 import pandas as pd
 import random
 import re
@@ -177,8 +176,6 @@ class Preprocessor():
             index = peak_names
         )
 
-        # self.gene_region_df = pd.DataFrame({'chr':gene_chr_list, 'start':gene_start_list,
-        #                                                                 'end':gene_end_list},index=row_name_list)
 
         ### load tf target db
         self.__get_target_related_tf()
@@ -215,7 +212,8 @@ class Preprocessor():
         sc.pp.filter_cells(self.atac_mt, min_genes=atac_min_features)
         sc.pp.filter_genes(self.atac_mt, min_cells=atac_min_cells)
         #self.atac_mt = self.atac_mt[self.atac_mt.obs.n_genes_by_counts < atac_max_cells, :]
-        self.peak_region_df = self.peak_region_df.loc[list(self.atac_mt.var_names)]
+        self.peak_region_df = self.peak_region_df.loc[
+            list(self.atac_mt.var_names)]
         ### peak_count dict
         atac_array = self.atac_mt.X.toarray().T
         peak_names = list(self.atac_mt.var_names)
@@ -252,8 +250,10 @@ class Preprocessor():
             peak_count2 = atac_array[i]
             ### merge peak
             # 読めないから自分でやってください
-            if (chr1 == chr2) & (((start1>=start2) & (start1<=end2)) | ((end1>=start2) & (end1<=end2)) |
-                               ((start1<=start2) & (end1 >end2)) | ((start2>end1) & ((end2-start1) < width*2) ) |
+            if (chr1 == chr2) & (((start1>=start2) & (start1<=end2)) |
+                                 ((end1>=start2) & (end1<=end2)) |
+                               ((start1<=start2) & (end1 >end2)) |
+                                 ((start2>end1) & ((end2-start1) < width*2) ) |
                                ((start1>end2) & ((end1-start2) < width*2) ) ):
                 new_region = sorted([start1,end1,start2,end2])
                 start1 = new_region[0]
@@ -436,39 +436,53 @@ class Preprocessor():
 
                 ### intersect cell types
                 if data_type == 'unpaired':
-                    cell_type_use = np.intersect1d(set(self.rna_mt.obs.cell_types),set(self.atac_mt.obs.cell_types))
+                    cell_type_use = np.intersect1d(
+                        set(self.rna_mt.obs.cell_types),set(
+                            self.atac_mt.obs.cell_types))
                 elif data_type == 'paired':
                     cell_type_use = set(self.rna_mt.obs.cell_types)
 
                 for i in cell_type_use:
-                    rna_network_cell_type = self.rna_mt[self.rna_mt.obs.cell_types == i]
+                    rna_network_cell_type = self.rna_mt[
+                        self.rna_mt.obs.cell_types == i]
                     if data_type == 'unpaired':
-                        atac_network_cell_type = self.atac_mt[self.atac_mt.obs.cell_types == i]
+                        atac_network_cell_type = self.atac_mt[
+                            self.atac_mt.obs.cell_types == i]
                     for j in range(network_number):
                         if data_type == 'paired':
                             # rna_cell_use = self.rna_mt.obs_names[random.sample(range(len(self.rna_mt.obs_names)),
                             #                                                  network_cell_size)]
-                            rna_cell_use = random.sample(list(range(len(rna_network_cell_type))), network_cell_size)
-                            cell_name = list(rna_network_cell_type[rna_cell_use].obs_names)
+                            rna_cell_use = random.sample(list(range(
+                                len(rna_network_cell_type))), network_cell_size)
+                            cell_name = list(rna_network_cell_type[
+                                                 rna_cell_use].obs_names)
                             rna_cell_use = []
                             for cell in cell_name:
-                                rna_cell_use.append(list(self.rna_mt.obs_names).index(cell))
+                                rna_cell_use.append(list(
+                                    self.rna_mt.obs_names).index(cell))
 
                             atac_cell_use = rna_cell_use
 
                         if data_type == 'unpaired':
 
-                            rna_cell_use = random.sample(list(range(len(rna_network_cell_type))), network_cell_size)
-                            cell_name = list(rna_network_cell_type[rna_cell_use].obs_names)
+                            rna_cell_use = random.sample(list(range(
+                                len(rna_network_cell_type))), network_cell_size)
+                            cell_name = list(rna_network_cell_type[
+                                                 rna_cell_use].obs_names)
                             rna_cell_use = []
                             for cell in cell_name:
-                                rna_cell_use.append(list(self.rna_mt.obs_names).index(cell))
+                                rna_cell_use.append(list(
+                                    self.rna_mt.obs_names).index(cell))
 
-                            atac_cell_use = random.sample(list(range(len(self.atac_mt.obs_names))), network_cell_size)
-                            cell_name = list(atac_network_cell_type[atac_cell_use].obs_names)
+                            atac_cell_use = random.sample(list(
+                                range(len(self.atac_mt.obs_names))),
+                                network_cell_size)
+                            cell_name = list(atac_network_cell_type[
+                                                 atac_cell_use].obs_names)
                             atac_cell_use = []
                             for cell in cell_name:
-                                atac_cell_use.append(list(self.atac_mt.obs_names).index(cell))
+                                atac_cell_use.append(list(
+                                    self.atac_mt.obs_names).index(cell))
 
                         key_name = str(i) + str(j)
                         self.pseudo_network[key_name] = {'rna': [], 'atac': []}
@@ -482,7 +496,9 @@ class Preprocessor():
                         if data_type == 'paired':
                             #rna_cell_use = self.rna_mt.obs_names[random.sample(range(len(self.rna_mt.obs_names)),
                             #                                                  network_cell_size)]
-                            rna_cell_use = random.sample(list(range(len(self.rna_mt.obs_names))),network_cell_size)
+                            rna_cell_use = random.sample(list(
+                                range(len(self.rna_mt.obs_names))),
+                                network_cell_size)
                             atac_cell_use = rna_cell_use
 
                         if data_type == 'unpaired':
@@ -490,8 +506,11 @@ class Preprocessor():
                             #                                                   network_cell_size)]
                             #atac_cell_use = self.atac_mt.obs_names[random.sample(range(len(self.atac_mt.obs_names)),
                             #                                           network_cell_size)]
-                            rna_cell_use = random.sample(list(range(len(self.rna_mt.obs_names))), network_cell_size)
-                            atac_cell_use = random.sample(list(range(len(self.atac_mt.obs_names))), network_cell_size)
+                            rna_cell_use = random.sample(list(range(
+                                len(self.rna_mt.obs_names))), network_cell_size)
+                            atac_cell_use = random.sample(list(
+                                range(len(self.atac_mt.obs_names))),
+                                network_cell_size)
 
 
 
@@ -566,23 +585,34 @@ class Preprocessor():
                     peak_series = pd.Series(peak_cor,index=peak_use)
                     peak_series_abs = abs(peak_series)
                     if len(peak_series) > 1:
-                        cor_max_peak = peak_series_abs.sort_values().index[len(peak_series_abs)-1]
+                        cor_max_peak = peak_series_abs.sort_values().index[
+                            len(peak_series_abs)-1]
                         cor_max = peak_series[cor_max_peak]
                     else:
                         cor_max_peak = peak_series.index[0]
                         cor_max = peak_series[0]
-                    peak_mean_count = self.peak_count[cor_max_peak][atac_cell_use].mean()
+                    peak_mean_count = self.peak_count[cor_max_peak][
+                        atac_cell_use].mean()
                     self.peak_gene_links[network][i]['peak'] = cor_max_peak
-                    self.peak_gene_links[network][i]['peak_correlation'] = cor_max
-                    self.peak_gene_links[network][i]['peak_mean_count'] = peak_mean_count
-                    self.peak_gene_links[network][i]['gene_mean_count'] = gene_mean_count
-                    self.peak_gene_links[network][i]['related_tf'] = related_tf
+                    self.peak_gene_links[network][i][
+                        'peak_correlation'] = cor_max
+                    self.peak_gene_links[network][i][
+                        'peak_mean_count'] = peak_mean_count
+                    self.peak_gene_links[network][i][
+                        'gene_mean_count'] = gene_mean_count
+                    self.peak_gene_links[network][i][
+                        'related_tf'] = related_tf
                 else:
-                    self.peak_gene_links[network][i]['peak'] = None
-                    self.peak_gene_links[network][i]['peak_correlation'] = 0
-                    self.peak_gene_links[network][i]['peak_mean_count'] = 0
-                    self.peak_gene_links[network][i]['gene_mean_count'] = gene_mean_count
-                    self.peak_gene_links[network][i]['related_tf'] = related_tf
+                    self.peak_gene_links[network][i][
+                        'peak'] = None
+                    self.peak_gene_links[network][i][
+                        'peak_correlation'] = 0
+                    self.peak_gene_links[network][i][
+                        'peak_mean_count'] = 0
+                    self.peak_gene_links[network][i][
+                        'gene_mean_count'] = gene_mean_count
+                    self.peak_gene_links[network][i][
+                        'related_tf'] = related_tf
 
 
 
@@ -590,7 +620,8 @@ class Preprocessor():
         ### This strategy is faster than using for
         ### loop to ilterate millions grps
         ### Basicaly, this strategy first using numpy
-        ### to calculate correlation between all genes (3S running time for 1.5W genes),
+        ### to calculate correlation between all genes (3S running time
+        ### for 1.5W genes),
         ### then filter the source and target genes
         pseudo_network_grp = {}
         ### merge all genes used in pseudo cell
@@ -657,7 +688,9 @@ class Preprocessor():
             for j in gene_use:
                 count = self.peak_gene_links[i][j]['peak_mean_count']
                 peak_mean_count.append(count)
-            pseudo_df = pd.DataFrame({'gene_mean_exp':list(gene_mean_exp),'peak_mean_count':peak_mean_count},index=gene_use)
+            pseudo_df = pd.DataFrame({'gene_mean_exp':list(gene_mean_exp)
+                                         ,'peak_mean_count':peak_mean_count},
+                                     index=gene_use)
 
             pseudo_sample_dict[i] = pseudo_df
         return pseudo_sample_dict
