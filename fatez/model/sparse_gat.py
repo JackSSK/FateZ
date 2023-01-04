@@ -279,17 +279,18 @@ class Spare_GAT(nn.Module):
         )
         self.decision_layer = nn.LazyLinear(n_class, dtype = dtype,)
 
-    def forward(self, samples):
+    def forward(self, input):
         """
-        :param samples:list = None
+        :param input:list = None
             List of GRN representing matrix sets:
                 Input matrix. (Genes)
                 Adjacent matrix. (Based on GRPs)
         """
         answer = list()
-        for sample in samples:
-            x = sample[0]
-            adj_mat = sample[1]
+        assert len(input[0]) == len(input[1])
+        for i in range(len(input[0])):
+            x = input[0][i]
+            adj_mat = input[1][i]
             x = F.dropout(x, self.dropout, training = self.training)
             # Multi-head attention mechanism
             if self.attentions is not None:

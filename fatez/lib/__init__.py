@@ -4,6 +4,8 @@ This folder contains basic objects for FateZ.
 
 author: jy
 """
+from torch.utils.data import Dataset
+
 
 
 class Error(Exception):
@@ -42,3 +44,19 @@ class GRN_Basic(object):
 		"""
 		setattr(self, key, value)
 		return
+
+
+class FateZ_Dataset(Dataset):
+    """
+	Basic Dataset object for DataLoader
+	"""
+    def __init__(self, samples, labels):
+        assert len(samples) == len(labels)
+        self.samples = samples
+        self.labels = labels
+
+    def __len__(self):
+        return len(self.samples)
+
+    def __getitem__(self, idx):
+        return self.samples[idx], self.labels[idx]
