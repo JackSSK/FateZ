@@ -72,7 +72,7 @@ class Sparse_Graph_Attention_Layer(nn.Module):
         dropout:float = 0.2,
         alpha:float = 0.2,
         concat:bool = True,
-        device:str = None,
+        device:str = 'cpu',
         dtype:str = None,
         ):
         """
@@ -204,7 +204,7 @@ class Spare_GAT(nn.Module):
         weight_decay:float = 5e-4,
         dropout:float = 0.2,
         alpha:float = 0.2,
-        device:str = None,
+        device:str = 'cpu',
         dtype:str = None,
         ):
         """
@@ -291,6 +291,8 @@ class Spare_GAT(nn.Module):
         for i in range(len(input[0])):
             x = input[0][i]
             adj_mat = input[1][i]
+            x.to(self.factory_kwargs['device'])
+            adj_mat.to(self.factory_kwargs['device'])
             x = F.dropout(x, self.dropout, training = self.training)
             # Multi-head attention mechanism
             if self.attentions is not None:

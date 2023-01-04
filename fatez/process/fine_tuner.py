@@ -24,7 +24,7 @@ class Model(nn.Module):
         gat = None,
         bin_pro:model.Binning_Process = None,
         bert_model:bert.Fine_Tune_Model = None,
-        device:str = None,
+        device:str = 'cpu',
         dtype:str = None,
         ):
         super(Model, self).__init__()

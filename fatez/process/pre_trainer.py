@@ -19,7 +19,7 @@ class Model(nn.Module):
         gat = None,
         bin_pro:model.Binning_Process = None,
         bert_model:bert.Pre_Train_Model = None,
-        device:str = None,
+        device:str = 'cpu',
         dtype:str = None,
         ):
         self.factory_kwargs = {'device': device, 'dtype': dtype}

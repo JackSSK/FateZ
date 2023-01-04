@@ -67,12 +67,13 @@ labels = labels.long()
 """
 model define
 """
-model_gat = gat.GAT(d_model = 2, en_dim = 8, nhead = None,)
+model_gat = gat.GAT(d_model = 2, en_dim = 8, nhead = None, device = device)
 bert_encoder = bert.Encoder(
     d_model = 8,
     n_layer = 6,
     nhead = 8,
     dim_feedforward = 2,
+    device = device,
 )
 test_model = fine_tuner.Model(
     gat = model_gat,

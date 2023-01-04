@@ -110,7 +110,7 @@ class Data_Reconstructor(nn.Module):
     def __init__(self,
         d_model:int = 512,
         n_bin:int = 100,
-        device:str = None,
+        device:str = 'cpu',
         dtype:str = None,):
         super(Data_Reconstructor, self).__init__()
         self.linear = nn.Linear(d_model, n_bin, dtype = dtype)
@@ -130,7 +130,7 @@ class Classifier(nn.Module):
         d_model:int = 512,
         n_hidden:int = 2,
         n_class:int = 100,
-        device:str = None,
+        device:str = 'cpu',
         dtype:str = None,
         ):
         super(Classifier, self).__init__()
