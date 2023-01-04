@@ -117,8 +117,6 @@ for epoch in range(num_epoch):
         sample_idx_list =list(x.numpy())
         sample_use = []
         for idx in sample_idx_list:
-            print(samples[idx][0].shape)
-            print(samples[idx][1].shape)
             sample_use.append(samples[idx])
         out_gat = model_gat(sample_use)
         out_gat = model_gat.activation(out_gat)
@@ -130,7 +128,8 @@ for epoch in range(num_epoch):
         loss.backward()
         optimizer.step()
         optimizer.zero_grad()
-        print(f"batch: {batch_num} loss: {loss}")
+        acc = (output.argmax(1)==y).type(torch.float).sum()/batch_size
+        print(f"batch: {batch_num} loss: {loss} accuracy:{acc}")
         batch_num += 1
 model.Save(test_model.bert_model.encoder, '../data/ignore/bert_encoder.model')
 
