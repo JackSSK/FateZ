@@ -22,6 +22,7 @@ import fatez.tool.transfac as transfac
 import fatez.lib.template_grn as tgrn
 import fatez.process.grn_reconstructor as grn_recon
 import warnings
+from sklearn.preprocessing import MinMaxScaler
 class Preprocessor():
     """
     Preprocessing the scRNA-seq and scATAC-seq data to get
@@ -697,18 +698,25 @@ class Preprocessor():
 
     def extract_motif_score(self, grps):
 
-        gene_use = list(set(grps['target']))
-        all_score = np.array([])
+        gene_use = list(grps.columns)
+        tf_use = list(grps.index)
+        all_score = []
         for j in gene_use:
             target_gene_tf_score = self.tf_target_db[j]
             tf = target_gene_tf_score['motif']
             score = target_gene_tf_score['score']
-            df_use = grps[grps['target']==j]
+            tf_zero = list(set(tf_use)-set(tf))
+            tf_zero_pd = pd.Series([0]*len(tf_zero),index=tf_zero)
             db_tf_score_seires = pd.Series(score, index=tf)
-            score_use = db_tf_score_seires[list(df_use['source'])]
-            all_score = np.append(all_score,score_use)
-        grps['tf_motif_enrich'] = all_score
-        return grps
+            db_tf_score_seires = pd.concat([tf_zero_pd,
+                                            db_tf_score_seires], axis=0)
+            score_use = db_tf_score_seires[tf_use].to_numpy()
+            all_score.append(score_use)
+            motif_score_mt = np.matrix(all_score).T.astype(float)
+            ### scale to range 0 1
+            scaler = MinMaxScaler(feature_range=(0, 1))
+            motif_score_mt = scaler.fit_transform(motif_score_mt)
+        return motif_score_mt
 
     def __extract_expressed_tfs(self,expressed_cell_percent:int=0.05):
         path = resource_filename(
