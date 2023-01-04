@@ -10,12 +10,14 @@ import pandas as pd
 from transformers import AdamW
 from torch.utils.data import DataLoader
 import fatez.lib as lib
+import time
 """
 preprocess
 """
-device = "cuda" if torch.cuda.is_available() else "cpu"
+device='cpu'
+#device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
 ## preprocess parameters
-pseudo_cell_num_per_cell_type = 2
+pseudo_cell_num_per_cell_type = 20
 correlation_thr_to_get_gene_related_peak = 0.6
 rowmean_thr_to_get_variable_gene = 0.1
 cluster_use =[1,4]
@@ -56,10 +58,10 @@ for i in range(len(matrix1)):
     #motif_enrich_mt = network.extract_motif_score(m2)
     m2 = torch.from_numpy(m2.to_numpy())
     #m2 = np.multiply(m2,motif_enrich_mt)
-    m1 = m1.to(torch.float64)
-    m2 = m2.to(torch.float64)
-    m1.to(device)
-    m2.to(device)
+    m1 = m1.to(torch.float32)
+    m2 = m2.to(torch.float32)
+    print(m1.shape)
+    print(m2.shape)
     samples.append([m1, m2])
 labels = torch.from_numpy(np.repeat(range(len(cluster_use))
                                     ,pseudo_cell_num_per_cell_type))
@@ -84,11 +86,12 @@ optimizer = AdamW(test_model.parameters(), lr=0.01)
 model_gat.to(device)
 bert_encoder.to(device)
 test_model.to(device)
+
 """
 traning
 """
-batch_size = 10
-num_epoch = 30
+batch_size = 20
+num_epoch = 10
 train_dataloader = DataLoader(
     lib.FateZ_Dataset(samples=samples, labels=labels),
     batch_size=batch_size,
@@ -102,9 +105,13 @@ for epoch in range(num_epoch):
         # sample_use = []
         # for idx in sample_idx_list:
         #     sample_use.append(samples[idx])
+        t1=time.time()
         out_gat = model_gat(x)
         out_gat = model_gat.activation(out_gat)
         out_gat = model_gat.decision(out_gat)
+        out_gat_write = out_gat.numpy()
+        np.save('D:\\Westlake\\pwk lab\\fatez\\out_gat/'+epoch+batch_num+'npy',out_gat_write)
+        print(out_gat)
         output = test_model(x)
         loss = nn.CrossEntropyLoss()(
             output, y
@@ -113,10 +120,9 @@ for epoch in range(num_epoch):
         optimizer.step()
         optimizer.zero_grad()
         acc = (output.argmax(1)==y).type(torch.float).sum()/batch_size
+        t2 = time.time()
+        print(t2-t1)
         print(f"batch: {batch_num} loss: {loss} accuracy:{acc}")
         batch_num += 1
 model.Save(test_model.bert_model.encoder, '../data/ignore/bert_encoder.model')
 
-for x,y in train_dataloader:
-    print(x)
-    print(y)

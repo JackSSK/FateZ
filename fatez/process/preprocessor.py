@@ -685,7 +685,11 @@ class Preprocessor():
     def output_pseudo_samples(self):
 
         pseudo_sample_dict = {}
-
+        gene_all = []
+        for i in list(self.peak_gene_links.keys()):
+            gene_use = list(self.peak_gene_links[i].keys())
+            gene_all = gene_all + gene_use
+        gene_all = list(set(gene_all))
         for i in list(self.peak_gene_links.keys()):
             ### pseudo sample
             pseudo_sample_dict[i] = {'rna': [], 'atac': []}
@@ -696,14 +700,16 @@ class Preprocessor():
             rna_pseudo_network = pd.DataFrame(rna_pseudo.X.todense().T)
             rna_pseudo_network.index = list(rna_pseudo.var_names.values)
             rna_pseudo_network.columns = rna_pseudo.obs_names.values
-            #rna_pseudo_network = rna_pseudo_network.loc[gene_use]
+
+
+            rna_pseudo_network = rna_pseudo_network.loc[gene_all]
 
             ### first feature mean expression
             gene_mean_exp = rna_pseudo_network.mean(axis=1)
 
             ### second feature  overlapped peak count
             peak_mean_count = []
-            for j in list(rna_pseudo.var_names.values):
+            for j in gene_all:
                 if j in gene_use:
                     count = self.peak_gene_links[i][j]['peak_mean_count']
                     peak_mean_count.append(count)
@@ -711,7 +717,7 @@ class Preprocessor():
                     peak_mean_count.append(0)
             pseudo_df = pd.DataFrame({'gene_mean_exp':list(gene_mean_exp)
                                          ,'peak_mean_count':peak_mean_count},
-                                     index=list(rna_pseudo.var_names.values))
+                                     index=list(gene_all))
 
             pseudo_sample_dict[i] = pseudo_df
         return pseudo_sample_dict
