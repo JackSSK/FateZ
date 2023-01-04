@@ -14,7 +14,7 @@ from transformers import AdamW
 from torch.utils.data import DataLoader
 import random
 ### preprocess parameters
-pseudo_cell_num_per_cell_type = 20
+pseudo_cell_num_per_cell_type = 40
 correlation_thr_to_get_gene_related_peak = 0.6
 rowmean_thr_to_get_variable_gene = 0.1
 cluster_use =[1,4]
@@ -71,8 +71,8 @@ for i in range(len(matrix1)):
     samples.append([m1, m2])
 sample_idx = torch.tensor(range(len(samples)))
 # Parameters
-batch_size = 5
-num_epoch = 3
+batch_size = 10
+num_epoch = 30
 ###iter
 def data_iter(batch_size,mt1,labels):
     num_examples = len(mt1)
