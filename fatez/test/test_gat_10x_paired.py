@@ -14,7 +14,7 @@ from transformers import AdamW
 from torch.utils.data import DataLoader
 import random
 ### preprocess parameters
-pseudo_cell_num_per_cell_type = 20
+pseudo_cell_num_per_cell_type = 40
 correlation_thr_to_get_gene_related_peak = 0.6
 rowmean_thr_to_get_variable_gene = 0.1
 cluster_use =[1,4]
@@ -71,8 +71,8 @@ for i in range(len(matrix1)):
     samples.append([m1, m2])
 sample_idx = torch.tensor(range(len(samples)))
 # Parameters
-batch_size = 5
-num_epoch = 3
+batch_size = 10
+num_epoch = 30
 ###iter
 def data_iter(batch_size,mt1,labels):
     num_examples = len(mt1)
@@ -117,8 +117,6 @@ for epoch in range(num_epoch):
         sample_idx_list =list(x.numpy())
         sample_use = []
         for idx in sample_idx_list:
-            print(samples[idx][0].shape)
-            print(samples[idx][1].shape)
             sample_use.append(samples[idx])
         out_gat = model_gat(sample_use)
         out_gat = model_gat.activation(out_gat)
@@ -130,7 +128,8 @@ for epoch in range(num_epoch):
         loss.backward()
         optimizer.step()
         optimizer.zero_grad()
-        print(f"batch: {batch_num} loss: {loss}")
+        acc = (output.argmax(1)==y).type(torch.float).sum()/batch_size
+        print(f"batch: {batch_num} loss: {loss} accuracy:{acc}")
         batch_num += 1
 model.Save(test_model.bert_model.encoder, '../data/ignore/bert_encoder.model')
 
