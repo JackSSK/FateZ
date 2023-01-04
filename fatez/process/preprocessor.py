@@ -7,6 +7,8 @@ Note: Try to keep line length within 81 Chars
 author: jjy
 """
 import time
+
+import anndata
 import pandas as pd
 import random
 import re
@@ -115,15 +117,28 @@ class Preprocessor():
         ### load unparied data or ???
         elif matrix_format == '10x_unpaired':
             self.rna_mt = sc.read_10x_mtx(
-                self.rna_path,
-                var_names = 'gene_ids',
-                cache = True
+                self.rna_path,var_names='gene_ids'
             )
-            self.atac_mt = sc.read_10x_mtx(
-                self.atac_path,
-                var_names='gene_ids',
-                cache=True,
-                gex_only=False)
+            if self.atac_path[-1] !='/':
+                self.atac_path = self.atac_path + '/'
+            mtx = anndata.read_mtx(self.atac_path+'matrix.mtx.gz').T
+            peak = pd.read_table(self.atac_path+'features.tsv.gz',header=None)
+            barcode = pd.read_table(self.atac_path + 'barcodes.tsv.gz',
+                                    header=None)
+            mtx.obs_names = list(barcode[0])
+            mtx.var_names = list(peak[0])
+            self.atac_mt = mtx
+            peak_names = list(self.atac_mt.var_names)
+            for i in peak_names:
+                peak = i.split(':')
+                peak1 = peak[1].split('-')
+                chr_list.append(peak[0])
+                start_list.append(peak1[0])
+                end_list.append(peak1[1])
+            atac_array = self.atac_mt.X.toarray().T
+            for i in range(len(peak_names)):
+                peak_name = peak_names[i]
+                self.peak_count[peak_name] = atac_array[i]
 
         elif matrix_format == 'text_unpaired':
             self.rna_mt = sc.read_text(self.rna_path)
@@ -177,7 +192,9 @@ class Preprocessor():
             index = peak_names
         )
 
-
+        ###remove nan
+        self.rna_mt = self.rna_mt[:,~self.rna_mt.var_names.isnull()]
+        self.atac_mt = self.atac_mt[:,~self.atac_mt.var_names.isnull()]
         ### load tf target db
         self.__get_target_related_tf()
 
@@ -438,8 +455,8 @@ class Preprocessor():
                 ### intersect cell types
                 if data_type == 'unpaired':
                     cell_type_use = np.intersect1d(
-                        set(self.rna_mt.obs.cell_types),set(
-                            self.atac_mt.obs.cell_types))
+                        list(set(self.rna_mt.obs.cell_types)),list(set(
+                            self.atac_mt.obs.cell_types)))
                 elif data_type == 'paired':
                     cell_type_use = set(self.rna_mt.obs.cell_types)
 
@@ -476,7 +493,7 @@ class Preprocessor():
                                     self.rna_mt.obs_names).index(cell))
 
                             atac_cell_use = random.sample(list(
-                                range(len(self.atac_mt.obs_names))),
+                                range(len(atac_network_cell_type))),
                                 network_cell_size)
                             cell_name = list(atac_network_cell_type[
                                                  atac_cell_use].obs_names)
@@ -649,8 +666,8 @@ class Preprocessor():
 
             ### filter grp based on genes in pseudo cell
             gene_use = list(self.peak_gene_links[i].keys())
-            df_use = mt_cor_df[gene_use]
-            df_use = df_use.loc[expressed_tfs]
+            #df_use = mt_cor_df[gene_use]
+            df_use = mt_cor_df.loc[expressed_tfs]
             # grp_use = all_grp.loc[all_grp['source'].isin(gene_use)]
             # grp_use = grp_use.loc[grp_use['target'].isin(gene_use)]
 
@@ -679,19 +696,22 @@ class Preprocessor():
             rna_pseudo_network = pd.DataFrame(rna_pseudo.X.todense().T)
             rna_pseudo_network.index = list(rna_pseudo.var_names.values)
             rna_pseudo_network.columns = rna_pseudo.obs_names.values
-            rna_pseudo_network = rna_pseudo_network.loc[gene_use]
+            #rna_pseudo_network = rna_pseudo_network.loc[gene_use]
 
             ### first feature mean expression
             gene_mean_exp = rna_pseudo_network.mean(axis=1)
 
             ### second feature  overlapped peak count
             peak_mean_count = []
-            for j in gene_use:
-                count = self.peak_gene_links[i][j]['peak_mean_count']
-                peak_mean_count.append(count)
+            for j in list(rna_pseudo.var_names.values):
+                if j in gene_use:
+                    count = self.peak_gene_links[i][j]['peak_mean_count']
+                    peak_mean_count.append(count)
+                else:
+                    peak_mean_count.append(0)
             pseudo_df = pd.DataFrame({'gene_mean_exp':list(gene_mean_exp)
                                          ,'peak_mean_count':peak_mean_count},
-                                     index=gene_use)
+                                     index=list(rna_pseudo.var_names.values))
 
             pseudo_sample_dict[i] = pseudo_df
         return pseudo_sample_dict
