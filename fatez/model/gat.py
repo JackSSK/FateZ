@@ -64,10 +64,10 @@ class Graph_Attention_Layer(nn.Module):
         self.concat = concat
         # Set up parameters
         self.weights = nn.Parameter(
-            torch.empty(size = (d_model, out_dim), dtype = dtype)
+            torch.empty(size = (d_model, out_dim), device = device, dtype=dtype)
         )
         self.a_values = nn.Parameter(
-            torch.empty(size = (2 * out_dim, 1), dtype = dtype)
+            torch.empty(size = (2 * out_dim, 1), device = device, dtype = dtype)
         )
         nn.init.xavier_uniform_(self.weights.data, gain = gain)
         nn.init.xavier_uniform_(self.a_values.data, gain = gain)

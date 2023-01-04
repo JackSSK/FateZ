@@ -131,10 +131,7 @@ if __name__ == '__main__':
         batch_size = batch_size,
         shuffle = True
     )
-    for x,y in train_dataloader:
-        print(len(x))
-        print(y)
-
+    
     print('Fake gene num:', k)
     print('Fake TF num:', top_k)
     print('Fake Sample Number:', n_sample)

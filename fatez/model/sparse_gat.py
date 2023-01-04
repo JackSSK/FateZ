@@ -110,10 +110,10 @@ class Sparse_Graph_Attention_Layer(nn.Module):
         self.concat = concat
         # Set up parameters
         self.weights = nn.Parameter(
-            torch.zeros(size = (d_model, out_dim), dtype = dtype)
+            torch.zeros(size = (d_model, out_dim), device = device, dtype=dtype)
         )
         self.a_values = nn.Parameter(
-            torch.zeros(size = (1, 2 * out_dim), dtype = dtype)
+            torch.zeros(size = (1, 2 * out_dim), device = device, dtype = dtype)
         )
         nn.init.xavier_normal_(self.weights.data, gain = 1.414)
         nn.init.xavier_normal_(self.a_values.data, gain = 1.414)
