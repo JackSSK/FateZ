@@ -17,7 +17,7 @@ preprocess
 device='cpu'
 #device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
 ## preprocess parameters
-pseudo_cell_num_per_cell_type = 40
+pseudo_cell_num_per_cell_type = 100
 correlation_thr_to_get_gene_related_peak = 0.6
 rowmean_thr_to_get_variable_gene = 0.1
 cluster_use =[1,4]
