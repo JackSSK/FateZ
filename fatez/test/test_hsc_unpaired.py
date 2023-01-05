@@ -101,6 +101,7 @@ train_dataloader = DataLoader(
 for epoch in range(num_epoch):
     print(f"Epoch {epoch + 1}\n-------------------------------")
     batch_num = 1
+    test_model.train()
     for x,y in train_dataloader:
         # sample_idx_list =list(x.numpy())
         # sample_use = []
