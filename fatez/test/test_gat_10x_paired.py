@@ -89,11 +89,10 @@ labels = labels.long()
 """
 model define
 """
-model_gat = gat.GAT(d_model = 2, en_dim = 8, nhead = None,)
-# Test GAT
-# out_gat = model_gat(samples)
-# out_gat = model_gat.activation(out_gat)
-# out_gat = model_gat.decision(out_gat)
+model_gat = gat.GAT(d_model = 2, en_dim = 8, nhead = None, make_decision=False)
+# Try Pure GAT later
+model_gat_full = gat.GAT(d_model = 2, en_dim = 4, nhead = 2, make_decision=True)
+
 
 # Need to make sure d_model is divisible by nhead
 bert_encoder = bert.Encoder(
@@ -103,7 +102,7 @@ bert_encoder = bert.Encoder(
     dim_feedforward = 2,
 )
 test_model = fine_tuner.Model(
-    gat = model_gat,
+    gat = gat.GAT(d_model = 2, en_dim = 8, nhead = None, make_decision = False),
     bin_pro = model.Binning_Process(n_bin = 100),
     bert_model = bert.Fine_Tune_Model(bert_encoder, n_class = 2)
 )
@@ -131,12 +130,11 @@ for epoch in range(num_epoch):
     test_model.train()
     for x,y in train_dataloader:
         optimizer.zero_grad()
-        out_gat = model_gat(x)
-        out_gat = model_gat.activation(out_gat)
-        out_gat = model_gat.decision(out_gat)
+        out_gat = model_gat(x[0], x[1])
+        # Save GAT output without decison layers
         torch.save(out_gat,
                    'D:\\Westlake\\pwk lab\\fatez\\out_gat/epoch'+str(epoch)+'_batch'+str(batch_num)+'.pt')
-        output = test_model(x)
+        output = test_model(x[0], x[1])
         loss = nn.CrossEntropyLoss()(
             output, y
         )
