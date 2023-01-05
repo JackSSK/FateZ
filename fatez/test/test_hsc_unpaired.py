@@ -116,8 +116,8 @@ for epoch in range(num_epoch):
             output, y
         )
         loss.backward()
-        out_gat.optimizer.step()
-        out_gat.optimizer.zero_grad()
+        optimizer.step()
+        optimizer.zero_grad()
         acc = (output.argmax(1)==y).type(torch.float).sum()/batch_size
         print(f"batch: {batch_num} loss: {loss} accuracy:{acc}")
         batch_num += 1
