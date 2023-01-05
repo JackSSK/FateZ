@@ -1,5 +1,5 @@
 import os
-import shap
+import fatez.process.explainer as explainer
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
@@ -29,8 +29,8 @@ def test_gat(train_dataloader, gat_param):
         loss.backward()
     print('Last GAT CEL:', loss, '\n')
 
-    explainer = shap.GradientExplainer(model_gat, [input[0], input[1]])
-    shap_values = explainer.shap_values([input[0][:1], input[1][:1]])
+    explain = explainer.Gradient(model_gat, [input[0], input[1]])
+    shap_values = explain.shap_values([input[0][:1], input[1][:1]])
     print(len(shap_values))
     return model_gat
 
@@ -65,9 +65,6 @@ def test_fine_tune(train_dataloader, n_bin, n_class, gat_model, bert_encoder):
         loss.backward()
     print('Last Fine Tuner CEL:', loss, '\n')
 
-    explainer = shap.GradientExplainer(fine_tuning, [input[0], input[1]])
-    shap_values = explainer.shap_values([input[0][:1], input[1][:1]])
-    print(len(shap_values))
     return fine_tuning
 
 

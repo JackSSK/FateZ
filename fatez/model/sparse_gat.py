@@ -315,3 +315,6 @@ class Spare_GAT(nn.Module):
             # Fully Connection First
             output = torch.flatten(output, start_dim = 1)
             return F.softmax(self.decision_layer(output), dim = -1)
+
+    def explain(self):
+        return
