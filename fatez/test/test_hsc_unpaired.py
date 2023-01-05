@@ -17,7 +17,7 @@ preprocess
 device='cpu'
 #device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
 ## preprocess parameters
-pseudo_cell_num_per_cell_type = 20
+pseudo_cell_num_per_cell_type = 40
 correlation_thr_to_get_gene_related_peak = 0.6
 rowmean_thr_to_get_variable_gene = 0.1
 cluster_use =[1,4]
@@ -49,6 +49,7 @@ network.cal_peak_gene_cor(exp_thr = rowmean_thr_to_get_variable_gene,
                           cor_thr=correlation_thr_to_get_gene_related_peak)
 matrix1 = network.output_pseudo_samples() ### exp count mt
 matrix2 = network.generate_grp() ### correlation mt
+print('preprocess complete')
 ### samples and labels
 samples = []
 for i in range(len(matrix1)):
@@ -91,7 +92,7 @@ test_model.to(device)
 traning
 """
 batch_size = 20
-num_epoch = 10
+num_epoch = 1500
 train_dataloader = DataLoader(
     lib.FateZ_Dataset(samples=samples, labels=labels),
     batch_size=batch_size,
@@ -105,23 +106,19 @@ for epoch in range(num_epoch):
         # sample_use = []
         # for idx in sample_idx_list:
         #     sample_use.append(samples[idx])
-        t1=time.time()
         out_gat = model_gat(x)
         out_gat = model_gat.activation(out_gat)
         out_gat = model_gat.decision(out_gat)
-        out_gat_write = out_gat.numpy()
-        np.save('D:\\Westlake\\pwk lab\\fatez\\out_gat/'+epoch+batch_num+'npy',out_gat_write)
-        print(out_gat)
+        torch.save(out_gat,
+                   'D:\\Westlake\\pwk lab\\fatez\\out_gat/epoch'+str(epoch)+'_batch'+str(batch_num)+'.pt')
         output = test_model(x)
         loss = nn.CrossEntropyLoss()(
             output, y
         )
         loss.backward()
-        optimizer.step()
-        optimizer.zero_grad()
+        out_gat.optimizer.step()
+        out_gat.optimizer.zero_grad()
         acc = (output.argmax(1)==y).type(torch.float).sum()/batch_size
-        t2 = time.time()
-        print(t2-t1)
         print(f"batch: {batch_num} loss: {loss} accuracy:{acc}")
         batch_num += 1
 model.Save(test_model.bert_model.encoder, '../data/ignore/bert_encoder.model')
