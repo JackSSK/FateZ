@@ -13,6 +13,7 @@ import pandas as pd
 from transformers import AdamW
 from torch.utils.data import DataLoader
 import random
+import fatez.lib as lib
 ### preprocess parameters
 pseudo_cell_num_per_cell_type = 40
 correlation_thr_to_get_gene_related_peak = 0.6
@@ -71,8 +72,8 @@ for i in range(len(matrix1)):
     samples.append([m1, m2])
 sample_idx = torch.tensor(range(len(samples)))
 # Parameters
-batch_size = 10
-num_epoch = 30
+batch_size = 20
+num_epoch = 300
 ###iter
 def data_iter(batch_size,mt1,labels):
     num_examples = len(mt1)
@@ -106,33 +107,43 @@ test_model = fine_tuner.Model(
     bin_pro = model.Binning_Process(n_bin = 100),
     bert_model = bert.Fine_Tune_Model(bert_encoder, n_class = 2)
 )
-optimizer = AdamW(test_model.parameters(), lr=0.01)
+optimizer = torch.optim.Adam(test_model.parameters(),
+                             lr=0.001,
+                             weight_decay=1e-3)
+scheduler = torch.optim.lr_scheduler.CosineAnnealingWarmRestarts(optimizer,
+                                                                 T_0=2,
+                                                                 T_mult=2,
+                                                                 eta_min=0.001/50)
+
 """
-training
+traning
 """
+batch_size = 20
+num_epoch = 1500
+train_dataloader = DataLoader(
+    lib.FateZ_Dataset(samples=samples, labels=labels),
+    batch_size=batch_size,
+    shuffle=True
+)
 for epoch in range(num_epoch):
     print(f"Epoch {epoch + 1}\n-------------------------------")
     batch_num = 1
-    for x,y in data_iter(batch_size=batch_size,mt1=sample_idx,labels=labels):
-        sample_idx_list =list(x.numpy())
-        sample_use = []
-        for idx in sample_idx_list:
-            sample_use.append(samples[idx])
-        out_gat = model_gat(sample_use)
+    test_model.train()
+    for x,y in train_dataloader:
+        optimizer.zero_grad()
+        out_gat = model_gat(x)
         out_gat = model_gat.activation(out_gat)
         out_gat = model_gat.decision(out_gat)
-        output = test_model(sample_use)
+        torch.save(out_gat,
+                   'D:\\Westlake\\pwk lab\\fatez\\out_gat/epoch'+str(epoch)+'_batch'+str(batch_num)+'.pt')
+        output = test_model(x)
         loss = nn.CrossEntropyLoss()(
             output, y
         )
         loss.backward()
         optimizer.step()
-        optimizer.zero_grad()
         acc = (output.argmax(1)==y).type(torch.float).sum()/batch_size
         print(f"batch: {batch_num} loss: {loss} accuracy:{acc}")
         batch_num += 1
+    scheduler.step()
 model.Save(test_model.bert_model.encoder, '../data/ignore/bert_encoder.model')
-
-
-
-

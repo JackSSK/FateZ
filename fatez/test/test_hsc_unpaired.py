@@ -83,7 +83,14 @@ test_model = fine_tuner.Model(
     bin_pro = model.Binning_Process(n_bin = 100),
     bert_model = bert.Fine_Tune_Model(bert_encoder, n_class = 2)
 )
-optimizer = AdamW(test_model.parameters(), lr=0.01)
+### adam and CosineAnnealingWarmRestarts
+optimizer = torch.optim.Adam(test_model.parameters(),
+                             lr=0.001,
+                             weight_decay=1e-3)
+scheduler = torch.optim.lr_scheduler.CosineAnnealingWarmRestarts(optimizer,
+                                                                 T_0=2,
+                                                                 T_mult=2,
+                                                                 eta_min=0.001/50)
 model_gat.to(device)
 bert_encoder.to(device)
 test_model.to(device)
@@ -103,10 +110,7 @@ for epoch in range(num_epoch):
     batch_num = 1
     test_model.train()
     for x,y in train_dataloader:
-        # sample_idx_list =list(x.numpy())
-        # sample_use = []
-        # for idx in sample_idx_list:
-        #     sample_use.append(samples[idx])
+        optimizer.zero_grad()
         out_gat = model_gat(x)
         out_gat = model_gat.activation(out_gat)
         out_gat = model_gat.decision(out_gat)
@@ -118,9 +122,9 @@ for epoch in range(num_epoch):
         )
         loss.backward()
         optimizer.step()
-        optimizer.zero_grad()
         acc = (output.argmax(1)==y).type(torch.float).sum()/batch_size
         print(f"batch: {batch_num} loss: {loss} accuracy:{acc}")
         batch_num += 1
+    scheduler.step()
 model.Save(test_model.bert_model.encoder, '../data/ignore/bert_encoder.model')
 
