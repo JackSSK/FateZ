@@ -559,7 +559,7 @@ class Preprocessor():
     def cal_peak_gene_cor(self,exp_thr = 0,cor_thr = 0.6):
          warnings.filterwarnings('ignore')
          for network in list(self.pseudo_network.keys()):
-
+             print(network)
              ### extract rna pseudo network
              rna_cell_use = self.pseudo_network[network]['rna']
              rna_pseudo = self.rna_mt[rna_cell_use]
@@ -723,9 +723,8 @@ class Preprocessor():
         return pseudo_sample_dict
 
     def extract_motif_score(self, grps):
-
-        gene_use = list(grps.columns)
-        tf_use = list(grps.index)
+        gene_use = grps[list(self.peak_gene_links.keys())[0]].columns
+        tf_use = grps[list(self.peak_gene_links.keys())[0]].index
         all_score = []
         for j in gene_use:
             target_gene_tf_score = self.tf_target_db[j]
@@ -738,10 +737,10 @@ class Preprocessor():
                                             db_tf_score_seires], axis=0)
             score_use = db_tf_score_seires[tf_use].to_numpy()
             all_score.append(score_use)
-            motif_score_mt = np.matrix(all_score).T.astype(float)
-            ### scale to range 0 1
-            scaler = MinMaxScaler(feature_range=(0, 1))
-            motif_score_mt = scaler.fit_transform(motif_score_mt)
+        motif_score_mt = np.matrix(all_score).T.astype(float)
+        ### scale to range 0 1
+        scaler = MinMaxScaler(feature_range=(0, 1))
+        motif_score_mt = scaler.fit_transform(motif_score_mt)
         return motif_score_mt
 
     def __extract_expressed_tfs(self,expressed_cell_percent:int=0.05):
@@ -770,7 +769,7 @@ class Preprocessor():
     def __is_overlapping(self,x1, x2, y1, y2):
         return max(x1, y1) <= min(x2, y2)
 
-    def __get_target_related_tf(self,motif_score_type:str = 'max'):
+    def __get_target_related_tf(self,motif_score_type:str = 'mean'):
         motif1 = pd.read_table(self.tf_target_db_path)
         target_tf_dict = {}
 
@@ -783,9 +782,9 @@ class Preprocessor():
             target_tf_dict[row[4]]['motif'] = tf_list
 
             ### select motif score type
-            if motif_score_type=='max':
+            if motif_score_type=='mean':
                 motif_score = motif1.iloc[0,][1]
-            elif motif_score_type=='sum':
+            elif motif_score_type=='median':
                 motif_score = motif1.iloc[0,][2]
             motif_score = motif_score.split(';')
 
