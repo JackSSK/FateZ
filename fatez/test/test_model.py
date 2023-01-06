@@ -1,4 +1,5 @@
 import os
+import fatez.process.explainer as explainer
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
@@ -18,28 +19,28 @@ warnings.filterwarnings('ignore')
 
 def test_gat(train_dataloader, gat_param):
     print('Testing plain GAT')
-    model_gat = gat.GAT(**gat_param)
+    model_gat = gat.GAT(make_decision = True, **gat_param)
     # Using data loader now
     for input, label in train_dataloader:
-        out_gat = model_gat(input)
-        out_gat = model_gat.activation(out_gat)
-        out_gat = model_gat.decision(out_gat)
+        out_gat = model_gat(input[0], input[1])
         loss = nn.CrossEntropyLoss()(
             out_gat, label
         )
         loss.backward()
     print('Last GAT CEL:', loss, '\n')
+
+    explain = explainer.Gradient(model_gat, [input[0], input[1]])
+    shap_values = explain.shap_values([input[0][:1], input[1][:1]])
+    print(len(shap_values))
     return model_gat
 
 
 def test_sparse_gat(train_dataloader, gat_param):
     print('Testing sparse GAT')
-    model_sgat = sgat.Spare_GAT(**gat_param)
+    model_sgat = sgat.Spare_GAT(make_decision = True, **gat_param)
     # Using data loader now
     for input, label in train_dataloader:
-        out_sgat = model_sgat(input)
-        out_sgat = model_sgat.activation(out_sgat)
-        out_sgat = model_sgat.decision(out_sgat)
+        out_sgat = model_sgat(input[0], input[1])
         loss = nn.CrossEntropyLoss()(
             out_sgat, label
         )
@@ -57,12 +58,13 @@ def test_fine_tune(train_dataloader, n_bin, n_class, gat_model, bert_encoder):
     )
     # Using data loader now
     for input, label in train_dataloader:
-        output = fine_tuning(input)
+        output = fine_tuning(input[0], input[1])
         loss = nn.CrossEntropyLoss()(
             output, label
         )
         loss.backward()
     print('Last Fine Tuner CEL:', loss, '\n')
+
     return fine_tuning
 
 
@@ -75,7 +77,7 @@ def test_pre_train(input, mask, n_bin, n_class, gat_model, bert_encoder):
     )
     # Using data loader now
     for input, label in train_dataloader:
-        output = fine_tuning(input)
+        output = fine_tuning(input[0], input[1])
         loss = nn.CrossEntropyLoss()(
             output, label
         )
@@ -90,17 +92,17 @@ if __name__ == '__main__':
         os.makedirs('../data/ignore')
 
     # Parameters
-    k = 5000
-    top_k = 200
+    k = 10
+    top_k = 2
     n_sample = 10
     batch_size = 1
     n_class = 4
     gat_param = {
         'd_model': 2,   # Feature dim
         'en_dim': 8,
-        'nhead': None,
+        'nhead': 2,
         'n_class': n_class,
-        'dtype': torch.float64,
+        'dtype': torch.float32,
     }
     # Need to make sure d_model is divisible by nhead
     bert_encoder_param = {
@@ -108,19 +110,19 @@ if __name__ == '__main__':
         'n_layer': 6,
         'nhead': 8,
         'dim_feedforward': 3,
-        'dtype': torch.float64,
+        'dtype': torch.float32,
     }
     n_bin = 100
 
     # Generate Fake data
     sample = [
-        torch.randn(k, gat_param['d_model'], dtype = torch.float64),
-        torch.randn(top_k, k, dtype = torch.float64)
+        torch.randn(k, gat_param['d_model'], dtype = torch.float32),
+        torch.randn(top_k, k, dtype = torch.float32)
     ]
     # To test data loader not messing up exp data and adj mats
     one_sample = [
-        torch.ones(k, gat_param['d_model'], dtype = torch.float64),
-        torch.ones(top_k, k, dtype = torch.float64)
+        torch.ones(k, gat_param['d_model'], dtype = torch.float32),
+        torch.ones(top_k, k, dtype = torch.float32)
     ]
     samples = [sample] * (n_sample - 1)
     samples.append(one_sample)
@@ -131,7 +133,7 @@ if __name__ == '__main__':
         batch_size = batch_size,
         shuffle = True
     )
-    
+
     print('Fake gene num:', k)
     print('Fake TF num:', top_k)
     print('Fake Sample Number:', n_sample)

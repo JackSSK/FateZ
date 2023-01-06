@@ -206,6 +206,7 @@ class Spare_GAT(nn.Module):
         alpha:float = 0.2,
         device:str = 'cpu',
         dtype:str = None,
+        make_decision:bool = False,
         ):
         """
         :param d_model:int = None
@@ -245,6 +246,7 @@ class Spare_GAT(nn.Module):
         self.weight_decay = weight_decay
         self.attentions = None
         self.factory_kwargs = {'device': device, 'dtype': dtype}
+        self.make_decision = make_decision
 
         # Add attention heads
         if nhead is not None and nhead > 0:
@@ -279,18 +281,18 @@ class Spare_GAT(nn.Module):
         )
         self.decision_layer = nn.LazyLinear(n_class, dtype = dtype,)
 
-    def forward(self, input):
+    def forward(self, fea_mats, adj_mats):
         """
-        :param input:list = None
-            List of GRN representing matrix sets:
-                Input matrix. (Genes)
-                Adjacent matrix. (Based on GRPs)
+        :param fea_mats: torch.Tensor
+            Feature matrices. (Genes)
+        :param adj_mats: torch.Tensor
+            Adjacent matrices. (Based on GRPs)
         """
         answer = list()
-        assert len(input[0]) == len(input[1])
-        for i in range(len(input[0])):
-            x = input[0][i]
-            adj_mat = input[1][i]
+        assert len(fea_mats) == len(adj_mats)
+        for i in range(len(fea_mats)):
+            x = fea_mats[i]
+            adj_mat = adj_mats[i]
             x.to(self.factory_kwargs['device'])
             adj_mat.to(self.factory_kwargs['device'])
             x = F.dropout(x, self.dropout, training = self.training)
@@ -304,18 +306,15 @@ class Spare_GAT(nn.Module):
                 x = F.elu(self.last(x, adj_mat))
             answer.append(x)
         answer = torch.stack(answer, 0)
-        return answer
+        # No-decision layers
+        if not self.make_decision:
+            return answer
+        # Use decison layers
+        elif self.make_decision:
+            output = F.log_softmax(answer, dim = -1)
+            # Fully Connection First
+            output = torch.flatten(output, start_dim = 1)
+            return F.softmax(self.decision_layer(output), dim = -1)
 
-    def activation(self, input):
-        """
-        Use activation layer
-        """
-        return F.log_softmax(input, dim = -1)
-
-    def decision(self, input):
-        """
-        Use decsion layer
-        """
-        # Fully Connection First
-        output = torch.flatten(input, start_dim = 1)
-        return F.softmax(self.decision_layer(output), dim = -1)
+    def explain(self):
+        return

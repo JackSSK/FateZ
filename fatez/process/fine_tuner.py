@@ -34,8 +34,8 @@ class Model(nn.Module):
         self.bert_model = bert_model
         self.gat.to(self.factory_kwargs['device'])
 
-    def forward(self, input,):
-        output = self.gat(input)
+    def forward(self, fea_mats, adj_mats):
+        output = self.gat(fea_mats, adj_mats)
         output = self.bin_pro(output)
         output = self.bert_model(output)
         return output
