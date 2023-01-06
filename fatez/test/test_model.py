@@ -1,48 +1,55 @@
 import os
-import fatez.process.explainer as explainer
+import shap
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
+from torch.autograd import Variable
 from torch.utils.data import DataLoader
 import numpy as np
+import fatez.tool.JSON as JSON
 import fatez.model as model
+import fatez.model.mlp as mlp
 import fatez.model.gat as gat
 import fatez.model.sparse_gat as sgat
 import fatez.model.bert as bert
 import fatez.lib as lib
 import fatez.process.fine_tuner as fine_tuner
+import fatez.process.explainer as explainer
 
 # Ignoring warnings because of using LazyLinear
 import warnings
 warnings.filterwarnings('ignore')
 
 
-def test_gat(train_dataloader, gat_param):
+def test_gat(train_dataloader, gat_param, mlp_param):
     print('Testing plain GAT')
-    model_gat = gat.GAT(make_decision = True, **gat_param)
+    model_gat = gat.GAT(**gat_param)
+    decision = mlp.Classifier(**mlp_param)
     # Using data loader now
     for input, label in train_dataloader:
         out_gat = model_gat(input[0], input[1])
+        output = decision(out_gat)
         loss = nn.CrossEntropyLoss()(
-            out_gat, label
+            output, label
         )
         loss.backward()
+    explain = shap.GradientExplainer(decision, out_gat)
+    shap_values = explain.shap_values(out_gat)
+    print(shap_values)
     print('Last GAT CEL:', loss, '\n')
-
-    explain = explainer.Gradient(model_gat, [input[0], input[1]])
-    shap_values = explain.shap_values([input[0][:1], input[1][:1]])
-    print(len(shap_values))
     return model_gat
 
 
-def test_sparse_gat(train_dataloader, gat_param):
+def test_sparse_gat(train_dataloader, gat_param, mlp_param):
     print('Testing sparse GAT')
-    model_sgat = sgat.Spare_GAT(make_decision = True, **gat_param)
+    model_sgat = sgat.Spare_GAT(**gat_param)
+    decision = mlp.Classifier(**mlp_param)
     # Using data loader now
     for input, label in train_dataloader:
-        out_sgat = model_sgat(input[0], input[1])
+        output = model_sgat(input[0], input[1])
+        output = decision(output)
         loss = nn.CrossEntropyLoss()(
-            out_sgat, label
+            output, label
         )
         loss.backward()
     print('Last SGAT CEL:', loss, '\n')
@@ -64,7 +71,6 @@ def test_fine_tune(train_dataloader, n_bin, n_class, gat_model, bert_encoder):
         )
         loss.backward()
     print('Last Fine Tuner CEL:', loss, '\n')
-
     return fine_tuning
 
 
@@ -101,9 +107,17 @@ if __name__ == '__main__':
         'd_model': 2,   # Feature dim
         'en_dim': 8,
         'nhead': 2,
-        'n_class': n_class,
+        'device':'cpu',
         'dtype': torch.float32,
     }
+    mlp_param = {
+        'd_model':gat_param['en_dim'],
+        'n_hidden': 4,
+        'n_class':n_class,
+        'device':gat_param['device'],
+        'dtype':gat_param['dtype'],
+    }
+
     # Need to make sure d_model is divisible by nhead
     bert_encoder_param = {
         'd_model': gat_param['en_dim'],
@@ -140,10 +154,18 @@ if __name__ == '__main__':
     print('Batch Size:', batch_size)
     print('Class Number:', n_class, '\n')
 
-    temp = test_sparse_gat(train_dataloader, gat_param = gat_param)
+    temp = test_sparse_gat(
+        train_dataloader,
+        gat_param = gat_param,
+        mlp_param = mlp_param
+    )
     model.Save(temp, '../data/ignore/gat.model')
 
-    temp = test_gat(train_dataloader, gat_param = gat_param)
+    temp = test_gat(
+        train_dataloader,
+        gat_param = gat_param,
+        mlp_param = mlp_param
+    )
     model.Save(temp, '../data/ignore/gat.model')
 
     temp = test_fine_tune(

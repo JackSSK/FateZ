@@ -425,15 +425,18 @@ class _PyTorchGradient(Explainer):
                      for idx, input in enumerate(interim_inputs)]
             del self.layer.target_input
         else:
-            grads = [
-                torch.autograd.grad(
+            grads = list()
+            for idx, x in enumerate(X):
+                temp_grad = torch.autograd.grad(
                     selected,
-                    X[0],
+                    x,
                     allow_unused=True,
-                    retain_graph=True if 1 < len(X) else None
-                )[0].cpu().numpy()
-            ]
-            print(grads[0].shape)
+                    retain_graph=True if idx + 1 < len(X) else None
+                )[0]
+                if temp_grad is not None:
+                    grads.append(temp_grad.cpu().numpy())
+                else:
+                    grads.append(temp_grad)
         return grads
 
     @staticmethod
@@ -496,6 +499,7 @@ class _PyTorchGradient(Explainer):
         if rseed is None:
             rseed = np.random.randint(0, 1e6)
 
+        skipping_input = dict()
         for i in range(model_output_ranks.shape[1]):
             np.random.seed(rseed)  # so we get the same noise patterns for each output class
             phis = []
@@ -540,9 +544,29 @@ class _PyTorchGradient(Explainer):
                 for b in range(0, nsamples, self.batch_size):
                     batch = [samples_input[l][b:min(b+self.batch_size,nsamples)].clone().detach() for l in range(len(X))]
                     grads.append(self.gradient(find, batch))
-                grad = [np.concatenate([g[l] for g in grads], 0) for l in range(len(self.data))]
+                # grad = [np.concatenate([g[l] for g in grads], 0) for l in range(len(self.data))]
+                grad = list()
+                skipping = dict()
+                for l in range(len(self.data)):
+                    temp_grad = list()
+                    for g in grads:
+                        if g[l] is None:
+                            break
+                        temp_grad.append(g[l])
+                    if len(temp_grad) == 0:
+                        skipping[l] = None
+                        continue
+                    else:
+                        grad.append(np.concatenate(temp_grad, 0))
+
+                if len(skipping) > 0:
+                    for ele in skipping.keys():
+                        print('Skipping Input #:', ele)
+
                 # assign the attributions to the right part of the output arrays
                 for l in range(len(self.data)):
+                    if l in skipping:
+                        continue
                     samples = grad[l] * samples_delta[l]
                     phis[l][j] = samples.mean(0)
                     phi_vars[l][j] = samples.var(0) / np.sqrt(samples.shape[0]) # estimate variance of means
@@ -555,6 +579,7 @@ class _PyTorchGradient(Explainer):
             self.input_handle = None
             # note: the target input attribute is deleted in the loop
 
+        print(output_phis, output_phi_vars)
         if not self.multi_output:
             if return_variances:
                 return output_phis[0], output_phi_vars[0]
@@ -569,4 +594,5 @@ class _PyTorchGradient(Explainer):
             if return_variances:
                 return output_phis, output_phi_vars
             else:
+                print('Here')
                 return

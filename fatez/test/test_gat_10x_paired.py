@@ -3,8 +3,10 @@ import torch
 import time
 import torch.nn as nn
 import torch.nn.functional as F
+import fatez.tool.JSON as JSON
 import fatez.model as model
 import fatez.model.gat as gat
+import fatez.model.mlp as mlp
 import fatez.model.sparse_gat as sgat
 import fatez.model.bert as bert
 import fatez.process.fine_tuner as fine_tuner
@@ -89,9 +91,18 @@ labels = labels.long()
 """
 model define
 """
-model_gat = gat.GAT(d_model = 2, en_dim = 8, nhead = None, make_decision=False)
-# Try Pure GAT later
-model_gat_full = gat.GAT(d_model = 2, en_dim = 4, nhead = 2, make_decision=True)
+model_gat = gat.GAT(
+    d_model = 2,
+    en_dim = 8,
+    nhead = None,
+    device = device,
+)
+decison = mlp.Classifier(
+    d_model = 8,
+    n_hidden = 4,
+    n_class = 2,
+    device = device,
+)
 
 
 # Need to make sure d_model is divisible by nhead
@@ -100,9 +111,10 @@ bert_encoder = bert.Encoder(
     n_layer = 6,
     nhead = 8,
     dim_feedforward = 2,
+    device = device,
 )
 test_model = fine_tuner.Model(
-    gat = gat.GAT(d_model = 2, en_dim = 8, nhead = None, make_decision = False),
+    gat = model_gat,
     bin_pro = model.Binning_Process(n_bin = 100),
     bert_model = bert.Fine_Tune_Model(bert_encoder, n_class = 2)
 )
@@ -128,12 +140,14 @@ for epoch in range(num_epoch):
     print(f"Epoch {epoch + 1}\n-------------------------------")
     batch_num = 1
     test_model.train()
+    out_gat_data = list()
     for x,y in train_dataloader:
         optimizer.zero_grad()
         out_gat = model_gat(x[0], x[1])
         # Save GAT output without decison layers
-        torch.save(out_gat,
-                   'D:\\Westlake\\pwk lab\\fatez\\out_gat/epoch'+str(epoch)+'_batch'+str(batch_num)+'.pt')
+        out_gat_data.append(out_gat.detach().tolist())
+        # torch.save(out_gat,
+        #            'D:\\Westlake\\pwk lab\\fatez\\out_gat/epoch'+str(epoch)+'_batch'+str(batch_num)+'.pt')
         output = test_model(x[0], x[1])
         loss = nn.CrossEntropyLoss()(
             output, y
@@ -144,4 +158,9 @@ for epoch in range(num_epoch):
         print(f"batch: {batch_num} loss: {loss} accuracy:{acc}")
         batch_num += 1
     scheduler.step()
+    # Saving GAT outputs by epoch
+    JSON.encode(
+        out_gat_data,
+        'D:\\Westlake\\pwk lab\\fatez\\out_gat/epoch' + str(epoch) + '.pt'
+    )
 model.Save(test_model.bert_model.encoder, '../data/ignore/bert_encoder.model')

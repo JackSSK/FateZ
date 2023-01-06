@@ -196,9 +196,8 @@ class Spare_GAT(nn.Module):
     """
     def __init__(self,
         d_model:int = None,
-        en_dim:int = 2,
-        n_class:int = 2,
         n_hidden:int = 1,
+        en_dim:int = 2,
         nhead:int = None,
         lr:float = 0.005,
         weight_decay:float = 5e-4,
@@ -206,20 +205,16 @@ class Spare_GAT(nn.Module):
         alpha:float = 0.2,
         device:str = 'cpu',
         dtype:str = None,
-        make_decision:bool = False,
         ):
         """
         :param d_model:int = None
             Number of each gene's input features.
 
-        :param en_dim:int = 2
-            Number of each gene's encoded features.
-
-        :param n_class:int = None
-            Number of classes.
-
         :param n_hidden:int = None
             Number of hidden units.
+
+        :param en_dim:int = 2
+            Number of each gene's encoded features.
 
         :param nhead:int = 1
             Number of attention heads.
@@ -246,7 +241,6 @@ class Spare_GAT(nn.Module):
         self.weight_decay = weight_decay
         self.attentions = None
         self.factory_kwargs = {'device': device, 'dtype': dtype}
-        self.make_decision = make_decision
 
         # Add attention heads
         if nhead is not None and nhead > 0:
@@ -279,7 +273,6 @@ class Spare_GAT(nn.Module):
             concat = False,
             **self.factory_kwargs,
         )
-        self.decision_layer = nn.LazyLinear(n_class, dtype = dtype,)
 
     def forward(self, fea_mats, adj_mats):
         """
@@ -305,16 +298,7 @@ class Spare_GAT(nn.Module):
             else:
                 x = F.elu(self.last(x, adj_mat))
             answer.append(x)
-        answer = torch.stack(answer, 0)
-        # No-decision layers
-        if not self.make_decision:
-            return answer
-        # Use decison layers
-        elif self.make_decision:
-            output = F.log_softmax(answer, dim = -1)
-            # Fully Connection First
-            output = torch.flatten(output, start_dim = 1)
-            return F.softmax(self.decision_layer(output), dim = -1)
+        return torch.stack(answer, 0)
 
     def explain(self):
         return

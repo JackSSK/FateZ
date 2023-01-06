@@ -71,7 +71,18 @@ labels = labels.long()
 """
 model define
 """
-model_gat = gat.GAT(d_model = 2, en_dim = 8, nhead = None, device = device)
+model_gat = gat.GAT(
+    d_model = 2,
+    en_dim = 8,
+    nhead = None,
+    device = device,
+)
+decison = mlp.Classifier(
+    d_model = 8,
+    n_hidden = 4,
+    n_class = 2,
+    device = device,
+)
 bert_encoder = bert.Encoder(
     d_model = 8,
     n_layer = 6,
@@ -112,12 +123,10 @@ for epoch in range(num_epoch):
     test_model.train()
     for x,y in train_dataloader:
         optimizer.zero_grad()
-        out_gat = model_gat(x)
-        out_gat = model_gat.activation(out_gat)
-        out_gat = model_gat.decision(out_gat)
+        out_gat = model_gat(x[0], x[1])
         torch.save(out_gat,
                    'D:\\Westlake\\pwk lab\\fatez\\out_gat/epoch'+str(epoch)+'_batch'+str(batch_num)+'.pt')
-        output = test_model(x)
+        output = test_model(x[0], x[1])
         loss = nn.CrossEntropyLoss()(
             output, y
         )
@@ -128,4 +137,3 @@ for epoch in range(num_epoch):
         batch_num += 1
     scheduler.step()
 model.Save(test_model.bert_model.encoder, '../data/ignore/bert_encoder.model')
-

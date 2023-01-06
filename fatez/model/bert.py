@@ -20,6 +20,7 @@ from torch.nn import TransformerEncoder
 from torch.nn import TransformerEncoderLayer
 
 import fatez.model as model
+import fatez.model.mlp as mlp
 
 
 class Encoder(nn.Module):
@@ -103,48 +104,6 @@ class Encoder(nn.Module):
 
 
 
-class Data_Reconstructor(nn.Module):
-    """
-    Data_Reconstructor can be revised later
-    """
-    def __init__(self,
-        d_model:int = 512,
-        n_bin:int = 100,
-        device:str = 'cpu',
-        dtype:str = None,):
-        super(Data_Reconstructor, self).__init__()
-        self.linear = nn.Linear(d_model, n_bin, dtype = dtype)
-        self.softmax = nn.LogSoftmax(dim = -1)
-
-    def forward(self, input):
-        return self.softmax(self.linear(input))
-
-
-
-class Classifier(nn.Module):
-    """
-    Easy classifier. Can be revised later.
-    scBERT use 1D-Conv here
-    """
-    def __init__(self,
-        d_model:int = 512,
-        n_hidden:int = 2,
-        n_class:int = 100,
-        device:str = 'cpu',
-        dtype:str = None,
-        ):
-        super(Classifier, self).__init__()
-        self.linear = nn.Linear(d_model, n_hidden, dtype = dtype)
-        self.softmax = nn.LogSoftmax(dim = -1)
-        self.decision = nn.LazyLinear(n_class, dtype = dtype)
-
-    def forward(self, input):
-        output = self.softmax(self.linear(input))
-        output = torch.flatten(output, start_dim = 1)
-        return F.softmax(self.decision(output), dim = -1)
-
-
-
 class Pre_Train_Model(nn.Module):
     """
     The model for pre-training process.
@@ -160,7 +119,7 @@ class Pre_Train_Model(nn.Module):
             'dtype': self.encoder.factory_kwargs['dtype']
         }
         self.encoder.to(self.factory_kwargs['device'])
-        self.reconstructor = Data_Reconstructor(
+        self.reconstructor = mlp.Data_Reconstructor(
             d_model = self.encoder.d_model,
             n_bin = n_bin,
             **self.factory_kwargs
@@ -188,7 +147,7 @@ class Fine_Tune_Model(nn.Module):
             'dtype': self.encoder.factory_kwargs['dtype']
         }
         self.encoder.to(self.encoder.factory_kwargs['device'])
-        self.classifier = Classifier(
+        self.classifier = mlp.Classifier(
             d_model = self.encoder.d_model,
             n_hidden = n_hidden,
             n_class = n_class,
