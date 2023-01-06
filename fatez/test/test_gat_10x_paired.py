@@ -15,7 +15,7 @@ from torch.utils.data import DataLoader
 import random
 import fatez.lib as lib
 ### preprocess parameters
-pseudo_cell_num_per_cell_type = 40
+pseudo_cell_num_per_cell_type = 200
 correlation_thr_to_get_gene_related_peak = 0.6
 rowmean_thr_to_get_variable_gene = 0.1
 cluster_use =[1,4]
@@ -108,18 +108,18 @@ test_model = fine_tuner.Model(
     bert_model = bert.Fine_Tune_Model(bert_encoder, n_class = 2)
 )
 optimizer = torch.optim.Adam(test_model.parameters(),
-                             lr=0.001,
-                             weight_decay=1e-3)
+                             lr=0.0001,
+                             weight_decay=1e-4)
 scheduler = torch.optim.lr_scheduler.CosineAnnealingWarmRestarts(optimizer,
                                                                  T_0=2,
                                                                  T_mult=2,
-                                                                 eta_min=0.001/50)
+                                                                 eta_min=1e-4/50)
 
 """
 traning
 """
 batch_size = 20
-num_epoch = 1500
+num_epoch = 500
 train_dataloader = DataLoader(
     lib.FateZ_Dataset(samples=samples, labels=labels),
     batch_size=batch_size,
