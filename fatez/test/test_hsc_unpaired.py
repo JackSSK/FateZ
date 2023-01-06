@@ -29,7 +29,8 @@ network = pre.Preprocessor(rna_path, peak_path, gff_path, tf_db_path, data_type=
 network.load_data(matrix_format='10x_unpaired')
 ### qc
 network.rna_qc(rna_min_genes=1, rna_min_cells=1, rna_max_cells=5000000)
-network.atac_qc(atac_min_cells=1  , )
+network.atac_qc(atac_min_cells=10, )
+print(network.atac_mt)
 ### select cell type
 atac_cell_type = pd.read_table(
  'D:\\Westlake\\pwk lab\\HSC development\\data\\GSE137117/atac_cell_type.txt',
