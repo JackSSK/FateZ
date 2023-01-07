@@ -609,13 +609,13 @@ class Preprocessor():
                     else:
                         cor_max_peak = peak_series.index[0]
                     #     cor_max = peak_series[0]
-                    # peak_mean_count = self.peak_count[cor_max_peak][
-                    #     atac_cell_use].mean()
+                    peak_mean_count = self.peak_count[cor_max_peak][
+                        atac_cell_use].mean()
                     self.peak_gene_links[network][i]['peak'] = cor_max_peak
                     # self.peak_gene_links[network][i][
                     #     'peak_correlation'] = cor_max
-                    # self.peak_gene_links[network][i][
-                    #     'peak_mean_count'] = peak_mean_count
+                    self.peak_gene_links[network][i][
+                        'peak_mean_count'] = peak_mean_count
                     # self.peak_gene_links[network][i][
                     #     'gene_mean_count'] = gene_mean_count
                     # self.peak_gene_links[network][i][
@@ -625,8 +625,8 @@ class Preprocessor():
                         'peak'] = None
                     # self.peak_gene_links[network][i][
                     #     'peak_correlation'] = 0
-                    # self.peak_gene_links[network][i][
-                    #     'peak_mean_count'] = 0
+                    self.peak_gene_links[network][i][
+                        'peak_mean_count'] = 0
                     # self.peak_gene_links[network][i][
                     #     'gene_mean_count'] = gene_mean_count
                     # self.peak_gene_links[network][i][
