@@ -32,7 +32,7 @@ gff_path = '../data/mouse/gencode.vM25.basic.annotation.gff3.gz'
 # tf_db_path = '../data/ignore/TF_target_tss_1500.txt.gz'
 # cell_type_path = '..data/ignore/e18_mouse_brain_fresh_5k/analysis/clustering/gex/graphclust/clusters.csv'
 
-
+device='cpu'
 #↑のpath使ってください
 tf_db_path = 'E:\\public/TF_target_tss_1500.txt.gz'
 cell_type_path = 'E:\\public\\public data\\10X\\e18_mouse_brain_fresh_5k\\e18_mouse_brain_fresh_5k_analysis\\analysis\\clustering\\gex\\graphclust/clusters.csv'

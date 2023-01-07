@@ -598,39 +598,39 @@ class Preprocessor():
                     if abs(pg_cor[0]) > cor_thr:
                         peak_cor.append(pg_cor[0])
                         peak_use.append(j)
-                gene_mean_count = rna_row_mean[i]
+                # gene_mean_count = rna_row_mean[i]
                 if len(peak_use) > 0:
                     peak_series = pd.Series(peak_cor,index=peak_use)
                     peak_series_abs = abs(peak_series)
                     if len(peak_series) > 1:
                         cor_max_peak = peak_series_abs.sort_values().index[
                             len(peak_series_abs)-1]
-                        cor_max = peak_series[cor_max_peak]
+                        # cor_max = peak_series[cor_max_peak]
                     else:
                         cor_max_peak = peak_series.index[0]
-                        cor_max = peak_series[0]
-                    peak_mean_count = self.peak_count[cor_max_peak][
-                        atac_cell_use].mean()
+                    #     cor_max = peak_series[0]
+                    # peak_mean_count = self.peak_count[cor_max_peak][
+                    #     atac_cell_use].mean()
                     self.peak_gene_links[network][i]['peak'] = cor_max_peak
-                    self.peak_gene_links[network][i][
-                        'peak_correlation'] = cor_max
-                    self.peak_gene_links[network][i][
-                        'peak_mean_count'] = peak_mean_count
-                    self.peak_gene_links[network][i][
-                        'gene_mean_count'] = gene_mean_count
-                    self.peak_gene_links[network][i][
-                        'related_tf'] = related_tf
+                    # self.peak_gene_links[network][i][
+                    #     'peak_correlation'] = cor_max
+                    # self.peak_gene_links[network][i][
+                    #     'peak_mean_count'] = peak_mean_count
+                    # self.peak_gene_links[network][i][
+                    #     'gene_mean_count'] = gene_mean_count
+                    # self.peak_gene_links[network][i][
+                    #     'related_tf'] = related_tf
                 else:
                     self.peak_gene_links[network][i][
                         'peak'] = None
-                    self.peak_gene_links[network][i][
-                        'peak_correlation'] = 0
-                    self.peak_gene_links[network][i][
-                        'peak_mean_count'] = 0
-                    self.peak_gene_links[network][i][
-                        'gene_mean_count'] = gene_mean_count
-                    self.peak_gene_links[network][i][
-                        'related_tf'] = related_tf
+                    # self.peak_gene_links[network][i][
+                    #     'peak_correlation'] = 0
+                    # self.peak_gene_links[network][i][
+                    #     'peak_mean_count'] = 0
+                    # self.peak_gene_links[network][i][
+                    #     'gene_mean_count'] = gene_mean_count
+                    # self.peak_gene_links[network][i][
+                    #     'related_tf'] = related_tf
 
 
 
