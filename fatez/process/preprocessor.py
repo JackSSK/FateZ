@@ -52,6 +52,7 @@ class Preprocessor():
         self.pseudo_network = dict()
         self.peak_gene_links = dict()
         self.tf_target_db = dict()
+        self.motif_enrich_score = dict()
 
     """
     :param rna_path: <class fatez.lib.preprocess.preprocess>
@@ -632,7 +633,27 @@ class Preprocessor():
                     # self.peak_gene_links[network][i][
                     #     'related_tf'] = related_tf
 
-
+    def extract_motif_score(self, grps):
+        gene_use = grps.columns
+        tf_use = grps.index
+        all_score = []
+        for j in gene_use:
+            target_gene_tf_score = self.tf_target_db[j]
+            tf = target_gene_tf_score['motif']
+            score = target_gene_tf_score['score']
+            tf_zero = list(set(tf_use)-set(tf))
+            tf_zero_pd = pd.Series([0]*len(tf_zero),index=tf_zero)
+            db_tf_score_seires = pd.Series(score, index=tf)
+            db_tf_score_seires = pd.concat([tf_zero_pd,
+                                            db_tf_score_seires], axis=0)
+            score_use = db_tf_score_seires[tf_use].to_numpy()
+            all_score.append(score_use)
+        motif_score_mt = np.matrix(all_score).T.astype(float)
+        ### scale to range 0 1
+        scaler = MinMaxScaler(feature_range=(0, 1))
+        motif_score_mt = scaler.fit_transform(motif_score_mt)
+        motif_score_mt = np.array(motif_score_mt)
+        self.motif_enrich_score = motif_score_mt
 
     def generate_grp(self,expressed_cell_percent_thr:int=0.05):
         ### This strategy is faster than using for
@@ -662,12 +683,12 @@ class Preprocessor():
             expressed_cell_percent=expressed_cell_percent_thr)
         expressed_tfs = np.intersect1d(expressed_tfs,gene_all)
 
-        for i in list(self.peak_gene_links.keys()):
+        #for i in list(self.peak_gene_links.keys()):
 
             ### filter grp based on genes in pseudo cell
-            gene_use = list(self.peak_gene_links[i].keys())
+            #gene_use = list(self.peak_gene_links[i].keys())
             #df_use = mt_cor_df[gene_use]
-            df_use = mt_cor_df.loc[expressed_tfs]
+        df_use = mt_cor_df.loc[expressed_tfs]
             # grp_use = all_grp.loc[all_grp['source'].isin(gene_use)]
             # grp_use = grp_use.loc[grp_use['target'].isin(gene_use)]
 
@@ -678,9 +699,9 @@ class Preprocessor():
             #     df_use = df_use.loc[tf_use]
             #     # grp_use = grp_use.loc[grp_use['source'].isin(tf_use)]
 
-            pseudo_network_grp[i] = df_use
+            #pseudo_network_grp[i] = df_use
 
-        return pseudo_network_grp
+        return df_use
 
     def output_pseudo_samples(self):
 
@@ -722,26 +743,6 @@ class Preprocessor():
             pseudo_sample_dict[i] = pseudo_df
         return pseudo_sample_dict
 
-    def extract_motif_score(self, grps):
-        gene_use = grps[list(self.peak_gene_links.keys())[0]].columns
-        tf_use = grps[list(self.peak_gene_links.keys())[0]].index
-        all_score = []
-        for j in gene_use:
-            target_gene_tf_score = self.tf_target_db[j]
-            tf = target_gene_tf_score['motif']
-            score = target_gene_tf_score['score']
-            tf_zero = list(set(tf_use)-set(tf))
-            tf_zero_pd = pd.Series([0]*len(tf_zero),index=tf_zero)
-            db_tf_score_seires = pd.Series(score, index=tf)
-            db_tf_score_seires = pd.concat([tf_zero_pd,
-                                            db_tf_score_seires], axis=0)
-            score_use = db_tf_score_seires[tf_use].to_numpy()
-            all_score.append(score_use)
-        motif_score_mt = np.matrix(all_score).T.astype(float)
-        ### scale to range 0 1
-        scaler = MinMaxScaler(feature_range=(0, 1))
-        motif_score_mt = scaler.fit_transform(motif_score_mt)
-        return motif_score_mt
 
     def __extract_expressed_tfs(self,expressed_cell_percent:int=0.05):
         path = resource_filename(

@@ -63,9 +63,9 @@ samples = []
 for i in range(len(matrix1)):
     m1 = matrix1[list(matrix1.keys())[i]]
     m1 = torch.from_numpy(m1.to_numpy())
-    m2 = matrix2[list(matrix2.keys())[i]]
+    #m2 = matrix2[list(matrix2.keys())[i]]
     #motif_enrich_mt = network.extract_motif_score(m2)
-    m2 = torch.from_numpy(m2.to_numpy())
+    m2 = torch.from_numpy(matrix2.to_numpy())
     #m2 = np.multiply(m2,motif_enrich_mt)
     m1 = m1.to(torch.float32)
     m2 = m2.to(torch.float32)
