@@ -19,7 +19,8 @@ cluster_use =[1,4]
 peak_path = ('D:\\Westlake\\pwk lab\\HSC development\\data\\GSE137117/atac_10x/')
 rna_path = ('D:\\Westlake\\pwk lab\\HSC development\\data\\GSE137117/rna_10x/')
 gff_path = '../data/mouse/gencode.vM25.basic.annotation.gff3.gz'
-tf_db_path = 'E:\\public/TF_target_tss1500.txt.gz'
+# Let's fix the nomenclature to 'TF_target_tss_1500.txt.gz'
+tf_db_path = 'E:\\public/TF_target_tss_1500.txt.gz'
 network = pre.Preprocessor(rna_path, peak_path, gff_path, tf_db_path, data_type='unpaired')
 network.load_data(matrix_format='10x_unpaired')
 ### qc
