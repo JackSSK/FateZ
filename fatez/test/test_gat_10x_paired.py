@@ -17,7 +17,7 @@ from torch.utils.data import DataLoader
 import random
 import fatez.lib as lib
 ### preprocess parameters
-pseudo_cell_num_per_cell_type = 200
+pseudo_cell_num_per_cell_type = 2
 correlation_thr_to_get_gene_related_peak = 0.6
 rowmean_thr_to_get_variable_gene = 0.1
 cluster_use =[1,4]
@@ -30,12 +30,12 @@ rna_path = ('../data/mouse/filtered_feature_bc_matrix/')
 gff_path = '../data/mouse/gencode.vM25.basic.annotation.gff3.gz'
 
 # tf_db_path = '../data/ignore/TF_target_tss_1500.txt.gz'
-# cell_type_path = '..data/ignore/e18_mouse_brain_fresh_5k/analysis/clustering/gex/graphclust/clusters.csv'
+cell_type_path = '../data/ignore/clusters.csv'
 
-device='cpu'
+device = "cuda" if torch.cuda.is_available() else "cpu"
+print(device)
 #↑のpath使ってください
 tf_db_path = 'E:\\public/TF_target_tss_1500.txt.gz'
-cell_type_path = 'E:\\public\\public data\\10X\\e18_mouse_brain_fresh_5k\\e18_mouse_brain_fresh_5k_analysis\\analysis\\clustering\\gex\\graphclust/clusters.csv'
 
 network = pre.Preprocessor(rna_path, peak_path, gff_path, tf_db_path,
                            data_type='paired')
@@ -69,8 +69,8 @@ for i in range(len(matrix1)):
     #m2 = np.multiply(m2,motif_enrich_mt)
     m1 = m1.to(torch.float32)
     m2 = m2.to(torch.float32)
-    print(m1.shape)
-    print(m2.shape)
+    m1 = m1.to(device)
+    m2 = m2.to(device)
     samples.append([m1, m2])
 sample_idx = torch.tensor(range(len(samples)))
 # Parameters
@@ -88,6 +88,7 @@ def data_iter(batch_size,mt1,labels):
 labels = torch.from_numpy(np.repeat(range(len(cluster_use))
                                     ,pseudo_cell_num_per_cell_type))
 labels = labels.long()
+labels = labels.to(device)
 """
 model define
 """
@@ -125,6 +126,9 @@ scheduler = torch.optim.lr_scheduler.CosineAnnealingWarmRestarts(optimizer,
                                                                  T_0=2,
                                                                  T_mult=2,
                                                                  eta_min=1e-4/50)
+model_gat.to(device)
+bert_encoder.to(device)
+test_model.to(device)
 
 """
 traning
@@ -143,6 +147,7 @@ for epoch in range(num_epoch):
     out_gat_data = list()
     for x,y in train_dataloader:
         optimizer.zero_grad()
+        print(next(model_gat.parameters()).is_cuda)
         out_gat = model_gat(x[0], x[1])
         # Save GAT output without decison layers
         out_gat_data.append(out_gat.detach().tolist())
