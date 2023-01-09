@@ -19,6 +19,6 @@ def input_csv_dict_df(input_path):
         input_path = input_path + '/'
     for i in file_list:
         sample_name = i.split('.csv')[0]
-        sample = pd.read_csv(input_path+i)
+        sample = pd.read_csv(input_path+i,header=0,index_col=0)
         dict_df[sample_name] = sample
     return dict_df
