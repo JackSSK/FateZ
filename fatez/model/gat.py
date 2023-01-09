@@ -136,7 +136,7 @@ class Graph_Attention_Layer(nn.Module):
         )
         attention = self._prepare_attentions(e_values, adj_mat)
         attention = F.dropout(attention, self.dropout, training = self.training)
-        result = torch.matmul(attention.to('cuda'), w_h)
+        result = torch.matmul(attention, w_h)
 
         if self.concat:
             # if this layer is not last layer,
@@ -242,10 +242,11 @@ class GAT(nn.Module):
         """
         answer = list()
         assert len(fea_mats) == len(adj_mats)
-        print(self.factory_kwargs['device'])
         for i in range(len(fea_mats)):
             x = fea_mats[i]
             adj_mat = adj_mats[i]
+            x = x.to(self.factory_kwargs['device'])
+            adj_mat = adj_mat.to(self.factory_kwargs['device'])
             x = F.dropout(x, self.dropout, training = self.training)
             # Multi-head attention mechanism
             if self.attentions is not None:
@@ -254,7 +255,7 @@ class GAT(nn.Module):
                 # Resize the adj_mat to top_k rows
                 x = F.elu(self.last(x, adj_mat.narrow(1, 0, adj_mat.size()[0])))
             else:
-                x = F.elu(self.last(x,adj_mat))
+                x = F.elu(self.last(x, adj_mat))
             answer.append(x)
         return torch.stack(answer, 0)
 

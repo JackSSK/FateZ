@@ -286,8 +286,8 @@ class Spare_GAT(nn.Module):
         for i in range(len(fea_mats)):
             x = fea_mats[i]
             adj_mat = adj_mats[i]
-            x.to(self.factory_kwargs['device'])
-            adj_mat.to(self.factory_kwargs['device'])
+            x = x.to(self.factory_kwargs['device'])
+            adj_mat = adj_mat.to(self.factory_kwargs['device'])
             x = F.dropout(x, self.dropout, training = self.training)
             # Multi-head attention mechanism
             if self.attentions is not None:
