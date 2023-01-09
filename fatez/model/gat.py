@@ -111,7 +111,10 @@ class Graph_Attention_Layer(nn.Module):
         # Replace 0s in adjacent matrix to 1s
         new_adj = torch.where(adj_mat != 0, adj_mat, torch.ones_like(adj_mat))
         # Multiply GRP coefficient to the attention values
-        attention = np.multiply(attention.detach().numpy(), new_adj.detach())
+        attention = np.multiply(
+            attention.detach().cpu().numpy(),
+            new_adj.detach().cpu()
+        )
         attention = F.softmax(attention, dim = 1)
         return attention
 
@@ -242,8 +245,8 @@ class GAT(nn.Module):
         for i in range(len(fea_mats)):
             x = fea_mats[i]
             adj_mat = adj_mats[i]
-            x.to(self.factory_kwargs['device'])
-            adj_mat.to(self.factory_kwargs['device'])
+            x = x.to(self.factory_kwargs['device'])
+            adj_mat = adj_mat.to(self.factory_kwargs['device'])
             x = F.dropout(x, self.dropout, training = self.training)
             # Multi-head attention mechanism
             if self.attentions is not None:
