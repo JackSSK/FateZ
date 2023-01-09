@@ -78,6 +78,7 @@ class Graph_Attention_Layer(nn.Module):
             lr = lr,
             weight_decay = weight_decay
         )
+        self.device = device
 
     def _prepare_attentional_mechanism_input(self, w_h, n_regulons):
         """
@@ -136,7 +137,7 @@ class Graph_Attention_Layer(nn.Module):
         )
         attention = self._prepare_attentions(e_values, adj_mat)
         attention = F.dropout(attention, self.dropout, training = self.training)
-        result = torch.matmul(attention, w_h)
+        result = torch.matmul(attention.to(self.device), w_h)
 
         if self.concat:
             # if this layer is not last layer,
@@ -245,8 +246,6 @@ class GAT(nn.Module):
         for i in range(len(fea_mats)):
             x = fea_mats[i]
             adj_mat = adj_mats[i]
-            x = x.to(self.factory_kwargs['device'])
-            adj_mat = adj_mat.to(self.factory_kwargs['device'])
             x = F.dropout(x, self.dropout, training = self.training)
             # Multi-head attention mechanism
             if self.attentions is not None:
