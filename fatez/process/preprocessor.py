@@ -317,15 +317,11 @@ class Preprocessor():
             self.rna_mt = self.rna_mt[
                 np.intersect1d(cell_types.index, self.rna_mt.obs_names)
             ]
-            cell_types = cell_types[
-                cell_types.index.isin(list(self.rna_mt.obs_names))
-            ]
+            cell_types = cell_types[list(self.rna_mt.obs_names)]
             self.rna_mt.obs['cell_types'] = list(cell_types)
         elif modality == 'atac':
             self.atac_mt = self.atac_mt[cell_types.index]
-            cell_types = cell_types[
-                cell_types.index.isin(list(self.atac_mt.obs_names))
-            ]
+            cell_types = cell_types[list(self.atac_mt.obs_names)]
             self.atac_mt.obs['cell_types'] = list(cell_types)
         else:
             print('input correct modality')
