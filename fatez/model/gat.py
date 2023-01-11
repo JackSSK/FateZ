@@ -12,6 +12,38 @@ import torch.optim as optim
 import torch.nn.functional as F
 
 
+def _prepare_attentions(e_values, adj_mat):
+    """
+    Calculate attention values for every GRP.
+
+    :param e_values:torch.Tensor = None
+        Weighted matrix.
+
+    :param adj_mat:torch.Tensor = None
+        Adjacent matrix. (Based on GRPs)
+    """
+    # Basically, this is a matrix of negative infinite with e_values.shape
+    neg_inf = -9e15 * torch.ones_like(e_values)
+    # Left confirmed GRPs only.
+    attention = torch.where(adj_mat != 0, e_values, neg_inf)
+    # Replace 0s in adjacent matrix to 1s
+    new_adj = torch.where(adj_mat != 0, adj_mat, torch.ones_like(adj_mat))
+    # Multiply GRP coefficient to the attention values
+    attention = np.multiply(
+        attention.detach().cpu().numpy(),
+        new_adj.detach().cpu()
+    )
+    attention = F.softmax(attention, dim = 1)
+    return attention
+
+def Get_Attention(fea_mat, adj_mat, weights, a_values, out_dim):
+    w_h = torch.mm(fea_mat, weights)
+    w_h1 = torch.matmul(w_h[:adj_mat.size()[0],:], a_values[:out_dim,:])
+    w_h2 = torch.matmul(w_h, a_values[out_dim:, :])
+    e_values = F.leaky_relu(w_h1 + w_h2.T)
+    return _prepare_attentions(e_values, adj_mat)
+
+
 
 class Graph_Attention_Layer(nn.Module):
     """
@@ -95,29 +127,7 @@ class Graph_Attention_Layer(nn.Module):
         # broadcast add and return
         return self.leaky_relu(w_h1 + w_h2.T)
 
-    def _prepare_attentions(self, e_values, adj_mat):
-        """
-        Calculate attention values for every GRP.
 
-        :param e_values:torch.Tensor = None
-            Weighted matrix.
-
-        :param adj_mat:torch.Tensor = None
-            Adjacent matrix. (Based on GRPs)
-        """
-        # Basically, this is a matrix of negative infinite with e_values.shape
-        neg_inf = -9e15 * torch.ones_like(e_values)
-        # Left confirmed GRPs only.
-        attention = torch.where(adj_mat != 0, e_values, neg_inf)
-        # Replace 0s in adjacent matrix to 1s
-        new_adj = torch.where(adj_mat != 0, adj_mat, torch.ones_like(adj_mat))
-        # Multiply GRP coefficient to the attention values
-        attention = np.multiply(
-            attention.detach().cpu().numpy(),
-            new_adj.detach().cpu()
-        )
-        attention = F.softmax(attention, dim = 1)
-        return attention
 
     def forward(self, input, adj_mat):
         """
@@ -135,7 +145,7 @@ class Graph_Attention_Layer(nn.Module):
         e_values = self._prepare_attentional_mechanism_input(
             w_h = w_h, n_regulons = adj_mat.size()[0]
         )
-        attention = self._prepare_attentions(e_values, adj_mat)
+        attention = _prepare_attentions(e_values, adj_mat)
         attention = F.dropout(attention, self.dropout, training = self.training)
         result = torch.matmul(attention.to(self.device), w_h)
 
@@ -194,6 +204,8 @@ class GAT(nn.Module):
             Note: torch default using float32, numpy default using float64
         """
         super(GAT, self).__init__()
+        self.n_hidden = n_hidden
+        self.en_dim = en_dim
         self.dropout = dropout
         self.lr = lr
         self.weight_decay = weight_decay
@@ -258,5 +270,55 @@ class GAT(nn.Module):
             answer.append(x)
         return torch.stack(answer, 0)
 
-    def explain(self):
-        return
+    def explain(self, fea_mat, adj_mat):
+        """
+        Input real data, then this func is explaining in real case.
+        For general explanation, just make a new mat with all values == 1.
+        fake_fea_mat = torch.ones_like(fea_mat)
+        fake_adj_mat = torch.ones_like(adj_mat)
+        """
+
+        att_explain = None
+        last_explain = None
+
+        if self.attentions is not None:
+            weights = None
+            a_values = None
+            for att in self.attentions:
+                if a_values is None:
+                    a_values = att.a_values.detach()
+                else:
+                    a_values += att.a_values.detach()
+
+                if weights is None:
+                    weights = att.weights.detach()
+                else:
+                    weights += att.weights.detach()
+
+            att_explain = Get_Attention(
+                fea_mat,
+                adj_mat,
+                weights,
+                a_values,
+                out_dim = self.n_hidden,
+            )
+
+            last_explain = Get_Attention(
+                torch.cat(
+                    [a.eval()(fea_mat, adj_mat) for a in self.attentions],
+                    dim = 1
+                ),
+                adj_mat.narrow(1, 0, adj_mat.size()[0]),
+                self.last.weights,
+                self.last.a_values,
+                out_dim = self.en_dim,
+            )
+        else:
+            last_explain = Get_Attention(
+                fea_mat,
+                adj_mat,
+                self.last.weights,
+                self.last.a_values,
+                out_dim = self.en_dim,
+            )
+        return att_explain, last_explain
