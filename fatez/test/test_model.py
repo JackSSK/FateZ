@@ -38,7 +38,9 @@ def test_gat(train_dataloader, gat_param, mlp_param):
 
     explain = shap.GradientExplainer(decision, out_gat)
     shap_values = explain.shap_values(out_gat)
-
+    print(shap_values)
+    explain = explainer.Gradient(decision, out_gat)
+    shap_values = explain.shap_values(out_gat, return_variances = True)
     print(shap_values)
     print('Last GAT CEL:', loss, '\n')
     return model_gat
@@ -77,6 +79,9 @@ def test_fine_tune(train_dataloader, n_bin, n_class, gat_model, bert_encoder):
             output, label
         )
         loss.backward()
+    explain = explainer.Gradient(fine_tuning, input)
+    shap_values = explain.shap_values(input, return_variances = True)
+    print(shap_values)
     print('Last Fine Tuner CEL:', loss, '\n')
     return fine_tuning
 
