@@ -236,6 +236,8 @@ class Spare_GAT(nn.Module):
             Note: torch default using float32, numpy default using float64
         """
         super(Spare_GAT, self).__init__()
+        self.n_hidden = n_hidden
+        self.en_dim = en_dim
         self.dropout = dropout
         self.lr = lr
         self.weight_decay = weight_decay
@@ -300,5 +302,55 @@ class Spare_GAT(nn.Module):
             answer.append(x)
         return torch.stack(answer, 0)
 
-    def explain(self):
-        return
+    def explain(self, fea_mat, adj_mat):
+        """
+        Input real data, then this func is explaining in real case.
+        For general explanation, just make a new mat with all values == 1.
+        fake_fea_mat = torch.ones_like(fea_mat)
+        fake_adj_mat = torch.ones_like(adj_mat)
+        """
+
+        att_explain = None
+        last_explain = None
+
+        if self.attentions is not None:
+            weights = None
+            a_values = None
+            for att in self.attentions:
+                if a_values is None:
+                    a_values = att.a_values.detach()
+                else:
+                    a_values += att.a_values.detach()
+
+                if weights is None:
+                    weights = att.weights.detach()
+                else:
+                    weights += att.weights.detach()
+
+            att_explain = gat.Get_Attention(
+                fea_mat,
+                adj_mat,
+                weights,
+                a_values.T,
+                out_dim = self.n_hidden,
+            )
+
+            last_explain = gat.Get_Attention(
+                torch.cat(
+                    [a.eval()(fea_mat, adj_mat) for a in self.attentions],
+                    dim = 1
+                ),
+                adj_mat.narrow(1, 0, adj_mat.size()[0]),
+                self.last.weights,
+                self.last.a_values.T,
+                out_dim = self.en_dim,
+            )
+        else:
+            last_explain = gat.Get_Attention(
+                fea_mat,
+                adj_mat,
+                self.last.weights,
+                self.last.a_values.T,
+                out_dim = self.en_dim,
+            )
+        return att_explain, last_explain

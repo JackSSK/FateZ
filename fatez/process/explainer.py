@@ -579,7 +579,6 @@ class _PyTorchGradient(Explainer):
             self.input_handle = None
             # note: the target input attribute is deleted in the loop
 
-        print(output_phis, output_phi_vars)
         if not self.multi_output:
             if return_variances:
                 return output_phis[0], output_phi_vars[0]
@@ -594,5 +593,4 @@ class _PyTorchGradient(Explainer):
             if return_variances:
                 return output_phis, output_phi_vars
             else:
-                print('Here')
                 return

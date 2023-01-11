@@ -33,8 +33,14 @@ def test_gat(train_dataloader, gat_param, mlp_param):
             output, label
         )
         loss.backward()
+
+    model_gat.explain(input[0][0], input[1][0])
+
     explain = shap.GradientExplainer(decision, out_gat)
     shap_values = explain.shap_values(out_gat)
+    print(shap_values)
+    explain = explainer.Gradient(decision, out_gat)
+    shap_values = explain.shap_values(out_gat, return_variances = True)
     print(shap_values)
     print('Last GAT CEL:', loss, '\n')
     return model_gat
@@ -52,7 +58,10 @@ def test_sparse_gat(train_dataloader, gat_param, mlp_param):
             output, label
         )
         loss.backward()
+
+    model_sgat.explain(input[0][0], input[1][0])
     print('Last SGAT CEL:', loss, '\n')
+    # model_sgat.explain()
     return model_sgat
 
 
@@ -70,6 +79,9 @@ def test_fine_tune(train_dataloader, n_bin, n_class, gat_model, bert_encoder):
             output, label
         )
         loss.backward()
+    explain = explainer.Gradient(fine_tuning, input)
+    shap_values = explain.shap_values(input, return_variances = True)
+    print(shap_values)
     print('Last Fine Tuner CEL:', loss, '\n')
     return fine_tuning
 
@@ -99,13 +111,14 @@ if __name__ == '__main__':
 
     # Parameters
     k = 10
-    top_k = 2
+    top_k = 4
     n_sample = 10
     batch_size = 1
     n_class = 4
     gat_param = {
         'd_model': 2,   # Feature dim
         'en_dim': 8,
+        'n_hidden': 4,
         'nhead': 2,
         'device':'cpu',
         'dtype': torch.float32,
