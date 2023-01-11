@@ -247,6 +247,8 @@ class GAT(nn.Module):
             x = fea_mats[i]
             adj_mat = adj_mats[i]
             x = F.dropout(x, self.dropout, training = self.training)
+            x = x.to(self.factory_kwargs['device'])
+            adj_mat = adj_mat.to(self.factory_kwargs['device'])
             # Multi-head attention mechanism
             if self.attentions is not None:
                 x = torch.cat([a(x, adj_mat) for a in self.attentions], dim = 1)
