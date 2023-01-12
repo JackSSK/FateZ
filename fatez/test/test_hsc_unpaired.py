@@ -95,16 +95,16 @@ labels = labels.to(device)
 hyperparameters
 """
 batch_size = 20
-num_epoch = 200
-n_hidden = 4
-nhead = 4
+num_epoch = 80
+n_hidden = 2
+nhead = 2
 lr = 1e-4
 test_size = 0.3
 early_stop_tolerance = 15
 data_save = True
-data_save_dir = 'D:\\Westlake\\pwk lab\\fatez\\gat_gradient/nhead4_nhidden4/'
+data_save_dir = 'D:\\Westlake\\pwk lab\\fatez\\gat_gradient/nhead2_nhidden2_weight_decay0/'
 outgat_dir = data_save_dir+'out_gat/'
-#os.makedirs(outgat_dir )
+os.makedirs(outgat_dir )
 """
 dataloader
 """
@@ -192,7 +192,7 @@ for epoch in range(num_epoch):
         train_loss += loss
         train_acc += acc
     print(
-     f"epoch: {epoch+1}, train_loss: {train_loss/batch_num}, test accuracy: {train_acc/batch_num}")
+     f"epoch: {epoch+1}, train_loss: {train_loss/175}, train accuracy: {train_acc/175}")
     all_loss.append(train_loss)
     scheduler.step()
     test_loss,test_acc = model_testing.testing(test_dataloader,
