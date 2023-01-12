@@ -150,7 +150,7 @@ for epoch in range(num_epoch):
         print(next(model_gat.parameters()).is_cuda)
         out_gat = model_gat(x[0], x[1])
         # Save GAT output without decison layers
-        out_gat_data.append(out_gat.detach().tolist())
+        for ele in out_gat.detach().tolist(): out_gat_data.append(ele)
         # torch.save(out_gat,
         #            'D:\\Westlake\\pwk lab\\fatez\\out_gat/epoch'+str(epoch)+'_batch'+str(batch_num)+'.pt')
         output = test_model(x[0], x[1])
@@ -166,6 +166,6 @@ for epoch in range(num_epoch):
     # Saving GAT outputs by epoch
     JSON.encode(
         out_gat_data,
-        'D:\\Westlake\\pwk lab\\fatez\\out_gat/epoch' + str(epoch) + '.pt'
+        'D:\\Westlake\\pwk lab\\fatez\\out_gat/epoch' + str(epoch) + '.js'
     )
 model.Save(test_model.bert_model.encoder, '../data/ignore/bert_encoder.model')

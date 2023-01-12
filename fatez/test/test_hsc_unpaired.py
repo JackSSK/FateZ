@@ -180,7 +180,7 @@ for epoch in range(num_epoch):
         # torch.save(out_gat,
         #            'D:\\Westlake\\pwk lab\\fatez\\out_gat/epoch'+str(epoch)+'_batch'+str(batch_num)+'.pt')
         output = test_model(x[0].to(device), x[1].to(device))
-        out_gat_data.append(out_gat.detach().tolist())
+        for ele in out_gat.detach().tolist(): out_gat_data.append(ele)
         loss = nn.CrossEntropyLoss()(
             output, y
         )
@@ -203,7 +203,7 @@ for epoch in range(num_epoch):
     if data_save:
         JSON.encode(
             out_gat_data,
-            outgat_dir+str(epoch) + '.pt'
+            outgat_dir+str(epoch) + '.js'
         )
     early_stopping(train_loss, test_loss)
     if early_stopping.early_stop:
@@ -220,4 +220,3 @@ if data_save:
 """
 testing
 """
-

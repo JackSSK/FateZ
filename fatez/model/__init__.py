@@ -6,11 +6,13 @@ author: jy, nkmtmsys
 """
 import re
 import tqdm
+import random
 import torch
 import torch.nn as nn
 from torch.optim import Adam
 from torch.utils.data import DataLoader
 import numpy as np
+from sklearn import cluster, datasets, mixture
 
 
 def Save(model, file_path:str = 'a.model', device:str = 'cpu',):
@@ -60,20 +62,45 @@ class Error(Exception):
 
 
 
+class Masker(object):
+	"""docstring for Masker."""
+
+	def __init__(self, ratio, arg):
+		super(Masker, self).__init__()
+		self.ratio = ratio
+		self.arg = arg
+		self.choices = None
+
+	def make(self, input:torch.Tensor, ):
+		length = input.size()[0]
+		self.choices = random.choices(
+			range(length), k = int(length * self.ratio)
+		)
+		return
+
+
+
 class Binning_Process(nn.Module):
 	"""
 	Binning data output by GAT.
 
-	We'd better implement this part after having a general idea about the
-	overall data distribution of GAT output in real world cases.
+	Probably we can just multiply data into integers.
+	Clustering is way too comp expensive.
 	"""
 
-	def __init__(self, n_bin):
+	def __init__(self, n_bin, config):
 		super(Binning_Process, self).__init__()
 		self.n_bin = n_bin
+		# self.config = config
+		# average_linkage = cluster.AgglomerativeClustering(
+		# 	linkage = 'ward',
+		# 	affinity = 'euclidean',
+		# 	n_clusters = self.n_bin,
+		# 	connectivity = connectivity,
+		# )
 
 	def forward(self, input):
-		return input
+		return int(input * self.n_bin)
 
 
 

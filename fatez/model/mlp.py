@@ -15,15 +15,14 @@ class Data_Reconstructor(nn.Module):
     """
     def __init__(self,
         d_model:int = 512,
-        n_bin:int = 100,
+        out_dim:int = 8,
         device:str = 'cpu',
         dtype:str = None,):
         super(Data_Reconstructor, self).__init__()
-        self.linear = nn.Linear(d_model, n_bin, dtype = dtype)
-        self.softmax = nn.LogSoftmax(dim = -1)
+        self.linear = nn.Linear(d_model, out_dim, dtype = dtype)
 
     def forward(self, input):
-        return self.softmax(self.linear(input))
+        return F.softmax(self.linear(input), dim = -1)
 
 
 
@@ -42,7 +41,7 @@ class Classifier(nn.Module):
         """
         :param d_model:int = None
             Number of each gene's input features.
-            
+
         :param n_hidden:int = None
             Number of hidden units.
 
