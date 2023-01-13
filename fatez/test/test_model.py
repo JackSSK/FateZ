@@ -35,7 +35,7 @@ def test_gat(train_dataloader, gat_param, mlp_param):
         loss.backward()
 
     model_gat.explain(input[0][0], input[1][0])
-
+    print(out_gat.shape)
     explain = shap.GradientExplainer(decision, out_gat)
     shap_values = explain.shap_values(out_gat)
     print(shap_values)
