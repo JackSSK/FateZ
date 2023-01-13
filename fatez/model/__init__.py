@@ -88,7 +88,7 @@ class Binning_Process(nn.Module):
 	Clustering is way too comp expensive.
 	"""
 
-	def __init__(self, n_bin, config):
+	def __init__(self, n_bin, config = None):
 		super(Binning_Process, self).__init__()
 		self.n_bin = n_bin
 		# self.config = config
@@ -100,7 +100,8 @@ class Binning_Process(nn.Module):
 		# )
 
 	def forward(self, input):
-		return int(input * self.n_bin)
+		# return int(input * self.n_bin)
+		return input
 
 
 
