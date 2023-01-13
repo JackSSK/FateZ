@@ -18,6 +18,7 @@ import shap
 from fatez.tool import PreprocessIO
 import pandas as pd
 import numpy as np
+import torch.nn as nn
 from fatez.tool import model_testing
 device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
 mlp_param = {
@@ -52,17 +53,17 @@ mlp_param = {
 # # Explain one specific input
 # shap_values = explain.shap_values(out_gat[:1], return_variances=True)
 # print('Work Here 2')
-bert_fine_tune = torch.load('D:\\Westlake\\pwk lab\\fatez\\gat_gradient\\nhead4_nhidden16\\bert_fine_tune.model')
+batch_size = 20
 fine_tuning = fine_tuner.Model(
-    gat=model.Load('D:\\Westlake\\pwk lab\\fatez\\gat_gradient\\nhead4_nhidden16\\gat.model'),
+    gat=model.Load('D:\\Westlake\\pwk lab\\fatez\\gat_gradient\\nhead2_nhidden4_lr-3\\gat.model'),
     bin_pro = model.Binning_Process(n_bin = 100,config = None),
-    bert_model=torch.load('D:\\Westlake\\pwk lab\\fatez\\gat_gradient\\nhead4_nhidden16\\bert_fine_tune.model')
+    bert_model=torch.load('D:\\Westlake\\pwk lab\\fatez\\gat_gradient\\nhead2_nhidden4_lr-3\\bert_fine_tune.model')
 )
 fine_tuning.to(device)
 matrix1 = PreprocessIO.input_csv_dict_df(
-    'D:\\Westlake\\pwk lab\\fatez\\hsc_unpaired_testing_data/node/')
+    'D:\\Westlake\\pwk lab\\fatez\\hsc_unpaired_origi_label_mt/node/')
 matrix2 = pd.read_csv(
-    'D:\\Westlake\\pwk lab\\fatez\\hsc_unpaired_testing_data/edge_matrix.csv'
+    'D:\\Westlake\\pwk lab\\fatez\\hsc_unpaired_origi_label_mt/edge_matrix.csv'
     ,index_col=0)
 samples = []
 for i in range(len(matrix1)):
@@ -71,27 +72,29 @@ for i in range(len(matrix1)):
     m2 = torch.from_numpy(matrix2.to_numpy())
     m1 = m1.to(torch.float32)
     m2 = m2.to(torch.float32)
-    m1 = m1.to(device)
-    m2 = m2.to(device)
-    print(m1)
+    # m1 = m1.to(device)
+    # m2 = m2.to(device)
     samples.append([m1, m2])
 labels = torch.from_numpy(np.repeat(range(2)
                                     ,len(matrix1)/2))
 labels = labels.long()
 labels = labels.to(device)
+print(len(labels))
 
 train_dataloader = DataLoader(
     lib.FateZ_Dataset(samples=samples, labels=labels),
-    batch_size=1,
+    batch_size=batch_size,
     shuffle=True
 )
-for x,y in train_dataloader:
-    test_loss, test_acc = model_testing.testing(test_dataloader,
-                                                test_model,
-                                                nn.CrossEntropyLoss()
-                                                , device=device)
-print(type(fine_tuning))
-for x,y in train_dataloader:
-    explain = explainer.Gradient(fine_tuning, x)
-    shap_values = explain.shap_values(x, return_variances = True)
-    print(shap_values)
+
+test_loss, correct = 0, 0
+for x, y in train_dataloader:
+        # X, y = X.to(device), y.to(device)
+    pred = fine_tuning(x[0].to(device), x[1].to(device))
+    loss = nn.CrossEntropyLoss()(pred, y)
+    acc = (pred.argmax(1)==y).type(torch.float).sum()
+    print(acc)
+# for x,y in train_dataloader:
+#     explain = explainer.Gradient(fine_tuning, x)
+#     shap_values = explain.shap_values(x, return_variances = True)
+#     print(shap_values)
