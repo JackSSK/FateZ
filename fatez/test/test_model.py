@@ -194,3 +194,20 @@ if __name__ == '__main__':
         gat_model = model.Load('../data/ignore/gat.model'),
         bert_encoder = model.Load('../data/ignore/a.model'),
     )
+
+    
+    # Saving Fine Tune Model should be fine
+    test = bert.Fine_Tune_Model(temp.bert_model.encoder, n_class = 2)
+    model.Save(test, '../data/ignore/b.model')
+    fine_tuning = fine_tuner.Model(
+        gat = model.Load('../data/ignore/gat.model'),
+        bin_pro = model.Binning_Process(n_bin = n_bin),
+        bert_model = model.Load('../data/ignore/b.model')
+    )
+    # Using data loader now
+    for input, label in train_dataloader:
+        output = fine_tuning(input[0], input[1])
+        loss = nn.CrossEntropyLoss()(
+            output, label
+        )
+        loss.backward()
