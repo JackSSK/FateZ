@@ -95,14 +95,14 @@ labels = labels.to(device)
 hyperparameters
 """
 batch_size = 20
-num_epoch = 80
-n_hidden = 2
-nhead = 2
+num_epoch = 200
+n_hidden = 8
+nhead = 4
 lr = 1e-4
 test_size = 0.3
 early_stop_tolerance = 15
 data_save = True
-data_save_dir = 'D:\\Westlake\\pwk lab\\fatez\\gat_gradient/nhead2_nhidden2_weight_decay0/'
+data_save_dir = 'D:\\Westlake\\pwk lab\\fatez\\gat_gradient/nhead4_nhidden8/'
 outgat_dir = data_save_dir+'out_gat/'
 os.makedirs(outgat_dir )
 """
@@ -216,7 +216,7 @@ if data_save:
     #            data_save_dir+'fine_tune.model')
     model.Save(model_gat,
                data_save_dir+'gat.model')
-
+print(all_loss)
 """
 testing
 """
