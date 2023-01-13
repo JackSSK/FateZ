@@ -14,6 +14,7 @@ mlp_param = {
 }
 
 out_gat = JSON.decode('D:\\Westlake\\pwk lab\\fatez\\gat_gradient\\nhead0_nhidden1_weight_decay0\\out_gat\\99.pt')
+# u need to use trained model
 decision = mlp.Classifier(**mlp_param)
 epoch_out_gat=torch.tensor(out_gat[0])
 explain = shap.GradientExplainer(decision, epoch_out_gat)

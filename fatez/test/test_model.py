@@ -38,10 +38,10 @@ def test_gat(train_dataloader, gat_param, mlp_param):
     print(out_gat.shape)
     explain = shap.GradientExplainer(decision, out_gat)
     shap_values = explain.shap_values(out_gat)
-    print(shap_values)
+    # print(shap_values)
     explain = explainer.Gradient(decision, out_gat)
     shap_values = explain.shap_values(out_gat, return_variances = True)
-    print(shap_values)
+    # print(shap_values)
     print('Last GAT CEL:', loss, '\n')
     return model_gat
 
@@ -81,7 +81,7 @@ def test_fine_tune(train_dataloader, n_bin, n_class, gat_model, bert_encoder):
         loss.backward()
     explain = explainer.Gradient(fine_tuning, input)
     shap_values = explain.shap_values(input, return_variances = True)
-    print(shap_values)
+    # print(shap_values)
     print('Last Fine Tuner CEL:', loss, '\n')
     return fine_tuning
 
@@ -136,7 +136,7 @@ if __name__ == '__main__':
         'd_model': gat_param['en_dim'],
         'n_layer': 6,
         'nhead': 8,
-        'dim_feedforward': 3,
+        'dim_feedforward': gat_param['en_dim'],
         'dtype': torch.float32,
     }
     n_bin = 100

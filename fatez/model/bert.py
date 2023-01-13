@@ -121,7 +121,7 @@ class Pre_Train_Model(nn.Module):
         self.encoder.to(self.factory_kwargs['device'])
         self.reconstructor = mlp.Data_Reconstructor(
             d_model = self.encoder.d_model,
-            n_bin = n_bin,
+            out_dim = out_dim,
             **self.factory_kwargs
         )
         self.reconstructor.to(self.factory_kwargs['device'])
