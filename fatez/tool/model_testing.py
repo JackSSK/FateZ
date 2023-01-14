@@ -1,4 +1,5 @@
 import torch
+
 def testing(dataloader, model, loss_fn,device):
     size = len(dataloader.dataset)
     num_batches = len(dataloader)

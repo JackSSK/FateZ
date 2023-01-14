@@ -1,22 +1,25 @@
+import os
 import numpy as np
-import torch
-import fatez.model as model
-import fatez.model.gat as gat
-import torch.nn as nn
-import fatez.model.bert as bert
-import fatez.process.fine_tuner as fine_tuner
-import fatez.process.preprocessor as pre
 import pandas as pd
-from transformers import AdamW
+import torch
+import torch.nn as nn
 from torch.utils.data import DataLoader
+from torch.optim.lr_scheduler import CosineAnnealingWarmRestarts
+
 import fatez.lib as lib
-from fatez.tool import PreprocessIO
-import fatez.model.mlp as mlp
-from sklearn.model_selection import train_test_split
 import fatez.tool.JSON as JSON
+from fatez.tool import PreprocessIO
 from fatez.tool import EarlyStopping
 from fatez.tool import model_testing
-import os
+import fatez.model as model
+import fatez.model.mlp as mlp
+import fatez.model.gat as gat
+import fatez.model.bert as bert
+import fatez.process.preprocessor as pre
+import fatez.process.fine_tuner as fine_tuner
+
+from sklearn.model_selection import train_test_split
+
 """
 preprocess
 """
@@ -150,15 +153,22 @@ test_model = fine_tuner.Model(
     bert_model = bert.Fine_Tune_Model(bert_encoder, n_class = 2),
 )
 ### adam and CosineAnnealingWarmRestarts
-optimizer = torch.optim.Adam(test_model.parameters(),
-                             lr=lr,
-                             weight_decay=1e-3)
-scheduler = torch.optim.lr_scheduler.CosineAnnealingWarmRestarts(optimizer,
-                                                                 T_0=2,
-                                                                 T_mult=2,
-                                                                 eta_min=lr/50)
+optimizer = torch.optim.Adam(
+    test_model.parameters(),
+    lr = lr,
+    weight_decay = 1e-3
+)
+scheduler = CosineAnnealingWarmRestarts(
+    optimizer,
+    T_0 = 2,
+    T_mult=2,
+    eta_min = lr / 50
+)
 
-early_stopping = EarlyStopping.EarlyStopping(tolerance=early_stop_tolerance, min_delta=10)
+early_stopping = EarlyStopping.EarlyStopping(
+    tolerance = early_stop_tolerance,
+    min_delta = 10
+)
 model_gat.to(device)
 bert_encoder.to(device)
 test_model.to(device)
@@ -210,15 +220,29 @@ for epoch in range(num_epoch):
         print("We are at epoch:", i)
         break
 if data_save:
-    model.Save(test_model.bert_model.encoder,
-               data_save_dir+'bert_encoder.model')
-    # model.Save(test_model,
-    #            data_save_dir+'fine_tune.model')
-    model.Save(model_gat,
-               data_save_dir+'gat.model')
+    model.Save(
+        test_model.bert_model.encoder,
+        data_save_dir + 'bert_encoder.model'
+    )
+    # Use this to save whole bert model
+    model.Save(
+        test_model.bert_model,
+        data_save_dir + 'bert_fine_tune.model'
+    )
+    model.Save(
+        model_gat,
+        data_save_dir + 'gat.model'
+    )
 print(all_loss)
+
+"""
+# You are making a new model with untraiend classficiation MLP
+# So, even if you test it without save and load, it won't perform well.
+# Go check line #228-230
 test = bert.Fine_Tune_Model(test_model.bert_model.encoder, n_class = 2)
 model.Save(test, data_save_dir+'bert_fine_tune.model')
+"""
+
 JSON.encode(
     out_gat_data,
     outgat_dir + str(epoch) + '.js'

@@ -33,12 +33,24 @@ def test_gat(train_dataloader, gat_param, mlp_param):
             output, label
         )
         loss.backward()
+    print('Last GAT CEL:', loss, '\n')
 
-    model_gat.explain(input[0][0], input[1][0])
+    model.Save(model_gat, '../data/ignore/gat.model')
+    model_gat = model.Load('../data/ignore/gat.model')
+    model_gat.eval()
+    with torch.no_grad():
+        out_gat = model_gat(input[0], input[1])
+        output = decision(out_gat)
+        loss = nn.CrossEntropyLoss()(
+            output, label
+        )
+        print(loss)
+
+    a = model_gat.explain(input[0][0], input[1][0])
     print(out_gat.shape)
     explain = shap.GradientExplainer(decision, out_gat)
     shap_values = explain.shap_values(out_gat)
-    # print(shap_values)
+    print(shap_values)
     explain = explainer.Gradient(decision, out_gat)
     shap_values = explain.shap_values(out_gat, return_variances = True)
     # print(shap_values)
@@ -195,7 +207,7 @@ if __name__ == '__main__':
         bert_encoder = model.Load('../data/ignore/a.model'),
     )
 
-    
+
     # Saving Fine Tune Model should be fine
     test = bert.Fine_Tune_Model(temp.bert_model.encoder, n_class = 2)
     model.Save(test, '../data/ignore/b.model')

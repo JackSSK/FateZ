@@ -55,16 +55,18 @@ mlp_param = {
 # print('Work Here 2')
 batch_size = 20
 fine_tuning = fine_tuner.Model(
-    gat=model.Load('D:\\Westlake\\pwk lab\\fatez\\gat_gradient\\nhead0_nhidden2_lr-3\\gat.model'),
+    gat = model.Load('D:\\Westlake\\pwk lab\\fatez\\gat_gradient\\nhead0_nhidden2_lr-3\\gat.model'),
     bin_pro = model.Binning_Process(n_bin = 100,config = None),
-    bert_model=torch.load('D:\\Westlake\\pwk lab\\fatez\\gat_gradient\\nhead0_nhidden2_lr-3\\bert_fine_tune.model')
+    bert_model = torch.load('D:\\Westlake\\pwk lab\\fatez\\gat_gradient\\nhead0_nhidden2_lr-3\\bert_fine_tune.model')
 )
 fine_tuning.to(device)
 matrix1 = PreprocessIO.input_csv_dict_df(
-    'D:\\Westlake\\pwk lab\\fatez\\hsc_unpaired_origi_label_mt/node/')
+    'D:\\Westlake\\pwk lab\\fatez\\hsc_unpaired_origi_label_mt/node/'
+)
 matrix2 = pd.read_csv(
-    'D:\\Westlake\\pwk lab\\fatez\\hsc_unpaired_origi_label_mt/edge_matrix.csv'
-    ,index_col=0)
+    'D:\\Westlake\\pwk lab\\fatez\\hsc_unpaired_origi_label_mt/edge_matrix.csv',
+    index_col = 0
+)
 samples = []
 for i in range(len(matrix1)):
     m1 = matrix1[list(matrix1.keys())[i]]
