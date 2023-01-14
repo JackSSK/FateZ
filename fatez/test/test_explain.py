@@ -55,9 +55,9 @@ mlp_param = {
 # print('Work Here 2')
 batch_size = 20
 fine_tuning = fine_tuner.Model(
-    gat=model.Load('D:\\Westlake\\pwk lab\\fatez\\gat_gradient\\nhead2_nhidden4_lr-3\\gat.model'),
+    gat=model.Load('D:\\Westlake\\pwk lab\\fatez\\gat_gradient\\nhead0_nhidden2_lr-3\\gat.model'),
     bin_pro = model.Binning_Process(n_bin = 100,config = None),
-    bert_model=torch.load('D:\\Westlake\\pwk lab\\fatez\\gat_gradient\\nhead2_nhidden4_lr-3\\bert_fine_tune.model')
+    bert_model=torch.load('D:\\Westlake\\pwk lab\\fatez\\gat_gradient\\nhead0_nhidden2_lr-3\\bert_fine_tune.model')
 )
 fine_tuning.to(device)
 matrix1 = PreprocessIO.input_csv_dict_df(
@@ -87,13 +87,15 @@ train_dataloader = DataLoader(
     shuffle=True
 )
 
+fine_tuning.eval()
 test_loss, correct = 0, 0
-for x, y in train_dataloader:
+with torch.no_grad():
+    for x, y in train_dataloader:
         # X, y = X.to(device), y.to(device)
-    pred = fine_tuning(x[0].to(device), x[1].to(device))
-    loss = nn.CrossEntropyLoss()(pred, y)
-    acc = (pred.argmax(1)==y).type(torch.float).sum()
-    print(acc)
+        pred = fine_tuning(x[0].to(device), x[1].to(device))
+        test_loss += nn.CrossEntropyLoss()(pred, y).item()
+        correct = (pred.argmax(1) == y).type(torch.float).sum().item()
+        print(correct)
 # for x,y in train_dataloader:
 #     explain = explainer.Gradient(fine_tuning, x)
 #     shap_values = explain.shap_values(x, return_variances = True)
