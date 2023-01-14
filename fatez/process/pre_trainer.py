@@ -17,6 +17,7 @@ import fatez.process.grn_encoder as grn_encoder
 class Model(nn.Module):
     def __init__(self,
         gat = None,
+        masker:model.Masker = None,
         bin_pro:model.Binning_Process = None,
         bert_model:bert.Pre_Train_Model = None,
         device:str = 'cpu',
@@ -24,6 +25,7 @@ class Model(nn.Module):
         ):
         self.factory_kwargs = {'device': device, 'dtype': dtype}
         self.gat = gat
+        self.masker = masker
         self.bin_pro= bin_pro
         self.bert_model = bert_model
         self.gat.to(self.factory_kwargs['device'])

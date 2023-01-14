@@ -35,22 +35,11 @@ def test_gat(train_dataloader, gat_param, mlp_param):
         loss.backward()
     print('Last GAT CEL:', loss, '\n')
 
-    model.Save(model_gat, '../data/ignore/gat.model')
-    model_gat = model.Load('../data/ignore/gat.model')
-    model_gat.eval()
-    with torch.no_grad():
-        out_gat = model_gat(input[0], input[1])
-        output = decision(out_gat)
-        loss = nn.CrossEntropyLoss()(
-            output, label
-        )
-        print(loss)
-
-    a = model_gat.explain(input[0][0], input[1][0])
-    print(out_gat.shape)
+    gat_explain = model_gat.explain(input[0][0], input[1][0])
+    # print(gat_explain)
     explain = shap.GradientExplainer(decision, out_gat)
     shap_values = explain.shap_values(out_gat)
-    print(shap_values)
+    # print(shap_values)
     explain = explainer.Gradient(decision, out_gat)
     shap_values = explain.shap_values(out_gat, return_variances = True)
     # print(shap_values)
@@ -98,8 +87,9 @@ def test_fine_tune(train_dataloader, n_bin, n_class, gat_model, bert_encoder):
     return fine_tuning
 
 
-def test_pre_train(input, mask, n_bin, n_class, gat_model, bert_encoder):
+def test_pre_train(input, n_bin, n_class, gat_model, bert_encoder):
     print('Testing Pre-Train Model')
+    mask = model.Masker()
     fine_tuning = fine_tuner.Model(
         gat = gat_model,
         bin_pro = model.Binning_Process(n_bin = n_bin),
@@ -179,47 +169,54 @@ if __name__ == '__main__':
     print('Batch Size:', batch_size)
     print('Class Number:', n_class, '\n')
 
-    temp = test_sparse_gat(
+    # temp = test_sparse_gat(
+    #     train_dataloader,
+    #     gat_param = gat_param,
+    #     mlp_param = mlp_param
+    # )
+    # model.Save(temp, '../data/ignore/gat.model')
+    #
+    # temp = test_gat(
+    #     train_dataloader,
+    #     gat_param = gat_param,
+    #     mlp_param = mlp_param
+    # )
+    # model.Save(temp, '../data/ignore/gat.model')
+    size = [4, 4]
+    mask = (torch.triu(torch.ones(size[0], size[1])) == 1).transpose(0, 1)
+    mask = mask.float().masked_fill(
+        mask == 0, float('-inf')
+    ).masked_fill(mask==1,float(0.0))
+    print(mask)
+    temp = test_pre_train(
         train_dataloader,
-        gat_param = gat_param,
-        mlp_param = mlp_param
-    )
-    model.Save(temp, '../data/ignore/gat.model')
-
-    temp = test_gat(
-        train_dataloader,
-        gat_param = gat_param,
-        mlp_param = mlp_param
-    )
-    model.Save(temp, '../data/ignore/gat.model')
-
-    temp = test_fine_tune(
-        train_dataloader, n_bin, n_class,
+        n_bin = n_bin,
+        n_class = n_class,
         gat_model = gat.GAT(**gat_param),
         bert_encoder = bert.Encoder(**bert_encoder_param),
     )
-    model.Save(temp.bert_model.encoder, '../data/ignore/a.model')
+    model.Save(temp.bert_model.encoder, '../data/ignore/bert_encoder.model')
 
-    # Test Loading Model
-    test_fine_tune(
-        train_dataloader, n_bin, n_class,
-        gat_model = model.Load('../data/ignore/gat.model'),
-        bert_encoder = model.Load('../data/ignore/a.model'),
-    )
-
-
-    # Saving Fine Tune Model should be fine
-    test = bert.Fine_Tune_Model(temp.bert_model.encoder, n_class = 2)
-    model.Save(test, '../data/ignore/b.model')
-    fine_tuning = fine_tuner.Model(
-        gat = model.Load('../data/ignore/gat.model'),
-        bin_pro = model.Binning_Process(n_bin = n_bin),
-        bert_model = model.Load('../data/ignore/b.model')
-    )
-    # Using data loader now
-    for input, label in train_dataloader:
-        output = fine_tuning(input[0], input[1])
-        loss = nn.CrossEntropyLoss()(
-            output, label
-        )
-        loss.backward()
+    # temp = test_fine_tune(
+    #     train_dataloader, n_bin, n_class,
+    #     gat_model = gat.GAT(**gat_param),
+    #     bert_encoder = bert.Encoder(**bert_encoder_param),
+    # )
+    # model.Save(temp.bert_model.encoder, '../data/ignore/bert_encoder.model')
+    #
+    # # Test Loading Model
+    # # Saving Fine Tune Model should be fine
+    # test = bert.Fine_Tune_Model(temp.bert_model.encoder, n_class = 2)
+    # model.Save(test, '../data/ignore/b.model')
+    # fine_tuning = fine_tuner.Model(
+    #     gat = model.Load('../data/ignore/gat.model'),
+    #     bin_pro = model.Binning_Process(n_bin = n_bin),
+    #     bert_model = model.Load('../data/ignore/b.model')
+    # )
+    # # Using data loader now
+    # for input, label in train_dataloader:
+    #     output = fine_tuning(input[0], input[1])
+    #     loss = nn.CrossEntropyLoss()(
+    #         output, label
+    #     )
+    #     loss.backward()

@@ -65,13 +65,13 @@ class Error(Exception):
 class Masker(object):
 	"""docstring for Masker."""
 
-	def __init__(self, ratio, arg):
+	def __init__(self, ratio, seed):
 		super(Masker, self).__init__()
 		self.ratio = ratio
-		self.arg = arg
+		self.seed = seed
 		self.choices = None
 
-	def make(self, input:torch.Tensor, ):
+	def mask(self, input:torch.Tensor, ):
 		length = input.size()[0]
 		self.choices = random.choices(
 			range(length), k = int(length * self.ratio)

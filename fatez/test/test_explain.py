@@ -57,7 +57,7 @@ batch_size = 20
 fine_tuning = fine_tuner.Model(
     gat = model.Load('D:\\Westlake\\pwk lab\\fatez\\gat_gradient\\nhead0_nhidden2_lr-3\\gat.model'),
     bin_pro = model.Binning_Process(n_bin = 100,config = None),
-    bert_model = torch.load('D:\\Westlake\\pwk lab\\fatez\\gat_gradient\\nhead0_nhidden2_lr-3\\bert_fine_tune.model')
+    bert_model = model.Load('D:\\Westlake\\pwk lab\\fatez\\gat_gradient\\nhead0_nhidden2_lr-3\\bert_fine_tune.model')
 )
 fine_tuning.to(device)
 matrix1 = PreprocessIO.input_csv_dict_df(
