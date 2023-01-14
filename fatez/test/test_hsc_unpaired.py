@@ -22,7 +22,7 @@ preprocess
 """
 device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
 ## preprocess parameters
-pseudo_cell_num_per_cell_type = 2500
+pseudo_cell_num_per_cell_type = 5000
 correlation_thr_to_get_gene_related_peak = 0.4
 rowmean_thr_to_get_variable_gene = 0.1
 cluster_use =[1,4]
@@ -63,9 +63,9 @@ cluster_use =[1,4]
 
 
 matrix1 = PreprocessIO.input_csv_dict_df(
-    'D:\\Westlake\\pwk lab\\fatez\\hsc_unpaired_origi_label_mt/node/')
+    'D:\\Westlake\\pwk lab\\fatez\\hsc_unpaired_testing_data_10000/node/')
 matrix2 = pd.read_csv(
-    'D:\\Westlake\\pwk lab\\fatez\\hsc_unpaired_origi_label_mt/edge_matrix.csv'
+    'D:\\Westlake\\pwk lab\\fatez\\hsc_unpaired_testing_data_10000/edge_matrix.csv'
     ,index_col=0)
 
 # train_rate = 0.7
@@ -94,15 +94,15 @@ labels = labels.to(device)
 """
 hyperparameters
 """
-batch_size = 20
-num_epoch = 200
-n_hidden = 8
-nhead = 4
-lr = 1e-4
+batch_size = 40
+num_epoch = 100
+n_hidden = 2
+nhead = 0
+lr = 1e-3
 test_size = 0.3
 early_stop_tolerance = 15
 data_save = True
-data_save_dir = 'D:\\Westlake\\pwk lab\\fatez\\gat_gradient/nhead4_nhidden8/'
+data_save_dir = 'D:\\Westlake\\pwk lab\\fatez\\gat_gradient/nhead0_nhidden2_lr-3/'
 outgat_dir = data_save_dir+'out_gat/'
 os.makedirs(outgat_dir )
 """
@@ -187,7 +187,7 @@ for epoch in range(num_epoch):
         loss.backward()
         optimizer.step()
         acc = (output.argmax(1)==y).type(torch.float).sum()/batch_size
-        #print(f"batch: {batch_num} loss: {loss} accuracy:{acc}")
+        print(f"batch: {batch_num} loss: {loss} accuracy:{acc}")
         batch_num += 1
         train_loss += loss
         train_acc += acc
@@ -200,11 +200,11 @@ for epoch in range(num_epoch):
                                                , device=device)
     print(
         f"epoch: {epoch+1}, test_loss: {test_loss}, test accuracy: {test_acc}")
-    if data_save:
-        JSON.encode(
-            out_gat_data,
-            outgat_dir+str(epoch) + '.js'
-        )
+    # if data_save:
+    #     JSON.encode(
+    #         out_gat_data,
+    #         outgat_dir+str(epoch) + '.js'
+    #     )
     early_stopping(train_loss, test_loss)
     if early_stopping.early_stop:
         print("We are at epoch:", i)
@@ -217,6 +217,12 @@ if data_save:
     model.Save(model_gat,
                data_save_dir+'gat.model')
 print(all_loss)
+test = bert.Fine_Tune_Model(test_model.bert_model.encoder, n_class = 2)
+model.Save(test, data_save_dir+'bert_fine_tune.model')
+JSON.encode(
+    out_gat_data,
+    outgat_dir + str(epoch) + '.js'
+)
 """
 testing
 """
