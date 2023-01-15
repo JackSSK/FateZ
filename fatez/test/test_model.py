@@ -98,9 +98,11 @@ def test_model(train_dataloader, n_bin, n_class, gat_model, masker, bert_encoder
             output, label
         )
         loss.backward()
+
+    gat_explain = gat_model.explain(input[0][0], input[1][0])
     explain = explainer.Gradient(fine_tuning, input)
     shap_values = explain.shap_values(input, return_variances = True)
-    # print(shap_values)
+    print(shap_values)
     print('Last Fine Tuner CEL:', loss, '\n')
     return bert_encoder
 
