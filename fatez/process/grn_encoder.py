@@ -50,7 +50,7 @@ class Encode(object):
         use_gpu:bool = True,
         ):
         genes_mats, adj_mats = self.prepare_input(sample)
-        if torch.cuda.is_available() and use_gpu = True:
+        if torch.cuda.is_available() and use_gpu is True:
             self.gat_model.cuda()
             genes_mats = features.cuda()
             adj_mats = adj_mats.cuda()
