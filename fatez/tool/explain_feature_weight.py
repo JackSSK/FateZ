@@ -19,7 +19,7 @@ def explain_feature(explain_weight,method = 'softmax'):
 
     elif method == 'softmax':
 
-        t_data = torch.from_numpy(explain_weight.astype(np.float32)
+        t_data = torch.from_numpy(explain_weight.astype(np.float32))
         scores = torch_F.softmax(t_data, dim=-1)
         scale_weight = scores.squeeze(0).data.cpu().numpy()[:, 1]
         return scale_weight
