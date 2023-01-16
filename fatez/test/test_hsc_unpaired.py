@@ -98,14 +98,14 @@ labels = labels.to(device)
 hyperparameters
 """
 batch_size = 40
-num_epoch = 100
-n_hidden = 2
+num_epoch = 200
+n_hidden = 1
 nhead = 0
 lr = 1e-3
 test_size = 0.3
 early_stop_tolerance = 15
 data_save = True
-data_save_dir = 'D:\\Westlake\\pwk lab\\fatez\\gat_gradient/nhead0_nhidden2_lr-3/'
+data_save_dir = 'D:\\Westlake\\pwk lab\\fatez\\gat_gradient/nhead0_nhidden1_lr-3_epoch200/'
 outgat_dir = data_save_dir+'out_gat/'
 os.makedirs(outgat_dir )
 """

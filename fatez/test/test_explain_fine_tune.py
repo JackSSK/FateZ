@@ -53,18 +53,18 @@ mlp_param = {
 # # Explain one specific input
 # shap_values = explain.shap_values(out_gat[:1], return_variances=True)
 # print('Work Here 2')
-batch_size = 20
+batch_size = 2
 fine_tuning = fine_tuner.Model(
-    gat = model.Load('D:\\Westlake\\pwk lab\\fatez\\gat_gradient\\nhead0_nhidden2_lr-3\\gat.model'),
+    gat = model.Load('D:\\Westlake\\pwk lab\\fatez\\gat_gradient\\nhead0_nhidden2_lr-3_epoch120\\gat.model'),
     bin_pro = model.Binning_Process(n_bin = 100,config = None),
-    bert_model = model.Load('D:\\Westlake\\pwk lab\\fatez\\gat_gradient\\nhead0_nhidden2_lr-3\\bert_fine_tune.model')
+    bert_model = model.Load('D:\\Westlake\\pwk lab\\fatez\\gat_gradient\\nhead0_nhidden2_lr-3_epoch120\\bert_fine_tune.model')
 )
 fine_tuning.to(device)
 matrix1 = PreprocessIO.input_csv_dict_df(
-    'D:\\Westlake\\pwk lab\\fatez\\hsc_unpaired_origi_label_mt/node/'
+    'D:\\Westlake\\pwk lab\\fatez\\hsc_unpaired_testing_data/node/'
 )
 matrix2 = pd.read_csv(
-    'D:\\Westlake\\pwk lab\\fatez\\hsc_unpaired_origi_label_mt/edge_matrix.csv',
+    'D:\\Westlake\\pwk lab\\fatez\\hsc_unpaired_testing_data/edge_matrix.csv',
     index_col = 0
 )
 samples = []
@@ -81,24 +81,39 @@ labels = torch.from_numpy(np.repeat(range(2)
                                     ,len(matrix1)/2))
 labels = labels.long()
 labels = labels.to(device)
-print(len(labels))
 
 train_dataloader = DataLoader(
     lib.FateZ_Dataset(samples=samples, labels=labels),
     batch_size=batch_size,
     shuffle=True
 )
-
+#
 fine_tuning.eval()
-test_loss, correct = 0, 0
+acc_all = 0
+explain_use = []
 with torch.no_grad():
-    for x, y in train_dataloader:
+    for x,y in train_dataloader:
         # X, y = X.to(device), y.to(device)
         pred = fine_tuning(x[0].to(device), x[1].to(device))
-        test_loss += nn.CrossEntropyLoss()(pred, y).item()
+        test_loss = nn.CrossEntropyLoss()(pred, y).item()
         correct = (pred.argmax(1) == y).type(torch.float).sum().item()
+        if correct == batch_size:
+            explain_use.append(x)
+        acc_all+=correct
         print(correct)
 # for x,y in train_dataloader:
 #     explain = explainer.Gradient(fine_tuning, x)
 #     shap_values = explain.shap_values(x, return_variances = True)
 #     print(shap_values)
+for i in range(len(explain_use)):
+    explain = explainer.Gradient(fine_tuning, explain_use[i])
+    shap_values = explain.shap_values(x, return_variances = True)
+    for j in range(len(explain_use)):
+        
+    # m1 = shap_values[0]
+    # print(np.array(m1[0][0]))
+    # print(np.array(m1[0][0][0]).shape)
+# m2 = shap_values[1]
+# print(np.array(m2[1][0]))
+
+
