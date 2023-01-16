@@ -53,11 +53,11 @@ mlp_param = {
 # # Explain one specific input
 # shap_values = explain.shap_values(out_gat[:1], return_variances=True)
 # print('Work Here 2')
-batch_size = 5
+batch_size = 2
 fine_tuning = fine_tuner.Model(
-    gat = model.Load('D:\\Westlake\\pwk lab\\fatez\\gat_gradient\\nhead0_nhidden1_lr-3_epoch200\\gat.model'),
+    gat = model.Load('D:\\Westlake\\pwk lab\\fatez\\gat_gradient\\nhead0_nhidden2_lr-3_epoch120\\gat.model'),
     bin_pro = model.Binning_Process(n_bin = 100,config = None),
-    bert_model = model.Load('D:\\Westlake\\pwk lab\\fatez\\gat_gradient\\nhead0_nhidden1_lr-3_epoch200\\bert_fine_tune.model')
+    bert_model = model.Load('D:\\Westlake\\pwk lab\\fatez\\gat_gradient\\nhead0_nhidden2_lr-3_epoch120\\bert_fine_tune.model')
 )
 fine_tuning.to(device)
 matrix1 = PreprocessIO.input_csv_dict_df(
