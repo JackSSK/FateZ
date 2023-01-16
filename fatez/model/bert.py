@@ -37,6 +37,7 @@ class Encoder(nn.Module):
         dropout:float = 0.05,
         activation:str = 'gelu',
         layer_norm_eps:float = 1e-05,
+        batch_first:bool = True,
         device:str = 'cpu',
         dtype:str = None,
         ):
@@ -69,6 +70,9 @@ class Encoder(nn.Module):
         :param layer_norm_eps <float = 1e-05>
             The eps value in layer normalization component.
 
+        :param batch_first <bool = True>
+            Whether batch size expected as first ele in dim or not.
+
         :param device <str = 'cpu'>
             The device to load model.
 
@@ -78,6 +82,7 @@ class Encoder(nn.Module):
         super(Encoder, self).__init__()
         self.id = id
         self.d_model = d_model
+        self.dim_feedforward = dim_feedforward
         self.factory_kwargs = {'device':device, 'dtype':dtype}
         if encoder is not None:
             self.encoder = encoder
@@ -88,7 +93,8 @@ class Encoder(nn.Module):
                 dim_feedforward,
                 dropout,
                 activation,
-                layer_norm_eps,
+                layer_norm_eps = layer_norm_eps,
+                batch_first = batch_first,
                 **self.factory_kwargs
             )
             encoder_norm = LayerNorm(
@@ -120,8 +126,8 @@ class Pre_Train_Model(nn.Module):
         }
         self.encoder.to(self.factory_kwargs['device'])
         self.reconstructor = mlp.Data_Reconstructor(
-            d_model = self.encoder.d_model,
-            out_dim = out_dim,
+            d_model = self.encoder.dim_feedforward,
+            out_dim = self.encoder.d_model,
             **self.factory_kwargs
         )
         self.reconstructor.to(self.factory_kwargs['device'])
@@ -155,7 +161,7 @@ class Fine_Tune_Model(nn.Module):
         )
         self.classifier.to(self.factory_kwargs['device'])
 
-    def forward(self, input,):
-        output = self.encoder(input)
+    def forward(self, input, mask = None):
+        output = self.encoder(input, mask)
         output = self.classifier(output)
         return output

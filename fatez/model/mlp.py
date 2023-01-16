@@ -22,7 +22,7 @@ class Data_Reconstructor(nn.Module):
         self.linear = nn.Linear(d_model, out_dim, dtype = dtype)
 
     def forward(self, input):
-        return F.softmax(self.linear(input), dim = -1)
+        return self.linear(input)
 
 
 

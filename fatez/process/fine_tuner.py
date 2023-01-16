@@ -10,8 +10,6 @@ import torch
 import torch.nn as nn
 import fatez.model as model
 import fatez.model.bert as bert
-import fatez.model.gat as gat
-import fatez.model.sparse_gat as sgat
 
 
 
