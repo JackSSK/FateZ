@@ -53,11 +53,11 @@ mlp_param = {
 # # Explain one specific input
 # shap_values = explain.shap_values(out_gat[:1], return_variances=True)
 # print('Work Here 2')
-batch_size = 2
+batch_size = 5
 fine_tuning = fine_tuner.Model(
-    gat = model.Load('D:\\Westlake\\pwk lab\\fatez\\gat_gradient\\nhead0_nhidden2_lr-3_epoch120\\gat.model'),
+    gat = model.Load('D:\\Westlake\\pwk lab\\fatez\\gat_gradient\\nhead0_nhidden1_lr-3_epoch200\\gat.model'),
     bin_pro = model.Binning_Process(n_bin = 100,config = None),
-    bert_model = model.Load('D:\\Westlake\\pwk lab\\fatez\\gat_gradient\\nhead0_nhidden2_lr-3_epoch120\\bert_fine_tune.model')
+    bert_model = model.Load('D:\\Westlake\\pwk lab\\fatez\\gat_gradient\\nhead0_nhidden1_lr-3_epoch200\\bert_fine_tune.model')
 )
 fine_tuning.to(device)
 matrix1 = PreprocessIO.input_csv_dict_df(
@@ -87,7 +87,7 @@ train_dataloader = DataLoader(
     batch_size=batch_size,
     shuffle=True
 )
-#
+
 fine_tuning.eval()
 acc_all = 0
 explain_use = []
@@ -100,16 +100,21 @@ with torch.no_grad():
         if correct == batch_size:
             explain_use.append(x)
         acc_all+=correct
-        print(correct)
+
 # for x,y in train_dataloader:
+#     print(type(x))
+#     print(type(x[0]))
 #     explain = explainer.Gradient(fine_tuning, x)
 #     shap_values = explain.shap_values(x, return_variances = True)
 #     print(shap_values)
+
 for i in range(len(explain_use)):
+    print((explain_use[i][0]<0).type(torch.float).sum())
     explain = explainer.Gradient(fine_tuning, explain_use[i])
-    shap_values = explain.shap_values(x, return_variances = True)
-    for j in range(len(explain_use)):
-        
+    shap_values = explain.shap_values(explain_use[i], return_variances = True)
+    print(shap_values)
+    # for j in range(batch_size):
+    #     print(shap_values[j])
     # m1 = shap_values[0]
     # print(np.array(m1[0][0]))
     # print(np.array(m1[0][0][0]).shape)
