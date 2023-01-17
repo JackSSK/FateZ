@@ -1,25 +1,26 @@
-from sklearn.preprocessing import MinMaxScaler
+import pandas as pd
 import numpy as np
 import torch
 import torch.nn.functional as torch_F
 
-def explain_feature(explain_weight,method = 'softmax'):
+def rank_explain_weight(explain_weight):
 
-    if method == 'scale':
+    ### use softmax to normalize all features, then sum it
+    all_fea_weight = []
+    for i in range(explain_weight.shape[1]):
+        fea = torch.from_numpy(explain_weight[:,i].astype(np.float32))
+        scores = torch_F.softmax(fea, dim=-1)
+        fea_weight = scores.numpy()
+        all_fea_weight.append(fea_weight)
+    all_fea_weight = np.array(all_fea_weight)
+    all_fea_gene = all_fea_weight.sum(axis=0)
 
-        scaler = MinMaxScaler(feature_range=(0, 1))
-        scale_weight = scaler.fit_transform(explain_weight)
-        scale_weight = np.array(scale_weight)
-        return scale_weight
+    ### rank gene
+    gene_rank = pd.Series(all_fea_gene,
+                          index= list(range(len(all_fea_gene))))
+    gene_rank = gene_rank.sort_values(ascending=False)
+    gene_rank = pd.Series(list(range(len(all_fea_gene))),
+                          index= gene_rank.index)
+    gene_rank = gene_rank.sort_index()
 
-    elif method == 'add':
-
-        scale_weight = np.ones(len(explain_weight))
-        return scale_weight
-
-    elif method == 'softmax':
-
-        t_data = torch.from_numpy(explain_weight.astype(np.float32))
-        scores = torch_F.softmax(t_data, dim=-1)
-        scale_weight = scores.squeeze(0).data.cpu().numpy()[:, 1]
-        return scale_weight
+    return gene_rank
