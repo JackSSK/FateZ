@@ -210,7 +210,6 @@ class Preprocessor():
         sc.pp.filter_genes(self.rna_mt, min_cells=rna_min_cells)
         ###
         self.rna_mt.var['mt'] = self.rna_mt.var_names.str.startswith('MT-')
-        #　こちらもながぁぁぁぁぁぁぁぁぁぁぁい
         sc.pp.calculate_qc_metrics(
             self.rna_mt,
             qc_vars = ['mt'],
