@@ -177,35 +177,35 @@ if __name__ == '__main__':
     # )
     # model.Save(temp, '../data/ignore/gat.model')
     #
-    # temp = test_gat(
-    #     train_dataloader,
-    #     gat_param = gat_param,
-    #     mlp_param = mlp_param
+    temp = test_gat(
+        train_dataloader,
+        gat_param = gat_param,
+        mlp_param = mlp_param
+    )
+    model.Save(temp, '../data/ignore/gat.model')
+
+    # encoder = test_model(
+    #     train_dataloader, n_bin, n_class,
+    #     gat_model = gat.GAT(**gat_param),
+    #     masker = model.Masker(ratio = masker_ratio),
+    #     bert_encoder = bert.Encoder(**bert_encoder_param),
     # )
-    # model.Save(temp, '../data/ignore/gat.model')
-
-    encoder = test_model(
-        train_dataloader, n_bin, n_class,
-        gat_model = gat.GAT(**gat_param),
-        masker = model.Masker(ratio = masker_ratio),
-        bert_encoder = bert.Encoder(**bert_encoder_param),
-    )
-    model.Save(encoder, '../data/ignore/bert_encoder.model')
-
-
-    # Test Loading Model
-    # Saving Fine Tune Model should be fine
-    test = bert.Fine_Tune_Model(encoder, n_class = 2)
-    model.Save(test, '../data/ignore/b.model')
-    fine_tuning = fine_tuner.Model(
-        gat = model.Load('../data/ignore/gat.model'),
-        bin_pro = model.Binning_Process(n_bin = n_bin),
-        bert_model = model.Load('../data/ignore/b.model')
-    )
-    # Using data loader now
-    for input, label in train_dataloader:
-        output = fine_tuning(input[0], input[1])
-        loss = nn.CrossEntropyLoss()(
-            output, label
-        )
-        loss.backward()
+    # model.Save(encoder, '../data/ignore/bert_encoder.model')
+    #
+    #
+    # # Test Loading Model
+    # # Saving Fine Tune Model should be fine
+    # test = bert.Fine_Tune_Model(encoder, n_class = 2)
+    # model.Save(test, '../data/ignore/b.model')
+    # fine_tuning = fine_tuner.Model(
+    #     gat = model.Load('../data/ignore/gat.model'),
+    #     bin_pro = model.Binning_Process(n_bin = n_bin),
+    #     bert_model = model.Load('../data/ignore/b.model')
+    # )
+    # # Using data loader now
+    # for input, label in train_dataloader:
+    #     output = fine_tuning(input[0], input[1])
+    #     loss = nn.CrossEntropyLoss()(
+    #         output, label
+    #     )
+    #     loss.backward()

@@ -23,18 +23,17 @@ def _prepare_attentions(e_values, adj_mat):
         Adjacent matrix. (Based on GRPs)
     """
     # Basically, this is a matrix of negative infinite with e_values.shape
-    neg_inf = -9e15 * torch.ones_like(e_values)
     # neg_inf = torch.zeros_like(e_values)
     # neg_inf = neg_inf.masked_fill(neg_inf == 0, float('-inf'))
     # Left confirmed GRPs only.
-    attention = torch.where(adj_mat != 0, e_values, neg_inf)
-    # Replace 0s in adjacent matrix to 1s
-    new_adj = torch.where(adj_mat != 0, adj_mat, torch.ones_like(adj_mat))
+    attention = torch.where(adj_mat != 0, e_values, torch.zeros_like(e_values))
     # Multiply GRP coefficient to the attention values
     attention = np.multiply(
         attention.detach().cpu().numpy(),
-        new_adj.detach().cpu()
+        adj_mat.detach().cpu()
     )
+    # Change 0s to neg inf now
+    attention = attention.masked_fill(attention == 0, float(-9e15))
     attention = F.softmax(attention, dim = 1)
     return attention
 
