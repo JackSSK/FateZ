@@ -9,8 +9,8 @@ preprocess
 """
 #device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
 ## preprocess parameters
-pseudo_cell_num_per_cell_type = 200
-correlation_thr_to_get_gene_related_peak = 0.4
+pseudo_cell_num_per_cell_type = 5000
+correlation_thr_to_get_gene_related_peak = 0.6
 rowmean_thr_to_get_variable_gene = 0.1
 cluster_use =[1,4]
 peak_path = ('D:\\Westlake\\pwk lab\\HSC development\\data\\GSE137117/atac_AE_Pre10x/')
@@ -55,10 +55,10 @@ matrix2 = network.generate_grp() ### correlation mt
 network.extract_motif_score(matrix2)
 matrix2 = np.multiply(network.motif_enrich_score,matrix2)
 
-matrix2.to_csv('D:\\Westlake\\pwk lab\\fatez\\hsc_unpaired_testing_data/edge_matrix.csv')
+matrix2.to_csv('D:\\Westlake\\pwk lab\\fatez\\hsc_unpaired_testing_data_10000/edge_matrix.csv')
 
 PreprocessIO.output_csv_dict_df(matrix1,
-                        'D:\\Westlake\\pwk lab\\fatez\\hsc_unpaired_testing_data/node/')
+                        'D:\\Westlake\\pwk lab\\fatez\\hsc_unpaired_testing_data_10000/node/')
 # matrix1 = PreprocessIO.input_csv_dict_df(
 #     'D:\\Westlake\\pwk lab\\fatez\\hsc_unpaired_origi_label_mt/node/')
 
