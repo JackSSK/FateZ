@@ -9,11 +9,12 @@ def rank_explain_weight(explain_weight):
     all_fea_weight = []
     for i in range(explain_weight.shape[1]):
         fea = torch.from_numpy(explain_weight[:,i].astype(np.float32))
-        scores = torch_F.softmax(fea, dim=-1)
+        scores = torch_F.softmax(fea.T, dim=-1)
         fea_weight = scores.numpy()
         all_fea_weight.append(fea_weight)
     all_fea_weight = np.array(all_fea_weight)
     all_fea_gene = all_fea_weight.sum(axis=0)
+    all_fea_gene = all_fea_gene[0, :]
 
     ### rank gene
     gene_rank = pd.Series(all_fea_gene,
