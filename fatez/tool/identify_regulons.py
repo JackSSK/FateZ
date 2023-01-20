@@ -20,7 +20,7 @@ class Regulon():
                                               return_variances=True)
 
             self.gene_rank[i] = {}
-            for j in range(batch_size):
+            for j in range(len(shap_values)):
                 # print(shap_values[j])
                 m1 = shap_values[j]
                 explain_weight = np.matrix(m1[0][0][0])
