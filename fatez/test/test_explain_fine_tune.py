@@ -77,12 +77,41 @@ with torch.no_grad():
             explain_use.append(x)
         acc_all+=correct
 print(acc_all)
-
-
-explain_use = explain_use[0:2]
+### sum rank
 regulons = identify_regulons.Regulon(explain_use)
-regulons.explain_model(fine_tuning,batch_size)
+regulons.explain_model(fine_tuning,batch_size,matrix2)
 regulon_count = regulons.sum_regulon_count()
-regulon_count.index = list(matrix2.columns)
+# regulon_count.index = list(matrix2.columns)
+# regulon_count = regulon_count[list(matrix2.index)]
 regulon_count = regulon_count.sort_values()
-print(regulon_count[0:10])
+print('---sum rank---')
+print(regulon_count)
+
+### count top
+regulon_top = regulons.get_top_regulon_count(20)
+regulon_top = pd.Series(regulon_top)
+regulon_top = regulon_top.sort_values(ascending=False)
+print('---count top---')
+print(regulon_top)
+print(regulons.tf_names[regulon_top.index])
+
+gene_name = pd.read_table('D:\\Westlake\\pwk lab\\HSC development\\data\\GSE137117\\rna_AE_Pre10x\\features.tsv.gz',header=None)
+gene_name.index = gene_name[0]
+sum_top = regulons.tf_names[regulon_count.index][0:20]
+count_top = regulons.tf_names[regulon_top.index][0:20]
+
+print('sum rank top 20:')
+top_symbol = []
+for i in sum_top:
+    symbol = gene_name[gene_name[0].isin([i])][1].to_numpy().tolist()[0]
+    top_symbol.append(symbol)
+print(top_symbol)
+
+
+print('count top top 20:')
+top_symbol = []
+for i in count_top:
+    symbol = gene_name[gene_name[0].isin([i])][1].to_numpy().tolist()[0]
+    top_symbol.append(symbol)
+print(top_symbol)
+

@@ -8,9 +8,10 @@ class Regulon():
     def __init__(self,feature_mt):
         self.feature_mt = feature_mt
         self.gene_rank = {}
+        self.tf_names = []
 
 
-    def explain_model(self,model_use,batch_size:int):
+    def explain_model(self,model_use,batch_size:int,grp):
 
         for i in range(len(self.feature_mt)):
 
@@ -25,7 +26,7 @@ class Regulon():
                 m1 = shap_values[j]
                 explain_weight = np.matrix(m1[0][0][0])
                 gene_rank = self.__rank_shapley_importance(
-                    explain_weight)
+                    explain_weight,grp)
                 self.gene_rank[i][j] = gene_rank
 
     def sum_regulon_count(self):
@@ -44,7 +45,9 @@ class Regulon():
         top_regulon_count = {}
         for i in self.gene_rank:
             for j in self.gene_rank[i]:
-                top_regulon = self.gene_rank[i][j].sort_values[0:top_regulon_num]
+                top_regulon = self.gene_rank[i][j]
+                top_regulon = top_regulon.sort_values()
+                top_regulon = top_regulon[0:top_regulon_num]
                 for k in top_regulon.index:
                     if k in top_regulon_count.keys():
                         top_regulon_count[k] = top_regulon_count[k]\
@@ -53,7 +56,7 @@ class Regulon():
                         top_regulon_count[k] = top_regulon[k]
         return top_regulon_count
 
-    def __rank_shapley_importance(self,explain_weight):
+    def __rank_shapley_importance(self,explain_weight,grp):
 
         ### use softmax to normalize all features, then sum it
         all_fea_weight = []
@@ -66,14 +69,21 @@ class Regulon():
         all_fea_gene = all_fea_weight.sum(axis=0)
         all_fea_gene = all_fea_gene[0, :]
 
+        ### retina tfs
+        filter = grp.columns.isin(grp.index)
+        self.tf_names = grp.columns[filter]
+        all_fea_gene = all_fea_gene[filter]
+
         ### rank gene
+        ### index is gene, value is count
+        ### rank count, high count genes have low rank
         gene_rank = pd.Series(all_fea_gene,
                               index= list(range(len(all_fea_gene))))
         gene_rank = gene_rank.sort_values(ascending=False)
         gene_rank = pd.Series(list(range(len(all_fea_gene))),
                               index= gene_rank.index)
         gene_rank = gene_rank.sort_index()
-        ### index is gene, value is count
+
 
         return gene_rank
 
