@@ -72,14 +72,18 @@ def test_model(train_dataloader, n_bin, n_class, gat_model, masker, bert_encoder
         gat = gat_model,
         masker = masker,
         bin_pro = model.Binning_Process(n_bin = n_bin),
-        bert_model = bert.Pre_Train_Model(bert_encoder, n_bin = n_bin)
+        bert_model = bert.Pre_Train_Model(
+            bert_encoder, n_bin = n_bin, n_dim = gat_model.d_model
+        )
     )
     for input, _ in train_dataloader:
         output = pre_training(input[0], input[1])
-        gat_out = pre_training.get_gat_output(input[0], input[1])
-        loss = nn.CrossEntropyLoss()(
-            output, gat_out
+        # gat_out = pre_training.get_gat_output(input[0], input[1])
+        loss = nn.L1Loss()(
+            output,
+            torch.split(input[0], output.shape[1] , dim = 1)[0]
         )
+
         loss.backward()
     print('Last Pre Trainer CEL:', loss, '\n')
 
@@ -102,7 +106,7 @@ def test_model(train_dataloader, n_bin, n_class, gat_model, masker, bert_encoder
     gat_explain = gat_model.explain(input[0][0], input[1][0])
     explain = explainer.Gradient(fine_tuning, input)
     shap_values = explain.shap_values(input, return_variances = True)
-    print(shap_values)
+    # print(shap_values)
     print('Last Fine Tuner CEL:', loss, '\n')
     return bert_encoder
 
@@ -115,7 +119,7 @@ if __name__ == '__main__':
     k = 10
     top_k = 4
     n_sample = 10
-    batch_size = 1
+    batch_size = 2
     n_class = 4
     masker_ratio = 0.5
     gat_param = {
@@ -184,14 +188,14 @@ if __name__ == '__main__':
     )
     model.Save(temp, '../data/ignore/gat.model')
 
-    # encoder = test_model(
-    #     train_dataloader, n_bin, n_class,
-    #     gat_model = gat.GAT(**gat_param),
-    #     masker = model.Masker(ratio = masker_ratio),
-    #     bert_encoder = bert.Encoder(**bert_encoder_param),
-    # )
-    # model.Save(encoder, '../data/ignore/bert_encoder.model')
-    #
+    encoder = test_model(
+        train_dataloader, n_bin, n_class,
+        gat_model = gat.GAT(**gat_param),
+        masker = model.Masker(ratio = masker_ratio),
+        bert_encoder = bert.Encoder(**bert_encoder_param),
+    )
+    model.Save(encoder, '../data/ignore/bert_encoder.model')
+
     #
     # # Test Loading Model
     # # Saving Fine Tune Model should be fine
