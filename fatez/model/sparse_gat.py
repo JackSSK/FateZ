@@ -236,6 +236,7 @@ class Spare_GAT(nn.Module):
             Note: torch default using float32, numpy default using float64
         """
         super(Spare_GAT, self).__init__()
+        self.d_model = d_model
         self.n_hidden = n_hidden
         self.en_dim = en_dim
         self.dropout = dropout
