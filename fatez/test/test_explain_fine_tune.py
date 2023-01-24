@@ -78,6 +78,7 @@ with torch.no_grad():
         acc_all+=correct
 print(acc_all)
 ### sum rank
+explain_use = explain_use[0:10]
 regulons = identify_regulons.Regulon(explain_use)
 regulons.explain_model(fine_tuning,batch_size,matrix2)
 regulon_count = regulons.sum_regulon_count()

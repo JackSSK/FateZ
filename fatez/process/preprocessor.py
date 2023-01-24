@@ -327,16 +327,16 @@ class Preprocessor():
 
 
 
-    def annotate_peaks(self):
+    def annotate_peaks(self,tss_region=[2000,1000]):
         template = tgrn.Template_GRN(id='gff')
         template.load_genes(gff_path=self.gff_path)
         template.load_cres()
         template.get_genetic_regions()
-        cur_chr = None
-        cur_index = 0
-        skip_chr = False
         annotations = dict()
         for id in list(self.atac_mt.var_names):
+            cur_chr = None
+            cur_index = 0
+            skip_chr = False
             # Check peaks IDs
             if re.search(r'.*:\d*\-\d*', id):
                 annotations[id] = None
@@ -365,7 +365,7 @@ class Preprocessor():
 
                     # Load position
                     position = pd.Interval(
-                        ele['pos'][0], ele['pos'][1], closed = 'both',
+                        ele['pos'][0]-tss_region[0], ele['pos'][0]+tss_region[1], closed = 'both',
                     )
                     # Load promoter
                     if ele['promoter']:
@@ -638,6 +638,7 @@ class Preprocessor():
             score = target_gene_tf_score['score']
             tf_zero = list(set(tf_use)-set(tf))
             tf_zero_pd = pd.Series([0]*len(tf_zero),index=tf_zero)
+            #print(tf_zero)
             db_tf_score_seires = pd.Series(score, index=tf)
             db_tf_score_seires = pd.concat([tf_zero_pd,
                                             db_tf_score_seires], axis=0)
@@ -773,15 +774,15 @@ class Preprocessor():
 
             row = motif1.iloc[i,]
             target_tf_dict[row[4]] = {'motif': [], 'score': []}
-            tf_str = motif1.iloc[0,][0]
+            tf_str = row[0]
             tf_list = tf_str.split(';')
             target_tf_dict[row[4]]['motif'] = tf_list
 
             ### select motif score type
             if motif_score_type=='mean':
-                motif_score = motif1.iloc[0,][1]
+                motif_score = row[1]
             elif motif_score_type=='median':
-                motif_score = motif1.iloc[0,][2]
+                motif_score = row[2]
             motif_score = motif_score.split(';')
 
             target_tf_dict[row[4]]['score'] = motif_score
