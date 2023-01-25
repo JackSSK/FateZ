@@ -25,6 +25,9 @@ import fatez.lib.template_grn as tgrn
 import fatez.process.grn_reconstructor as grn_recon
 import warnings
 from sklearn.preprocessing import MinMaxScaler
+
+
+
 class Preprocessor():
     """
     Preprocessing the scRNA-seq and scATAC-seq data to get
@@ -64,14 +67,21 @@ class Preprocessor():
 
 
 
-    def load_data(self,matrix_format:str = '10x_paired'):
-        sc.settings.verbosity = 3
-        sc.logging.print_header()
-        sc.settings.set_figure_params(dpi=80, facecolor='white')
+    def load_data(self,
+        matrix_format:str = '10x_paired',
+        debug_mode:bool = False
+        ):
+        """
+        Probably we won't need the next few lines?
+        """
+        sc.settings.verbosity = 0
+            # verbosity: errors (0), warnings (1), info (2), hints (3)
+        if debug_mode:
+            sc.settings.verbosity = 3
+            sc.logging.print_header()
+            sc.settings.set_figure_params(dpi=80, facecolor='white')
 
-        """
-        initはこれで
-        """
+
         chr_list = list()
         start_list = list()
         end_list = list()
@@ -86,23 +96,17 @@ class Preprocessor():
 
             self.atac_mt = sc.read_10x_mtx(
                 self.atac_path,
-                var_names='gene_ids',
-                cache=True,
-                gex_only=False
+                var_names = 'gene_ids',
+                cache = True,
+                gex_only = False
             )
 
-            # ながすぎ
             self.atac_mt = self.atac_mt[
                 :, len(self.rna_mt.var_names):(len(self.atac_mt.var_names) - 1)
             ]
 
             peak_names = list(self.atac_mt.var_names)
-            """
-            initはそとで
-            chr_list = list()
-            start_list = list()
-            end_list = list()
-            """
+
             # ### extract chromosome start and end
             for i in peak_names:
                 peak = i.split(':')
@@ -118,14 +122,16 @@ class Preprocessor():
         ### load unparied data or ???
         elif matrix_format == '10x_unpaired':
             self.rna_mt = sc.read_10x_mtx(
-                self.rna_path,var_names='gene_ids'
+                self.rna_path, var_names = 'gene_ids'
             )
             if self.atac_path[-1] !='/':
                 self.atac_path = self.atac_path + '/'
             mtx = anndata.read_mtx(self.atac_path+'matrix.mtx.gz').T
             peak = pd.read_table(self.atac_path+'features.tsv.gz',header=None)
-            barcode = pd.read_table(self.atac_path + 'barcodes.tsv.gz',
-                                    header=None)
+            barcode = pd.read_table(
+                self.atac_path + 'barcodes.tsv.gz',
+                header = None
+            )
             mtx.obs_names = list(barcode[0])
             mtx.var_names = list(peak[0])
             self.atac_mt = mtx
@@ -148,12 +154,7 @@ class Preprocessor():
             atac_array = self.atac_mt.X.T
 
             peak_names = list(self.atac_mt.var_names)
-            """
-            initはそとで
-            chr_list = list()
-            start_list = list()
-            end_list = list()
-            """
+
             # ### extract chromosome start and end
             for i in peak_names:
                 peak = i.split(':')
@@ -187,7 +188,7 @@ class Preprocessor():
         # self.atac_h5ad = ad.read(self.atac_path)
         #
         #
-        #　こちらもながぁぁぁぁぁぁぁぁぁぁぁい
+
         self.peak_region_df = pd.DataFrame(
             {'chr': chr_list, 'start': start_list, 'end': end_list},
             index = peak_names
@@ -206,8 +207,8 @@ class Preprocessor():
         rna_max_cells:int = 2000,
         rna_mt_counts:int = 5
         ):
-        sc.pp.filter_cells(self.rna_mt, min_genes=rna_min_genes)
-        sc.pp.filter_genes(self.rna_mt, min_cells=rna_min_cells)
+        sc.pp.filter_cells(self.rna_mt, min_genes = rna_min_genes)
+        sc.pp.filter_genes(self.rna_mt, min_cells = rna_min_cells)
         ###
         self.rna_mt.var['mt'] = self.rna_mt.var_names.str.startswith('MT-')
         sc.pp.calculate_qc_metrics(
@@ -225,13 +226,17 @@ class Preprocessor():
         ]
 
 
-    def atac_qc(self,atac_min_features:int=3,atac_min_cells:int=100,
-                atac_max_cells:int=2000):
-        sc.pp.filter_cells(self.atac_mt, min_genes=atac_min_features)
-        sc.pp.filter_genes(self.atac_mt, min_cells=atac_min_cells)
+    def atac_qc(self,
+        atac_min_features:int = 3,
+        atac_min_cells:int = 100,
+        atac_max_cells:int = 2000
+        ):
+        sc.pp.filter_cells(self.atac_mt, min_genes = atac_min_features)
+        sc.pp.filter_genes(self.atac_mt, min_cells = atac_min_cells)
         #self.atac_mt = self.atac_mt[self.atac_mt.obs.n_genes_by_counts < atac_max_cells, :]
         self.peak_region_df = self.peak_region_df.loc[
-            list(self.atac_mt.var_names)]
+            list(self.atac_mt.var_names)
+        ]
         ### peak_count dict
         atac_array = self.atac_mt.X.toarray().T
         peak_names = list(self.atac_mt.var_names)
@@ -241,7 +246,7 @@ class Preprocessor():
 
 
 
-    def merge_peak(self,width=250):
+    def merge_peak(self, width = 250):
         """
         This function merge peaks and fix the peak length as 500bp,
         which is easier for downstream analysis.
