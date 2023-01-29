@@ -14,6 +14,9 @@ import fatez.model.bert as bert
 
 
 class Model(nn.Module):
+    """
+    Full model for pre-training.
+    """
     def __init__(self,
         gat = None,
         masker:model.Masker = None,
@@ -22,6 +25,36 @@ class Model(nn.Module):
         device:str = 'cpu',
         dtype:str = None,
         ):
+        """
+        :param d_model:int = None
+            Input feature dimension.
+
+        :param out_dim:int = None
+            Output feature dimension.
+
+        :param lr:float = 0.005
+            Learning rate.
+
+        :param weight_decay:float = 5e-4
+            Weight decay (L2 loss on parameters).
+
+        :param dropout:float = 0.2
+            Dropout rate.
+
+        :param alpha:float = 0.2
+            Alpha value for the LeakyRelu layer.
+
+        :param concat:bool = True
+            Whether concatenating with other layers.
+            Note: False for last layer.
+
+        :param device:str = 'cpu'
+            The device to load model.
+
+        :param dtype:str = None
+            Data type of input values.
+            Note: torch default using float32, numpy default using float64.
+        """
         super(Model, self).__init__()
         self.factory_kwargs = {'device': device, 'dtype': dtype}
         self.gat = gat

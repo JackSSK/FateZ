@@ -9,15 +9,32 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
+
+
 class Data_Reconstructor(nn.Module):
     """
     Data_Reconstructor can be revised later
     """
     def __init__(self,
-        d_model:int = 512,
-        out_dim:int = 8,
+        d_model:int = None,
+        out_dim:int = None,
         device:str = 'cpu',
-        dtype:str = None,):
+        dtype:str = None,
+        ):
+        """
+        :param d_model:int = None
+            Number of each gene's input features.
+
+        :param out_dim:int = None
+            Output dimension.
+
+        :param device:str = 'cpu'
+            The device to load model.
+
+        :param dtype:str = None
+            Data type of input values.
+            Note: torch default using float32, numpy default using float64
+        """
         super(Data_Reconstructor, self).__init__()
         self.linear = nn.Linear(d_model, out_dim, dtype = dtype)
 
@@ -47,6 +64,13 @@ class Classifier(nn.Module):
 
         :param n_class:int = None
             Number of classes.
+
+        :param device:str = 'cpu'
+            The device to load model.
+
+        :param dtype:str = None
+            Data type of input values.
+            Note: torch default using float32, numpy default using float64
         """
         super(Classifier, self).__init__()
         self.linear = nn.Linear(d_model, n_hidden, dtype = dtype)

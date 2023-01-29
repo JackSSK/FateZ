@@ -119,6 +119,16 @@ class Pre_Train_Model(nn.Module):
         n_bin:int = 100,
         n_dim:int = 2,
         ):
+        """
+        :param encoder:Encoder = None
+            The Encoder to build pre-train model with.
+
+        :param n_bin:int = None
+            Depreciated now.
+
+        :param n_dim:int = 2
+            The output dimension.
+        """
         super(Pre_Train_Model, self).__init__()
         self.encoder = encoder
         self.factory_kwargs = {
@@ -147,6 +157,16 @@ class Fine_Tune_Model(nn.Module):
         n_hidden:int = 2,
         n_class:int = 100,
         ):
+        """
+        :param encoder:Encoder = None
+            The Encoder to build fine-tune model with.
+
+        :param n_hidden:int = 2
+            The hidden units for classifier.
+
+        :param n_class:int = 100
+            Number of classes to classify,
+        """
         super(Fine_Tune_Model, self).__init__()
         self.encoder = encoder
         self.factory_kwargs = {
