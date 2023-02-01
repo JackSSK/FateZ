@@ -11,7 +11,8 @@ preprocess
 ## preprocess parameters
 pseudo_cell_num_per_cell_type = 5000
 correlation_thr_to_get_gene_related_peak = 0.6
-rowmean_thr_to_get_variable_gene = 0.1
+rowmean_thr_to_get_variable_gene = 0.2
+tss_region = [5000,2500]
 cluster_use =[1,4]
 peak_path = ('D:\\Westlake\\pwk lab\\HSC development\\data\\GSE137117/atac_AE_Pre10x/')
 rna_path = ('D:\\Westlake\\pwk lab\\HSC development\\data\\GSE137117/rna_AE_Pre10x/')
@@ -37,7 +38,7 @@ rna_cell_type.index = rna_cell_type[0]
 rna_cell_type = rna_cell_type[1]
 network.add_cell_label(rna_cell_type,modality='rna')
 network.add_cell_label(atac_cell_type,modality='atac')
-network.annotate_peaks([10000,5000])
+network.annotate_peaks(tss_region)
 print(network.peak_annotations['ENSMUSG00000027684'])
 print(network.peak_annotations['ENSMUSG00000015053'])
 network.make_pseudo_networks(data_type='unpaired',
@@ -54,12 +55,12 @@ network.cal_peak_gene_cor(exp_thr = rowmean_thr_to_get_variable_gene,
                           cor_thr=correlation_thr_to_get_gene_related_peak)
 matrix1 = network.output_pseudo_samples() ### exp count mt
 matrix2 = network.generate_grp() ### correlation mt
-matrix2.to_csv('D:\\Westlake\\pwk lab\\fatez\\hsc_unpaired_data_new_10000/edge_matrix_ori.csv')
+matrix2.to_csv('D:\\Westlake\\pwk lab\\fatez\\hsc_unpaired_data_new_10000_02_5000_2500/edge_matrix_ori.csv')
 network.extract_motif_score(matrix2)
 matrix2 = np.multiply(network.motif_enrich_score,matrix2)
-matrix2.to_csv('D:\\Westlake\\pwk lab\\fatez\\hsc_unpaired_data_new_10000/edge_matrix.csv')
+matrix2.to_csv('D:\\Westlake\\pwk lab\\fatez\\hsc_unpaired_data_new_10000_02_5000_2500/edge_matrix.csv')
 PreprocessIO.output_csv_dict_df(matrix1,
-                        'D:\\Westlake\\pwk lab\\fatez\\hsc_unpaired_data_new_10000/node/')
+                        'D:\\Westlake\\pwk lab\\fatez\\hsc_unpaired_data_new_10000_02_5000_2500/node/')
 # matrix1 = PreprocessIO.input_csv_dict_df(
 #     'D:\\Westlake\\pwk lab\\fatez\\hsc_unpaired_origi_label_mt/node/')
 
