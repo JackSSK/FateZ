@@ -12,4 +12,4 @@ Each public object or function in FateZ has (or going to have) a corresponding e
     :glob:
     :maxdepth: 1
 
-    notebooks/launch.ipynb
+    notebooks/note.ipynb

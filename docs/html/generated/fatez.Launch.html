@@ -102,11 +102,18 @@
 <dt class="sig sig-object py" id="fatez.Launch">
 <em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">fatez.</span></span><span class="sig-name descname"><span class="pre">Launch</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">path</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Optional</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">]</span></span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">thread_num</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">1</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#fatez.Launch" title="Permalink to this definition"></a></dt>
 <dd><p>Guess we will have a general object for one-line usage</p>
+<dl class="simple">
+<dt>Attributes:</dt><dd><dl class="field-list simple">
+<dt class="field-odd">self.path</dt>
+<dd class="field-odd"><p>Path to datasets</p>
+</dd>
+</dl>
+</dd>
+</dl>
 <dl class="py method">
 <dt class="sig sig-object py" id="fatez.Launch.__init__">
 <span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">path</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Optional</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">]</span></span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">thread_num</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">1</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#fatez.Launch.__init__" title="Permalink to this definition"></a></dt>
-<dd><p>Pipeline to launch FateZ.</p>
-<dl class="field-list simple">
+<dd><dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>path</strong> – &lt;str Default = None&gt;
@@ -114,14 +121,6 @@ Comments will be here, like “Path to datasets”.</p></li>
 <li><p><strong>thread_num</strong> – &lt;int Default = 1&gt;
 Number of threads for multithreading. By default, no multithreading.</p></li>
 </ul>
-</dd>
-</dl>
-<dl class="simple">
-<dt>Attributes:</dt><dd><dl class="field-list simple">
-<dt class="field-odd">self.path</dt>
-<dd class="field-odd"><p>Path to datasets</p>
-</dd>
-</dl>
 </dd>
 </dl>
 </dd></dl>
@@ -134,7 +133,12 @@ Number of threads for multithreading. By default, no multithreading.</p></li>
 </colgroup>
 <tbody>
 <tr class="row-odd"><td><p><a class="reference internal" href="#fatez.Launch.__init__" title="fatez.Launch.__init__"><code class="xref py py-obj docutils literal notranslate"><span class="pre">__init__</span></code></a>([path, thread_num])</p></td>
-<td><p>Pipeline to launch FateZ.</p></td>
+<td><p><dl class="field-list simple">
+<dt class="field-odd">param path</dt>
+<dd class="field-odd"><p>&lt;str Default = None&gt;</p>
+</dd>
+</dl>
+</p></td>
 </tr>
 <tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">save_result</span></code>([savepath])</p></td>
 <td><p>To save running results</p></td>
