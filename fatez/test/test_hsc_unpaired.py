@@ -97,13 +97,29 @@ labels = labels.to(device)
 """
 hyperparameters
 """
+###############################
+# Not tune-able
+n_features = 2
+n_class = 2
+###############################
+# General params
 batch_size = 40
 num_epoch = 200
-n_hidden = 1
-nhead = 0
 lr = 1e-3
 test_size = 0.3
 early_stop_tolerance = 15
+##############################
+# GAT params
+en_dim = 8                  # Embed dimension output by GAT
+gat_n_hidden = 1            # Number of hidden units in GAT
+gat_nhead = 0               # Number of attention heads in GAT
+##############################
+# BERT Encoder params
+n_layer = 6                 # Number of Encoder Layers
+bert_nhead = 8              # Attention heads
+dim_ff = 2                  # Dimension of the feedforward network model.
+bert_n_hidden = 2           # Number of hidden units in classification model.
+##############################
 data_save = True
 data_save_dir = 'D:\\Westlake\\pwk lab\\fatez\\gat_gradient/nhead0_nhidden1_lr-3_epoch200/'
 outgat_dir = data_save_dir+'out_gat/'
@@ -127,30 +143,36 @@ test_dataloader = DataLoader(
 """
 model define
 """
+
 model_gat = gat.GAT(
-    d_model = 2,
-    en_dim = 8,
-    nhead = nhead,
+    d_model = n_features,
+    en_dim = en_dim,
+    nhead = gat_nhead,
     device = device,
-    n_hidden = n_hidden
+    n_hidden = gat_n_hidden,
 )
-decison = mlp.Classifier(
-    d_model = 8,
-    n_hidden = 4,
-    n_class = 2,
-    device = device,
-)
+# Not using decision here since not using pure GAT.
+# decison = mlp.Classifier(
+#     d_model = model_gat.en_dim,
+#     n_hidden = 4,
+#     n_class = n_class,
+#     device = device,
+# )
 bert_encoder = bert.Encoder(
-    d_model = 8,
-    n_layer = 6,
-    nhead = 8,
-    dim_feedforward = 2,
+    d_model = model_gat.en_dim,
+    n_layer = n_layer,
+    nhead = bert_nhead,
+    dim_feedforward = dim_ff,
     device = device,
 )
 test_model = fine_tuner.Model(
     gat = model_gat,
     bin_pro = model.Binning_Process(n_bin = 100),
-    bert_model = bert.Fine_Tune_Model(bert_encoder, n_class = 2),
+    bert_model = bert.Fine_Tune_Model(
+        bert_encoder,
+        n_class = n_class,
+        n_hidden = bert_n_hidden,
+    ),
 )
 ### adam and CosineAnnealingWarmRestarts
 optimizer = torch.optim.Adam(
