@@ -11,7 +11,7 @@ class Regulon():
         self.tf_names = []
 
 
-    def explain_model(self,model_use,batch_size:int,grp):
+    def explain_model(self,model_use,batch_size:int,grp,filter_tf=True):
 
         for i in range(len(self.feature_mt)):
 
@@ -26,7 +26,7 @@ class Regulon():
                 m1 = shap_values[j]
                 explain_weight = np.matrix(m1[0][0][0])
                 gene_rank = self.__rank_shapley_importance(
-                    explain_weight,grp)
+                    explain_weight,grp,filter_tf)
                 self.gene_rank[i][j] = gene_rank
 
     def sum_regulon_count(self):
@@ -44,19 +44,21 @@ class Regulon():
         ### count top regulons in each sample, then summarize the freuqency
         top_regulon_count = {}
         for i in self.gene_rank:
+            print(len(self.gene_rank))
             for j in self.gene_rank[i]:
+                print(len(self.gene_rank[i]))
                 top_regulon = self.gene_rank[i][j]
                 top_regulon = top_regulon.sort_values()
                 top_regulon = top_regulon[0:top_regulon_num]
+                print(top_regulon.index)
                 for k in top_regulon.index:
                     if k in top_regulon_count.keys():
-                        top_regulon_count[k] = top_regulon_count[k]\
-                                               +top_regulon[k]
+                        top_regulon_count[k] = top_regulon_count[k]+1
                     else:
-                        top_regulon_count[k] = top_regulon[k]
+                        top_regulon_count[k] = 1
         return top_regulon_count
 
-    def __rank_shapley_importance(self,explain_weight,grp):
+    def __rank_shapley_importance(self,explain_weight,grp,filter_tf = True):
 
         ### use softmax to normalize all features, then sum it
         all_fea_weight = []
@@ -69,11 +71,14 @@ class Regulon():
         all_fea_gene = all_fea_weight.sum(axis=0)
         all_fea_gene = all_fea_gene[0, :]
 
-        ### retina tfs
-        filter = grp.columns.isin(grp.index)
-        self.tf_names = grp.columns[filter]
-        all_fea_gene = all_fea_gene[filter]
 
+        ### retina tfs
+        if filter_tf:
+            filter = grp.columns.isin(grp.index)
+            self.tf_names = grp.columns[filter]
+            all_fea_gene = all_fea_gene[filter]
+        else:
+            self.tf_names = grp.columns
         ### rank gene
         ### index is gene, value is count
         ### rank count, high count genes have low rank
