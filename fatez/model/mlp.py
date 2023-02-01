@@ -75,7 +75,7 @@ class Classifier(nn.Module):
         super(Classifier, self).__init__()
         self.linear = nn.Linear(d_model, n_hidden, dtype = dtype)
         self.softmax = nn.LogSoftmax(dim = -1)
-        self.decision = nn.LazyLinear(n_hidden, n_class, dtype = dtype)
+        self.decision = nn.LazyLinear(n_class, dtype = dtype)
 
     def forward(self, input):
         output = self.softmax(self.linear(input))

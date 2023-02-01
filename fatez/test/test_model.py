@@ -2,20 +2,17 @@ import os
 import shap
 import torch
 import torch.nn as nn
-import torch.nn.functional as F
-from torch.autograd import Variable
 from torch.utils.data import DataLoader
-import numpy as np
-import fatez.tool.JSON as JSON
+import fatez.lib as lib
 import fatez.model as model
 import fatez.model.mlp as mlp
+import fatez.model.bert as bert
 import fatez.model.gat as gat
 import fatez.model.sparse_gat as sgat
-import fatez.model.bert as bert
-import fatez.lib as lib
+import fatez.process.explainer as explainer
 import fatez.process.fine_tuner as fine_tuner
 import fatez.process.pre_trainer as pre_trainer
-import fatez.process.explainer as explainer
+
 
 # Ignoring warnings because of using LazyLinear
 import warnings
@@ -46,7 +43,6 @@ def test_gat(train_dataloader, gat_param, mlp_param):
     # print(shap_values)
 
     return model_gat
-
 
 def test_sparse_gat(train_dataloader, gat_param, mlp_param):
     print('Testing sparse GAT')
@@ -121,6 +117,7 @@ if __name__ == '__main__':
     n_sample = 10
     batch_size = 2
     n_class = 4
+    n_bin = 100
     masker_ratio = 0.5
     gat_param = {
         'd_model': 2,   # Feature dim
@@ -146,21 +143,22 @@ if __name__ == '__main__':
         'dim_feedforward': gat_param['en_dim'],
         'dtype': torch.float32,
     }
-    n_bin = 100
 
     # Generate Fake data
-    sample = [
-        torch.randn(k, gat_param['d_model'], dtype = torch.float32),
-        torch.randn(top_k, k, dtype = torch.float32)
+    samples = [
+        [
+            torch.randn(k, gat_param['d_model'], dtype = torch.float32),
+            torch.randn(top_k, k, dtype = torch.float32)
+        ] for i in range(n_sample - 1)
     ]
     # To test data loader not messing up exp data and adj mats
-    one_sample = [
-        torch.ones(k, gat_param['d_model'], dtype = torch.float32),
-        torch.ones(top_k, k, dtype = torch.float32)
-    ]
-    samples = [sample] * (n_sample - 1)
-    samples.append(one_sample)
-    labels = torch.tensor([1] * n_sample)
+    samples.append(
+        [
+            torch.ones(k, gat_param['d_model'], dtype = torch.float32),
+            torch.ones(top_k, k, dtype = torch.float32)
+        ]
+    )
+    labels = torch.empty(n_sample, dtype = torch.long).random_(n_class)
 
     train_dataloader = DataLoader(
         lib.FateZ_Dataset(samples = samples, labels = labels),
