@@ -29,15 +29,48 @@ pseudo_cell_num_per_cell_type = 5000
 correlation_thr_to_get_gene_related_peak = 0.4
 rowmean_thr_to_get_variable_gene = 0.1
 cluster_use =[1,4]
+# peak_path = ('D:\\Westlake\\pwk lab\\HSC development\\data\\GSE137117/atac_AE_Pre10x/')
+# rna_path = ('D:\\Westlake\\pwk lab\\HSC development\\data\\GSE137117/rna_AE_Pre10x/')
+# gff_path = '../data/mouse/gencode.vM25.basic.annotation.gff3.gz'
+# tf_db_path = 'E:\\public/TF_target_tss1500.txt.gz'
+# network = pre.Preprocessor(rna_path, peak_path, gff_path, tf_db_path, data_type='unpaired')
+# network.load_data(matrix_format='10x_unpaired')
+# ### qc
+# network.rna_qc(rna_min_genes=1, rna_min_cells=1, rna_max_cells=5000000)
+# network.atac_qc(atac_min_cells=10, )
+# print(network.atac_mt)
+# ### select cell type
+# atac_cell_type = pd.read_table(
+#  'D:\\Westlake\\pwk lab\\HSC development\\data\\GSE137117/atac_cell_type_AE_Pre.txt',
+#   header=None)
+# atac_cell_type.index = atac_cell_type[0]
+# atac_cell_type = atac_cell_type[1]
+# rna_cell_type = pd.read_table(
+#  'D:\\Westlake\\pwk lab\\HSC development\\data\\GSE137117/rna_cell_type_AE_Pre.txt',
+#   header=None)
+# rna_cell_type.index = rna_cell_type[0]
+# rna_cell_type = rna_cell_type[1]
+# network.add_cell_label(rna_cell_type,modality='rna')
+# network.add_cell_label(atac_cell_type,modality='atac')
+# network.annotate_peaks()
+# network.make_pseudo_networks(data_type='unpaired',
+#                              network_number=pseudo_cell_num_per_cell_type,
+#                              network_cell_size = 10)
+# network.cal_peak_gene_cor(exp_thr = rowmean_thr_to_get_variable_gene,
+#                           cor_thr=correlation_thr_to_get_gene_related_peak)
+#
+# matrix1 = network.output_pseudo_samples() ### exp count mt
+# matrix2 = network.generate_grp() ### correlation mt
+# network.extract_motif_score(matrix2)
+# matrix2 = np.multiply(network.motif_enrich_score,matrix2)
 
 
 matrix1 = PreprocessIO.input_csv_dict_df(
-    'D:\\Westlake\\pwk lab\\fatez\\hsc_unpaired_data_new_10000_02_5000_2500/node/')
+    'D:\\Westlake\\pwk lab\\fatez\\hsc_unpaired_testing_data_10000/node/')
 matrix2 = pd.read_csv(
-    'D:\\Westlake\\pwk lab\\fatez\\hsc_unpaired_data_new_10000_02_5000_2500/edge_matrix.csv'
+    'D:\\Westlake\\pwk lab\\fatez\\hsc_unpaired_testing_data_10000/edge_matrix.csv'
     ,index_col=0)
-m2 = torch.from_numpy(matrix2.to_numpy())
-m2 = m2.to(torch.float32)
+
 # train_rate = 0.7
 # train_idx, val_test_idx, _, y_validate_test = train_test_split(index, labels, stratify=labels, train_size=train_rate,test_size=1-train_rate,
 #                                                  random_state=2, shuffle=True)
@@ -48,10 +81,13 @@ m2 = m2.to(torch.float32)
 ### samples and labels
 samples = []
 for i in range(len(matrix1)):
-    print(i)
     m1 = matrix1[list(matrix1.keys())[i]]
     m1 = torch.from_numpy(m1.to_numpy())
+    m2 = torch.from_numpy(matrix2.to_numpy())
     m1 = m1.to(torch.float32)
+    m2 = m2.to(torch.float32)
+    # m1 = m1.to(device)
+    # m2 = m2.to(device)
     samples.append([m1, m2])
 labels = torch.from_numpy(np.repeat(range(len(cluster_use))
                                     ,len(matrix1)/len(cluster_use)))
@@ -61,15 +97,31 @@ labels = labels.to(device)
 """
 hyperparameters
 """
-batch_size = 20
-num_epoch = 50
-n_hidden = 2
-nhead = 0
-lr = 5e-4
+###############################
+# Not tune-able
+n_features = 2
+n_class = 2
+###############################
+# General params
+batch_size = 40
+num_epoch = 200
+lr = 1e-3
 test_size = 0.3
 early_stop_tolerance = 15
+##############################
+# GAT params
+en_dim = 8                  # Embed dimension output by GAT
+gat_n_hidden = 1            # Number of hidden units in GAT
+gat_nhead = 0               # Number of attention heads in GAT
+##############################
+# BERT Encoder params
+n_layer = 6                 # Number of Encoder Layers
+bert_nhead = 8              # Attention heads
+dim_ff = 2                  # Dimension of the feedforward network model.
+bert_n_hidden = 2           # Number of hidden units in classification model.
+##############################
 data_save = True
-data_save_dir = 'D:\\Westlake\\pwk lab\\fatez\\hsc_unpaired_data_new_10000_02_5000_2500/model/nhead0_nhidden2_lr-3_epoch40_batch_size_20/'
+data_save_dir = 'D:\\Westlake\\pwk lab\\fatez\\gat_gradient/nhead0_nhidden1_lr-3_epoch200/'
 outgat_dir = data_save_dir+'out_gat/'
 os.makedirs(outgat_dir )
 """
@@ -91,30 +143,36 @@ test_dataloader = DataLoader(
 """
 model define
 """
+
 model_gat = gat.GAT(
-    d_model = 2,
-    en_dim = 8,
-    nhead = nhead,
+    d_model = n_features,
+    en_dim = en_dim,
+    nhead = gat_nhead,
     device = device,
-    n_hidden = n_hidden
+    n_hidden = gat_n_hidden,
 )
-decison = mlp.Classifier(
-    d_model = 8,
-    n_hidden = 4,
-    n_class = 2,
-    device = device,
-)
+# Not using decision here since not using pure GAT.
+# decison = mlp.Classifier(
+#     d_model = model_gat.en_dim,
+#     n_hidden = 4,
+#     n_class = n_class,
+#     device = device,
+# )
 bert_encoder = bert.Encoder(
-    d_model = 8,
-    n_layer = 6,
-    nhead = 8,
-    dim_feedforward = 2,
+    d_model = model_gat.en_dim,
+    n_layer = n_layer,
+    nhead = bert_nhead,
+    dim_feedforward = dim_ff,
     device = device,
 )
 test_model = fine_tuner.Model(
     gat = model_gat,
     bin_pro = model.Binning_Process(n_bin = 100),
-    bert_model = bert.Fine_Tune_Model(bert_encoder, n_class = 2),
+    bert_model = bert.Fine_Tune_Model(
+        bert_encoder,
+        n_class = n_class,
+        n_hidden = bert_n_hidden,
+    ),
 )
 ### adam and CosineAnnealingWarmRestarts
 optimizer = torch.optim.Adam(
@@ -166,7 +224,7 @@ for epoch in range(num_epoch):
         train_loss += loss
         train_acc += acc
     print(
-     f"epoch: {epoch+1}, train_loss: {train_loss/350}, train accuracy: {train_acc/350}")
+     f"epoch: {epoch+1}, train_loss: {train_loss/175}, train accuracy: {train_acc/175}")
     all_loss.append(train_loss)
     scheduler.step()
     test_loss,test_acc = model_testing.testing(test_dataloader,
