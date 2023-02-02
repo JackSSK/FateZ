@@ -354,4 +354,9 @@ class Spare_GAT(nn.Module):
                 self.last.a_values.T,
                 out_dim = self.en_dim,
             )
-        return att_explain, last_explain
+            
+        # Not using multihead attention
+        if att_explain is None:
+            return last_explain
+        else:
+            return torch.matmul(last_explain, att_explain)
