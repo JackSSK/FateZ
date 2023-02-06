@@ -44,13 +44,10 @@ class Regulon():
         ### count top regulons in each sample, then summarize the freuqency
         top_regulon_count = {}
         for i in self.gene_rank:
-            print(len(self.gene_rank))
             for j in self.gene_rank[i]:
-                print(len(self.gene_rank[i]))
                 top_regulon = self.gene_rank[i][j]
                 top_regulon = top_regulon.sort_values()
                 top_regulon = top_regulon[0:top_regulon_num]
-                print(top_regulon.index)
                 for k in top_regulon.index:
                     if k in top_regulon_count.keys():
                         top_regulon_count[k] = top_regulon_count[k]+1
@@ -70,7 +67,6 @@ class Regulon():
         all_fea_weight = np.array(all_fea_weight)
         all_fea_gene = all_fea_weight.sum(axis=0)
         all_fea_gene = all_fea_gene[0, :]
-
 
         ### retina tfs
         if filter_tf:
