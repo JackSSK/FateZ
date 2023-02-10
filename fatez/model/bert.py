@@ -117,7 +117,8 @@ class Pre_Train_Model(nn.Module):
     def __init__(self,
         encoder:Encoder = None,
         n_bin:int = 100,
-        n_dim:int = 2,
+        n_dim_node:int = 2,
+        n_dim_adj:int = None,
         ):
         """
         :param encoder:Encoder = None
@@ -126,8 +127,11 @@ class Pre_Train_Model(nn.Module):
         :param n_bin:int = None
             Depreciated now.
 
-        :param n_dim:int = 2
-            The output dimension.
+        :param n_dim_node:int = 2
+            The output dimension for reconstructing node feature mat.
+
+        :param n_dim_adj:int = None
+            The output dimension for reconstructing adj mat.
         """
         super(Pre_Train_Model, self).__init__()
         self.encoder = encoder
@@ -136,15 +140,34 @@ class Pre_Train_Model(nn.Module):
             'dtype': self.encoder.factory_kwargs['dtype']
         }
         self.encoder.to(self.factory_kwargs['device'])
-        self.reconstructor = mlp.Data_Reconstructor(
+        self.reconstructor_node = mlp.Data_Reconstructor(
             d_model = self.encoder.dim_feedforward,
-            out_dim = n_dim,
+            out_dim = n_dim_node,
             **self.factory_kwargs
         )
-        self.reconstructor.to(self.factory_kwargs['device'])
+        self.reconstructor_node.to(self.factory_kwargs['device'])
+        self.reconstructor_adj = None
+
+        if n_dim_adj is not None:
+            self.reconstructor_adj = mlp.Data_Reconstructor(
+                d_model = self.encoder.dim_feedforward,
+                out_dim = n_dim_adj,
+                **self.factory_kwargs
+            )
+            self.reconstructor_adj.to(self.factory_kwargs['device'])
+
 
     def forward(self, input, mask = None):
-        return self.reconstructor(self.encoder(input, mask))
+        embed_rep = self.encoder(input, mask)
+        node_recon = self.reconstructor_node(embed_rep)
+
+        if self.reconstructor_adj is not None:
+            adj_recon = self.reconstructor_adj(embed_rep)
+        else:
+            adj_recon = None
+            
+        return node_recon, adj_recon
+
 
 
 

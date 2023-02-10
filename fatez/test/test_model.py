@@ -62,27 +62,49 @@ def test_sparse_gat(train_dataloader, gat_param, mlp_param):
     # model_sgat.explain()
     return model_sgat
 
-def test_model(train_dataloader, n_bin, n_class, gat_model, masker, bert_encoder):
+def test_model(
+    train_dataloader,
+    n_bin,
+    n_class,
+    n_gene,
+    gat_model,
+    masker,
+    bert_encoder
+    ):
     print('Testing Model')
+    pre_train_criteria = nn.L1Loss()
+    fine_tune_criteria = nn.CrossEntropyLoss()
+
+    # Pre-train part
     pre_training = pre_trainer.Model(
         gat = gat_model,
         masker = masker,
         bin_pro = model.Binning_Process(n_bin = n_bin),
         bert_model = bert.Pre_Train_Model(
-            bert_encoder, n_bin = n_bin, n_dim = gat_model.d_model
+            bert_encoder,
+            n_bin = n_bin,
+            n_dim_node = gat_model.d_model,
+            n_dim_adj = n_gene,
         )
     )
     for input, _ in train_dataloader:
-        output = pre_training(input[0], input[1])
+        output_node, output_adj = pre_training(input[0], input[1])
         # gat_out = pre_training.get_gat_output(input[0], input[1])
-        loss = nn.L1Loss()(
-            output,
-            torch.split(input[0], output.shape[1] , dim = 1)[0]
+        loss_node = pre_train_criteria(
+            output_node,
+            torch.split(input[0], output_node.shape[1] , dim = 1)[0]
         )
+
+        if output_adj is not None:
+            loss_adj = pre_train_criteria(output_adj, input[1])
+            loss = loss_node + loss_adj
+        else:
+            loss = loss_node
 
         loss.backward()
     print('Last Pre Trainer CEL:', loss, '\n')
 
+    # Fine tune part
     fine_tuning = fine_tuner.Model(
         gat = gat_model,
         bin_pro = model.Binning_Process(n_bin = n_bin),
@@ -94,9 +116,7 @@ def test_model(train_dataloader, n_bin, n_class, gat_model, masker, bert_encoder
     )
     for input, label in train_dataloader:
         output = fine_tuning(input[0], input[1])
-        loss = nn.CrossEntropyLoss()(
-            output, label
-        )
+        loss = fine_tune_criteria(output, label)
         loss.backward()
 
     gat_explain = gat_model.explain(input[0][0], input[1][0])
@@ -187,7 +207,12 @@ if __name__ == '__main__':
     model.Save(temp, '../data/ignore/gat.model')
 
     encoder = test_model(
-        train_dataloader, n_bin, n_class,
+        train_dataloader = train_dataloader,
+        n_bin = n_bin,
+        n_class = n_class,
+        # Gene number, if not None then reconstructing adj mat.
+        n_gene = None,
+        # n_gene = k,
         gat_model = gat.GAT(**gat_param),
         masker = model.Masker(ratio = masker_ratio),
         bert_encoder = bert.Encoder(**bert_encoder_param),
