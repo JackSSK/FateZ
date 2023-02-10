@@ -5,18 +5,20 @@ import torch.nn.functional as torch_F
 import fatez.process.explainer as explainer
 class Regulon():
 
-    def __init__(self,feature_mt):
+    def __init__(self,feature_mt,grp):
         self.feature_mt = feature_mt
         self.gene_rank = {}
         self.tf_names = []
+        self.gene_importance_values = []
+        self.grp = grp
 
-
-    def explain_model(self,model_use,batch_size:int,grp,filter_tf=True):
-
+    def explain_model(self,bert_model,batch_size:int,filter_tf=True):
+        gene_importance_values_all = np.array([0]*self.grp.shape[1])
+        gene_importance_values_all = np.float64(gene_importance_values_all)
         for i in range(len(self.feature_mt)):
 
             ### calculate shapley value
-            explain = explainer.Gradient(model_use, self.feature_mt[i])
+            explain = explainer.Gradient(bert_model, self.feature_mt[i])
             shap_values = explain.shap_values(self.feature_mt[i],
                                               return_variances=True)
 
@@ -26,8 +28,50 @@ class Regulon():
                 m1 = shap_values[j]
                 explain_weight = np.matrix(m1[0][0][0])
                 gene_rank = self.__rank_shapley_importance(
-                    explain_weight,grp,filter_tf)
+                    explain_weight,self.grp,filter_tf)
                 self.gene_rank[i][j] = gene_rank
+
+                ### total importance
+                gene_importance_values = shap_values[0][0][0].sum(2)
+                gene_importance_values_all += gene_importance_values[0]
+        ###
+
+        self.gene_importance_values = gene_importance_values_all
+    def explain_grp(self,gat_model,top_grp_num:int = 20,ignore_tf:str=''):
+        ### explain grp for analyzing GRP importances
+        grp_importance = gat_model.explain(
+            torch.ones_like(self.feature_mt[0][0][0]),
+            torch.ones_like(self.feature_mt[0][1][0])
+        )
+        for i in range(len(self.feature_mt)):
+            importance = gat_model.explain(self.feature_mt[i][0][0],
+                              self.feature_mt[i][1][0])
+            grp_importance += importance
+
+
+        ###
+        grp_ones= gat_model.explain(
+            torch.ones_like(self.feature_mt[0][0][0]),
+            torch.ones_like(self.feature_mt[0][1][0])
+        )
+        tf_importance = np.array(torch.matmul(
+            grp_ones, torch.Tensor(self.gene_importance_values)
+        ))
+        grp_importance = (grp_importance.T*tf_importance).T
+        tf_all = []
+        gene_all = []
+        for i in range(top_grp_num):
+            grp_idx = np.unravel_index(np.argmax(grp_importance),
+                                    grp_importance.shape)
+            grp_importance[grp_idx] = 0
+            tf = self.grp.index[grp_idx[0]]
+            gene = self.grp.columns[grp_idx[1]]
+            if tf == ignore_tf:
+                continue
+            tf_all.append(tf)
+            gene_all.append(gene)
+        grp_out = pd.DataFrame([tf_all,gene_all],index=['source','target'])
+        return grp_out.T
 
     def sum_regulon_count(self):
         feature_num = len(self.gene_rank[0][0])
