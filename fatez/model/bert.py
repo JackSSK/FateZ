@@ -117,7 +117,7 @@ class Pre_Train_Model(nn.Module):
     def __init__(self,
         encoder:Encoder = None,
         n_bin:int = 100,
-        n_dim:int = 2,
+        n_dim_node:int = 2,
         n_dim_adj:int = None,
         ):
         """
@@ -127,16 +127,13 @@ class Pre_Train_Model(nn.Module):
         :param n_bin:int = None
             Depreciated now.
 
-        :param n_dim:int = 2
+        :param n_dim_node:int = 2
             The output dimension for reconstructing node feature mat.
 
         :param n_dim_adj:int = None
             The output dimension for reconstructing adj mat.
         """
         super(Pre_Train_Model, self).__init__()
-        # Need to delete the rename line below
-        n_dim_node = n_dim
-
         self.encoder = encoder
         self.factory_kwargs = {
             'device': self.encoder.factory_kwargs['device'],
@@ -163,12 +160,14 @@ class Pre_Train_Model(nn.Module):
     def forward(self, input, mask = None):
         embed_rep = self.encoder(input, mask)
         node_recon = self.reconstructor_node(embed_rep)
-        adj_recon = None
+
         if self.reconstructor_adj is not None:
             adj_recon = self.reconstructor_adj(embed_rep)
-        # Need to revise output here
-        # return node_recon, adj_recon
-        return node_recon
+        else:
+            adj_recon = None
+            
+        return node_recon, adj_recon
+
 
 
 
