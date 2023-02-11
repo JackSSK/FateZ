@@ -39,6 +39,6 @@ def training(dataloader, model_gat, model, loss_fn, optimizer, device):
         batch_num += 1
         train_loss += loss
         correct += acc
-        train_loss /= num_batches
-        correct /= size
+    train_loss /= num_batches
+    correct /= size
     return out_gat_data,train_loss,correct
