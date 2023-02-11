@@ -128,6 +128,7 @@ test_model = fine_tuner.Model(
         n_class = n_class,
         n_hidden = bert_n_hidden,
     ),
+    device = device,
 )
 masker = model.Masker(ratio = masker_ratio)
 model_gat.to(device)
@@ -139,6 +140,7 @@ pre_train_model = pre_trainer.Model(
     bert_model = bert.Pre_Train_Model(
         bert_encoder, n_bin = n_bin, n_dim_node = n_features
     )
+    device = device,
 )
 ### adam and CosineAnnealingWarmRestarts
 optimizer = torch.optim.Adam(
