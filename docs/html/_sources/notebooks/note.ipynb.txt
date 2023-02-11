@@ -109,10 +109,14 @@
    ]
   },
   {
+   "attachments": {},
    "cell_type": "markdown",
    "metadata": {},
    "source": [
-    "### Now we perform pre-training with no label."
+    "### Now we perform pre-training with no label.\n",
+    "\n",
+    "n_dim_adj is set to None, and the model is NOT reconstructing adj mat, etc.\n",
+    "Therefore, output_adj is also None here."
    ]
   },
   {
@@ -130,14 +134,17 @@
     "    masker = masker,\n",
     "    bin_pro = model.Binning_Process(n_bin = n_bin),\n",
     "    bert_model = bert.Pre_Train_Model(\n",
-    "        bert_encoder, n_bin = n_bin, n_dim = gat_model.d_model\n",
+    "        bert_encoder,\n",
+    "        n_bin = n_bin,\n",
+    "        n_dim_node = gat_model.d_model,\n",
+    "        n_dim_adj = None,\n",
     "    )\n",
     ")\n",
     "\n",
     "for input, _ in train_dataloader:\n",
-    "    output = pre_training(input[0], input[1])\n",
+    "    output_node, output_adj = pre_training(input[0], input[1])\n",
     "    L1Loss()(\n",
-    "        output, torch.split(input[0], output.shape[1] , dim=1)[0]\n",
+    "        output_node, torch.split(input[0], output.shape[1] , dim=1)[0]\n",
     "    ).backward()"
    ]
   },
