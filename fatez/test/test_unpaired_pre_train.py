@@ -139,7 +139,7 @@ pre_train_model = pre_trainer.Model(
     bin_pro = model.Binning_Process(n_bin = n_bin),
     bert_model = bert.Pre_Train_Model(
         bert_encoder, n_bin = n_bin, n_dim_node = n_features
-    )
+    ),
     device = device,
 )
 ### adam and CosineAnnealingWarmRestarts
