@@ -15,6 +15,15 @@ import numpy as np
 from sklearn import cluster, datasets, mixture
 
 
+
+class Error(Exception):
+    """
+    Error handling
+    """
+    pass
+
+
+
 def Save(model, file_path:str = 'a.model', device:str = 'cpu',):
     """
     Saving a model
@@ -54,19 +63,10 @@ def Load(file_path:str = 'a.model', mode:str = 'torch', device:str = 'cpu',):
 
 
 
-class Error(Exception):
-    """
-    Error handling
-    """
-    pass
-
-
-
 class Masker(object):
     """
     Make masks for BERT encoder input.
     """
-
     def __init__(self, ratio, seed = None):
         super(Masker, self).__init__()
         self.ratio = ratio
@@ -93,10 +93,11 @@ class Masker(object):
     def mask(self, input, factory_kwargs = None):
         mask = self.make_2d_mask(input[0].size())
         if factory_kwargs is not None:
-            mask.to(factory_kwargs['device'])
-        output = torch.multiply(input, mask)
-        return output
-
+            mask = mask.to(factory_kwargs['device'])
+        try:
+            return torch.multiply(input, mask)
+        except:
+            raise Error('Something else is wrong')
 
 
 
