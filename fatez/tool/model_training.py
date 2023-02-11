@@ -1,4 +1,5 @@
 import torch
+from torch.nn import L1Loss
 
 def testing(dataloader, model, loss_fn,device):
     size = len(dataloader.dataset)
@@ -42,3 +43,29 @@ def training(dataloader, model_gat, model, loss_fn, optimizer, device):
     train_loss /= num_batches
     correct /= size
     return out_gat_data,train_loss,correct
+
+def pre_training(dataloader, model, optimizer, device):
+    size = len(dataloader.dataset)
+    num_batches = len(dataloader)
+    batch_num = 1
+    model.train()
+    train_loss = 0
+    for x,y in dataloader:
+        optimizer.zero_grad()
+        node=x[0].to(device)
+        edge=x[1].to(device)
+        print(node.device)
+        print(edge.device)
+        print(next(model.parameters()).device)
+        output = model(node, edge)
+        loss = L1Loss()(
+            output, torch.split(node, output.shape[1], dim=1)[0]
+        )
+        loss.backward()
+        optimizer.step()
+        print(f"batch: {batch_num} loss: {loss}")
+        batch_num += 1
+        train_loss += loss
+    train_loss /= num_batches
+    return train_loss
+
