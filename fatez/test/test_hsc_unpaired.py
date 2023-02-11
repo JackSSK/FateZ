@@ -10,12 +10,10 @@ import fatez.lib as lib
 import fatez.tool.JSON as JSON
 from fatez.tool import PreprocessIO
 from fatez.tool import EarlyStopping
-from fatez.tool import model_testing
+from fatez.tool import model_training
 import fatez.model as model
-import fatez.model.mlp as mlp
 import fatez.model.gat as gat
 import fatez.model.bert as bert
-import fatez.process.preprocessor as pre
 import fatez.process.fine_tuner as fine_tuner
 
 from sklearn.model_selection import train_test_split
@@ -26,68 +24,22 @@ preprocess
 device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
 ## preprocess parameters
 pseudo_cell_num_per_cell_type = 5000
-correlation_thr_to_get_gene_related_peak = 0.4
-rowmean_thr_to_get_variable_gene = 0.1
 cluster_use =[1,4]
-# peak_path = ('D:\\Westlake\\pwk lab\\HSC development\\data\\GSE137117/atac_AE_Pre10x/')
-# rna_path = ('D:\\Westlake\\pwk lab\\HSC development\\data\\GSE137117/rna_AE_Pre10x/')
-# gff_path = '../data/mouse/gencode.vM25.basic.annotation.gff3.gz'
-# tf_db_path = 'E:\\public/TF_target_tss1500.txt.gz'
-# network = pre.Preprocessor(rna_path, peak_path, gff_path, tf_db_path, data_type='unpaired')
-# network.load_data(matrix_format='10x_unpaired')
-# ### qc
-# network.rna_qc(rna_min_genes=1, rna_min_cells=1, rna_max_cells=5000000)
-# network.atac_qc(atac_min_cells=10, )
-# print(network.atac_mt)
-# ### select cell type
-# atac_cell_type = pd.read_table(
-#  'D:\\Westlake\\pwk lab\\HSC development\\data\\GSE137117/atac_cell_type_AE_Pre.txt',
-#   header=None)
-# atac_cell_type.index = atac_cell_type[0]
-# atac_cell_type = atac_cell_type[1]
-# rna_cell_type = pd.read_table(
-#  'D:\\Westlake\\pwk lab\\HSC development\\data\\GSE137117/rna_cell_type_AE_Pre.txt',
-#   header=None)
-# rna_cell_type.index = rna_cell_type[0]
-# rna_cell_type = rna_cell_type[1]
-# network.add_cell_label(rna_cell_type,modality='rna')
-# network.add_cell_label(atac_cell_type,modality='atac')
-# network.annotate_peaks()
-# network.make_pseudo_networks(data_type='unpaired',
-#                              network_number=pseudo_cell_num_per_cell_type,
-#                              network_cell_size = 10)
-# network.cal_peak_gene_cor(exp_thr = rowmean_thr_to_get_variable_gene,
-#                           cor_thr=correlation_thr_to_get_gene_related_peak)
-#
-# matrix1 = network.output_pseudo_samples() ### exp count mt
-# matrix2 = network.generate_grp() ### correlation mt
-# network.extract_motif_score(matrix2)
-# matrix2 = np.multiply(network.motif_enrich_score,matrix2)
 
 
 matrix1 = PreprocessIO.input_csv_dict_df(
-    'D:\\Westlake\\pwk lab\\fatez\\hsc_unpaired_testing_data_10000/node/')
+    'D:\\Westlake\\pwk lab\\fatez\\hsc_unpaired_data_new_10000_02_5000_2500/node/')
 matrix2 = pd.read_csv(
-    'D:\\Westlake\\pwk lab\\fatez\\hsc_unpaired_testing_data_10000/edge_matrix.csv'
+    'D:\\Westlake\\pwk lab\\fatez\\hsc_unpaired_data_new_10000_02_5000_2500/edge_matrix.csv'
     ,index_col=0)
-
-# train_rate = 0.7
-# train_idx, val_test_idx, _, y_validate_test = train_test_split(index, labels, stratify=labels, train_size=train_rate,test_size=1-train_rate,
-#                                                  random_state=2, shuffle=True)
-# val_idx, test_idx, _, _ = train_test_split(val_test_idx,y_validate_test, train_size=val_rate/(1-train_rate), test_size=1-val_rate/(1-train_rate),
-#                                                      random_state=2, shuffle=True)
-
-
+m2 = torch.from_numpy(matrix2.to_numpy())
+m2 = m2.to(torch.float32)
 ### samples and labels
 samples = []
 for i in range(len(matrix1)):
     m1 = matrix1[list(matrix1.keys())[i]]
     m1 = torch.from_numpy(m1.to_numpy())
-    m2 = torch.from_numpy(matrix2.to_numpy())
     m1 = m1.to(torch.float32)
-    m2 = m2.to(torch.float32)
-    # m1 = m1.to(device)
-    # m2 = m2.to(device)
     samples.append([m1, m2])
 labels = torch.from_numpy(np.repeat(range(len(cluster_use))
                                     ,len(matrix1)/len(cluster_use)))
@@ -103,27 +55,27 @@ n_features = 2
 n_class = 2
 ###############################
 # General params
-batch_size = 40
-num_epoch = 200
+batch_size = 20
+num_epoch = 100
 lr = 1e-3
 test_size = 0.3
 early_stop_tolerance = 15
 ##############################
 # GAT params
-en_dim = 8                  # Embed dimension output by GAT
-gat_n_hidden = 1            # Number of hidden units in GAT
+en_dim = 3                 # Embed dimension output by GAT
+gat_n_hidden = 2            # Number of hidden units in GAT
 gat_nhead = 0               # Number of attention heads in GAT
 ##############################
 # BERT Encoder params
 n_layer = 6                 # Number of Encoder Layers
-bert_nhead = 8              # Attention heads
+bert_nhead = 3             # Attention heads
 dim_ff = 2                  # Dimension of the feedforward network model.
 bert_n_hidden = 2           # Number of hidden units in classification model.
 ##############################
 data_save = True
-data_save_dir = 'D:\\Westlake\\pwk lab\\fatez\\gat_gradient/nhead0_nhidden1_lr-3_epoch200/'
+data_save_dir = 'D:\\Westlake\\pwk lab\\fatez\\hsc_unpaired_data_new_10000_02_5000_2500\\model/nhead0_endim3_nhidden2_lr-3_epoch100_batch_size_20_lr-3_epoch100/'
 outgat_dir = data_save_dir+'out_gat/'
-os.makedirs(outgat_dir )
+#os.makedirs(outgat_dir )
 """
 dataloader
 """
@@ -151,13 +103,6 @@ model_gat = gat.GAT(
     device = device,
     n_hidden = gat_n_hidden,
 )
-# Not using decision here since not using pure GAT.
-# decison = mlp.Classifier(
-#     d_model = model_gat.en_dim,
-#     n_hidden = 4,
-#     n_class = n_class,
-#     device = device,
-# )
 bert_encoder = bert.Encoder(
     d_model = model_gat.en_dim,
     n_layer = n_layer,
@@ -201,42 +146,20 @@ traning
 all_loss = list()
 for epoch in range(num_epoch):
     print(f"Epoch {epoch + 1}\n-------------------------------")
-    batch_num = 1
-    test_model.train()
-    train_loss = 0
-    train_acc = 0
-    out_gat_data = list()
-    for x,y in train_dataloader:
-        optimizer.zero_grad()
-        out_gat = model_gat(x[0], x[1])
-        # torch.save(out_gat,
-        #            'D:\\Westlake\\pwk lab\\fatez\\out_gat/epoch'+str(epoch)+'_batch'+str(batch_num)+'.pt')
-        output = test_model(x[0].to(device), x[1].to(device))
-        for ele in out_gat.detach().tolist(): out_gat_data.append(ele)
-        loss = nn.CrossEntropyLoss()(
-            output, y
-        )
-        loss.backward()
-        optimizer.step()
-        acc = (output.argmax(1)==y).type(torch.float).sum()/batch_size
-        print(f"batch: {batch_num} loss: {loss} accuracy:{acc}")
-        batch_num += 1
-        train_loss += loss
-        train_acc += acc
+    out_gat_data,\
+    train_loss,train_acc = model_training.training(train_dataloader,model_gat,
+                                                  test_model,
+                                                  nn.CrossEntropyLoss(),
+                                                  optimizer,device=device)
     print(
-     f"epoch: {epoch+1}, train_loss: {train_loss/175}, train accuracy: {train_acc/175}")
-    all_loss.append(train_loss)
+     f"epoch: {epoch+1}, train_loss: {train_loss}, train accuracy: {train_acc}")
+    all_loss.append(train_loss.tolist())
     scheduler.step()
-    test_loss,test_acc = model_testing.testing(test_dataloader,
+    test_loss,test_acc = model_training.testing(test_dataloader,
                                                test_model, nn.CrossEntropyLoss()
                                                , device=device)
     print(
         f"epoch: {epoch+1}, test_loss: {test_loss}, test accuracy: {test_acc}")
-    # if data_save:
-    #     JSON.encode(
-    #         out_gat_data,
-    #         outgat_dir+str(epoch) + '.js'
-    #     )
     early_stopping(train_loss, test_loss)
     if early_stopping.early_stop:
         print("We are at epoch:", i)
