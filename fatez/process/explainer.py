@@ -546,7 +546,6 @@ class _PyTorchGradient(Explainer):
                     grads.append(self.gradient(find, batch))
                 # grad = [np.concatenate([g[l] for g in grads], 0) for l in range(len(self.data))]
                 grad = list()
-                skipping = dict()
                 for l in range(len(self.data)):
                     temp_grad = list()
                     for g in grads:
@@ -554,19 +553,16 @@ class _PyTorchGradient(Explainer):
                             break
                         temp_grad.append(g[l])
                     if len(temp_grad) == 0:
-                        skipping[l] = None
+                        if l in skipping_input: continue
+                        skipping_input[l] = None
+                        warnings.warn(f'Explainer Skipping Input #:{l}')
                         continue
                     else:
                         grad.append(np.concatenate(temp_grad, 0))
 
-                if len(skipping) > 0:
-                    for ele in skipping.keys():
-                        print('Skipping Input #:', ele)
-
                 # assign the attributions to the right part of the output arrays
                 for l in range(len(self.data)):
-                    if l in skipping:
-                        continue
+                    if l in skipping_input: continue
                     samples = grad[l] * samples_delta[l]
                     phis[l][j] = samples.mean(0)
                     phi_vars[l][j] = samples.var(0) / np.sqrt(samples.shape[0]) # estimate variance of means

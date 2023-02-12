@@ -159,15 +159,15 @@ class Pre_Train_Model(nn.Module):
 
     def forward(self, input, mask = None):
         embed_rep = self.encoder(input, mask)
+        print(f'Shape of BERT encoder output:{embed_rep.shape}')
         node_recon = self.reconstructor_node(embed_rep)
 
         if self.reconstructor_adj is not None:
             adj_recon = self.reconstructor_adj(embed_rep)
         else:
             adj_recon = None
-            
-        return node_recon, adj_recon
 
+        return node_recon, adj_recon
 
 
 

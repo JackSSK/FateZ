@@ -88,6 +88,8 @@ def test_model(
         )
     )
     for input, _ in train_dataloader:
+        print(f'Shape of fea mat:{input[0].shape}',
+            f'Shape of adj mat:{input[1].shape}')
         output_node, output_adj = pre_training(input[0], input[1])
         # gat_out = pre_training.get_gat_output(input[0], input[1])
         loss_node = pre_train_criteria(
@@ -132,18 +134,18 @@ if __name__ == '__main__':
         os.makedirs('../data/ignore')
 
     # Parameters
-    k = 10
-    top_k = 4
+    k = 1051
+    top_k = 452
     n_sample = 10
-    batch_size = 2
+    batch_size = 4
     n_class = 4
     n_bin = 100
     masker_ratio = 0.5
     gat_param = {
         'd_model': 2,   # Feature dim
-        'en_dim': 8,
-        'n_hidden': 4,
-        'nhead': 2,
+        'en_dim': 3,
+        'n_hidden': 2,
+        'nhead': 0,
         'device':'cpu',
         'dtype': torch.float32,
     }
@@ -159,7 +161,7 @@ if __name__ == '__main__':
     bert_encoder_param = {
         'd_model': gat_param['en_dim'],
         'n_layer': 6,
-        'nhead': 8,
+        'nhead': 3,
         'dim_feedforward': gat_param['en_dim'],
         'dtype': torch.float32,
     }

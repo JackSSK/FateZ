@@ -138,7 +138,7 @@ pre_train_model = pre_trainer.Model(
     masker = masker,
     bin_pro = model.Binning_Process(n_bin = n_bin),
     bert_model = bert.Pre_Train_Model(
-        bert_encoder, n_bin = n_bin, n_dim_node = n_features
+        bert_encoder, n_bin = n_bin, n_dim_node = model_gat.d_model,
     ),
     device = device,
 )

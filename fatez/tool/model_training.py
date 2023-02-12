@@ -50,16 +50,14 @@ def pre_training(dataloader, model, optimizer, device):
     batch_num = 1
     model.train()
     train_loss = 0
-    for x,y in dataloader:
+    for x, _ in dataloader:
         optimizer.zero_grad()
         node=x[0].to(device)
         edge=x[1].to(device)
         print(node.device)
         print(edge.device)
         print(next(model.parameters()).device)
-        print(node.shape)
-        print(edge.shape)
-        output = model(node, edge)
+        output, output_adj = model(node, edge)
         loss = L1Loss()(
             output, torch.split(node, output.shape[1], dim=1)[0]
         )
@@ -70,4 +68,3 @@ def pre_training(dataloader, model, optimizer, device):
         train_loss += loss
     train_loss /= num_batches
     return train_loss
-
