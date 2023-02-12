@@ -57,6 +57,8 @@ def pre_training(dataloader, model, optimizer, device):
         print(node.device)
         print(edge.device)
         print(next(model.parameters()).device)
+        print(node.shape)
+        print(edge.shape)
         output = model(node, edge)
         loss = L1Loss()(
             output, torch.split(node, output.shape[1], dim=1)[0]
