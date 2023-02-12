@@ -448,7 +448,7 @@ div.rendered_html tbody tr:hover {
 </div>
 <div class="section" id="Now-we-perform-pre-training-with-no-label.">
 <h2>Now we perform pre-training with no label.<a class="headerlink" href="#Now-we-perform-pre-training-with-no-label." title="Permalink to this heading"></a></h2>
-<p>n_dim_adj is set to None, and the model is NOT reconstructing adj mat, etc. Therefore, output_adj is also None here.</p>
+<p>Here <span class="math notranslate nohighlight">\(n\_dim\_adj\)</span> is set to None, and the model is NOT reconstructing the adjacency matrices, etc. Therefore, <span class="math notranslate nohighlight">\(output\_adj\)</span> is also null.</p>
 <div class="nbinput nblast docutils container">
 <div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[ ]:
 </pre></div>
@@ -468,8 +468,38 @@ div.rendered_html tbody tr:hover {
 <span class="k">for</span> <span class="nb">input</span><span class="p">,</span> <span class="n">_</span> <span class="ow">in</span> <span class="n">train_dataloader</span><span class="p">:</span>
     <span class="n">output_node</span><span class="p">,</span> <span class="n">output_adj</span> <span class="o">=</span> <span class="n">pre_training</span><span class="p">(</span><span class="nb">input</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="nb">input</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
     <span class="n">L1Loss</span><span class="p">()(</span>
-        <span class="n">output_node</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="nb">input</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">output</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="p">,</span> <span class="n">dim</span><span class="o">=</span><span class="mi">1</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
+        <span class="n">output_node</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="nb">input</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">output_node</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="p">,</span> <span class="n">dim</span><span class="o">=</span><span class="mi">1</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
     <span class="p">)</span><span class="o">.</span><span class="n">backward</span><span class="p">()</span>
+</pre></div>
+</div>
+</div>
+<p>In the case of pre-training with reconstructing adjacency matrices as well.</p>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[ ]:
+</pre></div>
+</div>
+<div class="input_area highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">pre_training</span> <span class="o">=</span> <span class="n">pre_trainer</span><span class="o">.</span><span class="n">Model</span><span class="p">(</span>
+    <span class="n">gat</span> <span class="o">=</span> <span class="n">gat_model</span><span class="p">,</span>
+    <span class="n">masker</span> <span class="o">=</span> <span class="n">masker</span><span class="p">,</span>
+    <span class="n">bin_pro</span> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">Binning_Process</span><span class="p">(</span><span class="n">n_bin</span> <span class="o">=</span> <span class="n">n_bin</span><span class="p">),</span>
+    <span class="n">bert_model</span> <span class="o">=</span> <span class="n">bert</span><span class="o">.</span><span class="n">Pre_Train_Model</span><span class="p">(</span>
+        <span class="n">bert_encoder</span><span class="p">,</span>
+        <span class="n">n_bin</span> <span class="o">=</span> <span class="n">n_bin</span><span class="p">,</span>
+        <span class="n">n_dim_node</span> <span class="o">=</span> <span class="n">gat_model</span><span class="o">.</span><span class="n">d_model</span><span class="p">,</span>
+        <span class="n">n_dim_adj</span> <span class="o">=</span> <span class="n">k</span><span class="p">,</span>
+    <span class="p">)</span>
+<span class="p">)</span>
+
+<span class="k">for</span> <span class="nb">input</span><span class="p">,</span> <span class="n">_</span> <span class="ow">in</span> <span class="n">train_dataloader</span><span class="p">:</span>
+    <span class="n">output_node</span><span class="p">,</span> <span class="n">output_adj</span> <span class="o">=</span> <span class="n">pre_training</span><span class="p">(</span><span class="nb">input</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="nb">input</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
+
+    <span class="n">loss_node</span> <span class="o">=</span> <span class="n">L1Loss</span><span class="p">()(</span>
+        <span class="n">output_node</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="nb">input</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">output_node</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="p">,</span> <span class="n">dim</span><span class="o">=</span><span class="mi">1</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
+    <span class="p">)</span>
+    <span class="n">loss_adj</span> <span class="o">=</span> <span class="n">L1Loss</span><span class="p">()(</span><span class="n">output_adj</span><span class="p">,</span> <span class="nb">input</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
+
+    <span class="n">loss</span> <span class="o">=</span> <span class="n">loss_node</span> <span class="o">+</span> <span class="n">loss_adj</span>
+    <span class="n">loss</span><span class="o">.</span><span class="n">backward</span><span class="p">()</span>
 </pre></div>
 </div>
 </div>
