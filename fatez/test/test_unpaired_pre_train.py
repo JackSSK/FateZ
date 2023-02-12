@@ -62,18 +62,29 @@ test_size = 0.3
 early_stop_tolerance = 15
 ##############################
 # GAT params
-en_dim = 3                 # Embed dimension output by GAT
-gat_n_hidden = 2            # Number of hidden units in GAT
-gat_nhead = 0               # Number of attention heads in GAT
+gat_param = {
+    'd_model': n_features,   # Feature dim
+    'en_dim': 3,            # Embed dimension output by GAT
+    'n_hidden': 2,          # Number of hidden units in GAT
+    'nhead': 0,             # Number of attention heads in GAT
+    'device': device,
+    'dtype': torch.float32,
+}
 ##############################
 # BERT Encoder params
-n_layer = 6                 # Number of Encoder Layers
-bert_nhead = 3             # Attention heads
-dim_ff = 2                  # Dimension of the feedforward network model.
-bert_n_hidden = 2           # Number of hidden units in classification model.
+bert_encoder_param = {
+    'd_model': gat_param['en_dim'],
+    'n_layer': 6,                           # Number of Encoder Layers
+    'nhead': 3,                             # Attention heads
+    'dim_feedforward': gat_param['en_dim'], # Dimension of the feedforward network model.
+    'device': device,
+    'dtype': gat_param['dtype'],
+}
+
+fine_tune_n_hidden = 2           # Number of hidden units in classification model.
 ##############################
 # BERT pretrain params
-masker_ratio = 0.5
+masker_ratio = 0.15
 n_bin = 100
 ##############################
 data_save = True
@@ -106,27 +117,15 @@ pretrain_dataloader = DataLoader(
 model define
 """
 
-model_gat = gat.GAT(
-    d_model = n_features,
-    en_dim = en_dim,
-    nhead = gat_nhead,
-    device = device,
-    n_hidden = gat_n_hidden,
-)
-bert_encoder = bert.Encoder(
-    d_model = model_gat.en_dim,
-    n_layer = n_layer,
-    nhead = bert_nhead,
-    dim_feedforward = dim_ff,
-    device = device,
-)
+model_gat = gat.GAT(**gat_param)
+bert_encoder = bert.Encoder(**bert_encoder_param)
 test_model = fine_tuner.Model(
     gat = model_gat,
     bin_pro = model.Binning_Process(n_bin = 100),
     bert_model = bert.Fine_Tune_Model(
         bert_encoder,
         n_class = n_class,
-        n_hidden = bert_n_hidden,
+        n_hidden = fine_tune_n_hidden,
     ),
     device = device,
 )
@@ -138,7 +137,7 @@ pre_train_model = pre_trainer.Model(
     masker = masker,
     bin_pro = model.Binning_Process(n_bin = n_bin),
     bert_model = bert.Pre_Train_Model(
-        bert_encoder, n_bin = n_bin, n_dim_node = model_gat.d_model,
+        bert_encoder, n_dim_node = model_gat.d_model,
     ),
     device = device,
 )

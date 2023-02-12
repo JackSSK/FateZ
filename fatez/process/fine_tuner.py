@@ -27,10 +27,9 @@ class Model(nn.Module):
         ):
         super(Model, self).__init__()
         self.factory_kwargs = {'device': device, 'dtype': dtype}
-        self.gat = gat
+        self.gat = gat.to(self.factory_kwargs['device'])
         self.bin_pro= bin_pro
         self.bert_model = bert_model
-        self.gat.to(self.factory_kwargs['device'])
 
     def forward(self, fea_mats, adj_mats):
         output = self.gat(fea_mats, adj_mats)

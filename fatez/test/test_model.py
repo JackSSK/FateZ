@@ -82,7 +82,6 @@ def test_model(
         bin_pro = model.Binning_Process(n_bin = n_bin),
         bert_model = bert.Pre_Train_Model(
             bert_encoder,
-            n_bin = n_bin,
             n_dim_node = gat_model.d_model,
             n_dim_adj = n_gene,
         )
@@ -163,7 +162,7 @@ if __name__ == '__main__':
         'n_layer': 6,
         'nhead': 3,
         'dim_feedforward': gat_param['en_dim'],
-        'dtype': torch.float32,
+        'dtype': gat_param['dtype'],
     }
 
     # Generate Fake data

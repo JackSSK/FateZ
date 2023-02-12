@@ -40,7 +40,7 @@ def Save(model, file_path:str = 'a.model', device:str = 'cpu',):
         re.search(r'fatez.model.gat.GAT', model_type)
         ):
         torch.save(model.cpu(), file_path)
-        model.to(device)
+        model = model.to(device)
     else:
         raise Error('Not Supporting Save ' + model_type)
     return model
@@ -56,7 +56,7 @@ def Load(file_path:str = 'a.model', mode:str = 'torch', device:str = 'cpu',):
     # PyTorch Loading method
     if mode == 'torch':
         model = torch.load(file_path)
-        model.to(device)
+        model = model.to(device)
     else:
         raise Error('Not Supporting Load Mode ' + mode)
     return model

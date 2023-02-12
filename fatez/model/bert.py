@@ -116,16 +116,12 @@ class Pre_Train_Model(nn.Module):
     """
     def __init__(self,
         encoder:Encoder = None,
-        n_bin:int = 100,
         n_dim_node:int = 2,
         n_dim_adj:int = None,
         ):
         """
         :param encoder:Encoder = None
             The Encoder to build pre-train model with.
-
-        :param n_bin:int = None
-            Depreciated now.
 
         :param n_dim_node:int = 2
             The output dimension for reconstructing node feature mat.
@@ -139,35 +135,35 @@ class Pre_Train_Model(nn.Module):
             'device': self.encoder.factory_kwargs['device'],
             'dtype': self.encoder.factory_kwargs['dtype']
         }
-        self.encoder.to(self.factory_kwargs['device'])
-        self.reconstructor_node = mlp.Data_Reconstructor(
+        self.encoder = self.encoder.to(self.factory_kwargs['device'])
+        self.recon_node = mlp.Data_Reconstructor(
             d_model = self.encoder.dim_feedforward,
             out_dim = n_dim_node,
             **self.factory_kwargs
         )
-        self.reconstructor_node.to(self.factory_kwargs['device'])
-        self.reconstructor_adj = None
+        self.recon_node = self.recon_node.to(self.factory_kwargs['device'])
+        self.recon_adj = None
 
         if n_dim_adj is not None:
-            self.reconstructor_adj = mlp.Data_Reconstructor(
+            self.recon_adj = mlp.Data_Reconstructor(
                 d_model = self.encoder.dim_feedforward,
                 out_dim = n_dim_adj,
                 **self.factory_kwargs
             )
-            self.reconstructor_adj.to(self.factory_kwargs['device'])
+            self.recon_adj = self.recon_adj.to(self.factory_kwargs['device'])
 
 
     def forward(self, input, mask = None):
         embed_rep = self.encoder(input, mask)
         print(f'Shape of BERT encoder output:{embed_rep.shape}')
-        node_recon = self.reconstructor_node(embed_rep)
+        node_mat = self.recon_node(embed_rep)
 
-        if self.reconstructor_adj is not None:
-            adj_recon = self.reconstructor_adj(embed_rep)
+        if self.recon_adj is not None:
+            adj_mat = self.recon_adj(embed_rep)
         else:
-            adj_recon = None
+            adj_mat = None
 
-        return node_recon, adj_recon
+        return node_mat, adj_mat
 
 
 
@@ -196,14 +192,14 @@ class Fine_Tune_Model(nn.Module):
             'device': self.encoder.factory_kwargs['device'],
             'dtype': self.encoder.factory_kwargs['dtype']
         }
-        self.encoder.to(self.encoder.factory_kwargs['device'])
+        self.encoder = self.encoder.to(self.encoder.factory_kwargs['device'])
         self.classifier = mlp.Classifier(
-            d_model = self.encoder.d_model,
+            d_model = self.encoder.dim_feedforward,
             n_hidden = n_hidden,
             n_class = n_class,
             **self.factory_kwargs
         )
-        self.classifier.to(self.factory_kwargs['device'])
+        self.classifier = self.classifier.to(self.factory_kwargs['device'])
 
     def forward(self, input, mask = None):
         output = self.encoder(input, mask)
