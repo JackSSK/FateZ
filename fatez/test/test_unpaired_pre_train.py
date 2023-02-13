@@ -55,16 +55,16 @@ n_features = 2
 n_class = 2
 ###############################
 # General params
-batch_size = 20
+batch_size = 10
 num_epoch = 100
-lr = 1e-3
+lr = 1e-4
 test_size = 0.3
 early_stop_tolerance = 15
 ##############################
 # GAT params
 gat_param = {
     'd_model': n_features,   # Feature dim
-    'en_dim': 3,            # Embed dimension output by GAT
+    'en_dim': 4,            # Embed dimension output by GAT
     'n_hidden': 2,          # Number of hidden units in GAT
     'nhead': 0,             # Number of attention heads in GAT
     'device': device,
@@ -75,7 +75,7 @@ gat_param = {
 bert_encoder_param = {
     'd_model': gat_param['en_dim'],
     'n_layer': 6,                           # Number of Encoder Layers
-    'nhead': 3,                             # Attention heads
+    'nhead': 4,                             # Attention heads
     'dim_feedforward': gat_param['en_dim'], # Dimension of the feedforward network model.
     'device': device,
     'dtype': gat_param['dtype'],
@@ -88,7 +88,7 @@ masker_ratio = 0.15
 n_bin = 100
 ##############################
 data_save = True
-data_save_dir = 'D:\\Westlake\\pwk lab\\fatez\\hsc_unpaired_data_new_10000_02_5000_2500\\model/nhead0_endim3_nhidden2_lr-3_epoch100_batch_size_20_lr-3_epoch100/'
+data_save_dir = 'D:\\Westlake\\pwk lab\\fatez\\hsc_unpaired_data_new_10000_02_5000_2500\\pre_train_model/0213'
 outgat_dir = data_save_dir+'out_gat/'
 #os.makedirs(outgat_dir )
 """
@@ -176,8 +176,32 @@ for epoch in range(num_epoch):
      f"epoch: {epoch+1}, train_loss: {train_loss}")
     all_loss.append(train_loss.tolist())
     scheduler.step()
-
-
+if data_save:
+    model.Save(
+        pre_train_model.bert_model.encoder,
+        data_save_dir + 'bert_encoder.model'
+    )
+    # Use this to save whole bert model
+    model.Save(
+        pre_train_model.bert_model,
+        data_save_dir + 'bert_fine_tune.model'
+    )
+    model.Save(
+        model_gat,
+        data_save_dir + 'gat.model'
+    )
+print(all_loss)
+with open(data_save_dir+'loss.txt', 'w+')as f:
+    for i in all_loss:
+        f.write(i+'\n')
+with open(data_save_dir+'config.txt','w+')as f1:
+    f1.write('batch_size: '+batch_size+'\n')
+    f1.write('num_epoch: '+num_epoch+'\n')
+    f1.write('lr: '+lr+'\n')
+    f1.write('masker_ratio: '+masker_ratio+'\n')
+    f1.write('gat en_dim: '+gat_param['en_dim']+'\n')
+    f1.write('gat nhead: '+gat_param['nhead']+'\n')
+    f1.write('gat n_hidden: '+gat_param['n_hidden']+'\n')
 """
 fine-tune traning
 """
