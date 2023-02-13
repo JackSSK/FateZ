@@ -15,6 +15,9 @@ import fatez.model.bert as bert
 def Set_Trainer(config:dict = None, factory_kwargs:dict = None):
     """
     Set up a Trainer object based on given config file
+
+    Note:
+        Do NOT use this method if loading pre-trained models.
     """
     return Trainer(
         gat = model.Set_GAT(config, factory_kwargs),

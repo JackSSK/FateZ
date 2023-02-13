@@ -144,6 +144,10 @@ model define
 Code below should looks more explicit
 """
 pre_train_model = pre_trainer.Set_Trainer(config, factory_kwargs)
+
+# If no need for pre-training
+fine_tune_model = fine_tuner.Set_Tuner(config, factory_kwargs)
+
 test_model = fine_tuner.Tuner(
     gat = pre_train_model.model.gat,
     encoder = pre_train_model.model.encoder,
