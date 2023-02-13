@@ -476,11 +476,9 @@ div.rendered_html tbody tr:hover {
     <span class="n">gat</span> <span class="o">=</span> <span class="n">trainer</span><span class="o">.</span><span class="n">model</span><span class="o">.</span><span class="n">gat</span><span class="p">,</span>
     <span class="n">encoder</span> <span class="o">=</span> <span class="n">trainer</span><span class="o">.</span><span class="n">model</span><span class="o">.</span><span class="n">encoder</span><span class="p">,</span>
     <span class="n">bin_pro</span> <span class="o">=</span> <span class="n">trainer</span><span class="o">.</span><span class="n">model</span><span class="o">.</span><span class="n">bin_pro</span><span class="p">,</span>
-    <span class="n">n_hidden</span> <span class="o">=</span> <span class="n">config</span><span class="p">[</span><span class="s1">&#39;fine_tuner&#39;</span><span class="p">][</span><span class="s1">&#39;n_hidden&#39;</span><span class="p">],</span>
-    <span class="n">n_class</span> <span class="o">=</span> <span class="n">config</span><span class="p">[</span><span class="s1">&#39;fine_tuner&#39;</span><span class="p">][</span><span class="s1">&#39;n_class&#39;</span><span class="p">],</span>
+    <span class="o">**</span><span class="n">config</span><span class="p">[</span><span class="s1">&#39;fine_tuner&#39;</span><span class="p">],</span>
     <span class="o">**</span><span class="n">factory_kwargs</span><span class="p">,</span>
 <span class="p">)</span>
-
 
 <span class="k">for</span> <span class="nb">input</span><span class="p">,</span> <span class="n">label</span> <span class="ow">in</span> <span class="n">train_dataloader</span><span class="p">:</span>
     <span class="n">output</span> <span class="o">=</span> <span class="n">tuner</span><span class="o">.</span><span class="n">model</span><span class="p">(</span><span class="nb">input</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="nb">input</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
