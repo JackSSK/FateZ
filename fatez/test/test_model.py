@@ -4,36 +4,33 @@ import torch
 import torch.nn as nn
 from torch.utils.data import DataLoader
 import fatez.lib as lib
+import fatez.tool.JSON as JSON
 import fatez.model as model
 import fatez.model.mlp as mlp
-import fatez.model.bert as bert
-import fatez.model.gat as gat
-import fatez.model.sparse_gat as sgat
 import fatez.process.explainer as explainer
 import fatez.process.fine_tuner as fine_tuner
 import fatez.process.pre_trainer as pre_trainer
-
+from pkg_resources import resource_filename
 
 # Ignoring warnings because of using LazyLinear
 import warnings
 warnings.filterwarnings('ignore')
 
 
-def test_gat(train_dataloader, gat_param, mlp_param):
-    print('Testing plain GAT')
-    model_gat = gat.GAT(**gat_param)
-    decision = mlp.Classifier(**mlp_param)
-    # Using data loader now
-    for input, label in train_dataloader:
-        out_gat = model_gat(input[0], input[1])
-        output = decision(out_gat)
-        loss = nn.CrossEntropyLoss()(
-            output, label
-        )
-        loss.backward()
-    print('Last GAT CEL:', loss, '\n')
+def test_gat(train_dataloader, config, factory_kwargs, mlp_param):
+    # Build GAT Model accordingly
+    gat_model = model.Set_GAT(config, factory_kwargs)
+    decision = mlp.Classifier(**mlp_param, **factory_kwargs)
 
-    gat_explain = model_gat.explain(input[0][0], input[1][0])
+    # Using data loader to train
+    for input, label in train_dataloader:
+        out_gat = gat_model(input[0], input[1])
+        output = decision(out_gat)
+        loss = nn.CrossEntropyLoss()(output, label)
+        loss.backward()
+    print(f'CEL:{loss}\n')
+
+    gat_explain = gat_model.explain(input[0][0], input[1][0])
     # print(gat_explain)
     explain = shap.GradientExplainer(decision, out_gat)
     shap_values = explain.shap_values(out_gat)
@@ -41,148 +38,86 @@ def test_gat(train_dataloader, gat_param, mlp_param):
     explain = explainer.Gradient(decision, out_gat)
     shap_values = explain.shap_values(out_gat, return_variances = True)
     # print(shap_values)
+    return gat_model
 
-    return model_gat
 
-def test_sparse_gat(train_dataloader, gat_param, mlp_param):
-    print('Testing sparse GAT')
-    model_sgat = sgat.Spare_GAT(**gat_param)
-    decision = mlp.Classifier(**mlp_param)
-    # Using data loader now
-    for input, label in train_dataloader:
-        output = model_sgat(input[0], input[1])
-        output = decision(output)
-        loss = nn.CrossEntropyLoss()(
-            output, label
-        )
-        loss.backward()
-
-    model_sgat.explain(input[0][0], input[1][0])
-    print('Last SGAT CEL:', loss, '\n')
-    # model_sgat.explain()
-    return model_sgat
-
-def test_model(
-    train_dataloader,
-    n_bin,
-    n_class,
-    n_gene,
-    gat_model,
-    masker,
-    bert_encoder
-    ):
-    print('Testing Model')
-    pre_train_criteria = nn.L1Loss()
-    fine_tune_criteria = nn.CrossEntropyLoss()
+def test_bert(train_dataloader, config, factory_kwargs,):
+    print('Testing Full Model')
 
     # Pre-train part
-    pre_training = pre_trainer.Model(
-        gat = gat_model,
-        masker = masker,
-        bin_pro = model.Binning_Process(n_bin = n_bin),
-        bert_model = bert.Pre_Train_Model(
-            bert_encoder,
-            n_dim_node = gat_model.d_model,
-            n_dim_adj = n_gene,
-        )
-    )
-    for input, _ in train_dataloader:
-        print(f'Shape of fea mat:{input[0].shape}',
-            f'Shape of adj mat:{input[1].shape}')
-        output_node, output_adj = pre_training(input[0], input[1])
-        # gat_out = pre_training.get_gat_output(input[0], input[1])
-        loss_node = pre_train_criteria(
-            output_node,
-            torch.split(input[0], output_node.shape[1] , dim = 1)[0]
-        )
-
-        if output_adj is not None:
-            loss_adj = pre_train_criteria(output_adj, input[1])
-            loss = loss_node + loss_adj
-        else:
-            loss = loss_node
-
-        loss.backward()
-    print('Last Pre Trainer CEL:', loss, '\n')
+    trainer = pre_trainer.Set_Trainer(config, factory_kwargs)
+    pt_loss = trainer.train(train_dataloader)
+    print(f'Pre Trainer CEL:{pt_loss}\n')
 
     # Fine tune part
-    fine_tuning = fine_tuner.Model(
-        gat = gat_model,
-        bin_pro = model.Binning_Process(n_bin = n_bin),
-        bert_model = bert.Fine_Tune_Model(
-            bert_encoder,
-            n_hidden = 2,
-            n_class = n_class
-        )
+    tuner = fine_tuner.Tuner(
+        gat = trainer.model.gat,
+        encoder = trainer.model.encoder,
+        bin_pro = trainer.model.bin_pro,
+        n_hidden = config['fine_tuner']['n_hidden'],
+        n_class = config['fine_tuner']['n_class'],
+        **factory_kwargs,
     )
     for input, label in train_dataloader:
-        output = fine_tuning(input[0], input[1])
-        loss = fine_tune_criteria(output, label)
+        output = tuner.model(input[0], input[1])
+        loss = tuner.criterion(output, label)
         loss.backward()
 
-    gat_explain = gat_model.explain(input[0][0], input[1][0])
-    explain = explainer.Gradient(fine_tuning, input)
+    gat_explain = tuner.model.gat.explain(input[0][0], input[1][0])
+    explain = explainer.Gradient(tuner.model, input)
     shap_values = explain.shap_values(input, return_variances = True)
     # print(shap_values)
     print('Last Fine Tuner CEL:', loss, '\n')
-    return bert_encoder
+    return trainer.model
 
 if __name__ == '__main__':
     # Create the cache directory if not present
     if not os.path.exists('../data/ignore'):
         os.makedirs('../data/ignore')
 
-    # Parameters
-    k = 1051
-    top_k = 452
+    # Parameters to fake data
+    k = 10
+    top_k = 4
     n_sample = 10
     batch_size = 4
     n_class = 4
-    n_bin = 100
-    masker_ratio = 0.5
-    gat_param = {
-        'd_model': 2,   # Feature dim
-        'en_dim': 3,
-        'n_hidden': 2,
-        'nhead': 0,
-        'device':'cpu',
-        'dtype': torch.float32,
-    }
-    mlp_param = {
-        'd_model':gat_param['en_dim'],
-        'n_hidden': 4,
-        'n_class':n_class,
-        'device':gat_param['device'],
-        'dtype':gat_param['dtype'],
-    }
 
-    # Need to make sure d_model is divisible by nhead
-    bert_encoder_param = {
-        'd_model': gat_param['en_dim'],
-        'n_layer': 6,
-        'nhead': 3,
-        'dim_feedforward': gat_param['en_dim'],
-        'dtype': gat_param['dtype'],
-    }
+    config = JSON.decode(resource_filename(
+        __name__, '../data/config/test_config.json'
+        )
+    )
+    config['fine_tuner']['n_class'] = n_class
+    # JSON.encode(config, 'test_config.json')
+    factory_kwargs = {'device': 'cpu', 'dtype': torch.float32,}
 
     # Generate Fake data
     samples = [
         [
-            torch.randn(k, gat_param['d_model'], dtype = torch.float32),
-            torch.randn(top_k, k, dtype = torch.float32)
+            torch.randn(
+                k,
+                config['gat']['params']['d_model'],
+                dtype = factory_kwargs['dtype']
+            ),
+            torch.randn(top_k, k, dtype = factory_kwargs['dtype'])
         ] for i in range(n_sample - 1)
     ]
     # To test data loader not messing up exp data and adj mats
     samples.append(
         [
-            torch.ones(k, gat_param['d_model'], dtype = torch.float32),
-            torch.ones(top_k, k, dtype = torch.float32)
+            torch.ones(
+                k,
+                config['gat']['params']['d_model'],
+                dtype = factory_kwargs['dtype']
+            ),
+            torch.ones(top_k, k, dtype = factory_kwargs['dtype'])
         ]
     )
-    labels = torch.empty(n_sample, dtype = torch.long).random_(n_class)
 
     train_dataloader = DataLoader(
-        lib.FateZ_Dataset(samples = samples, labels = labels),
+        lib.FateZ_Dataset(
+            samples = samples,
+            labels = torch.empty(n_sample, dtype = torch.long).random_(n_class)
+        ),
         batch_size = batch_size,
         shuffle = True
     )
@@ -193,47 +128,27 @@ if __name__ == '__main__':
     print('Batch Size:', batch_size)
     print('Class Number:', n_class, '\n')
 
-    # temp = test_sparse_gat(
-    #     train_dataloader,
-    #     gat_param = gat_param,
-    #     mlp_param = mlp_param
-    # )
-    # model.Save(temp, '../data/ignore/gat.model')
-    #
-    temp = test_gat(
-        train_dataloader,
-        gat_param = gat_param,
-        mlp_param = mlp_param
-    )
+    mlp_param = {
+        'd_model':config['gat']['params']['en_dim'],
+        'n_hidden': 4,
+        'n_class':n_class,
+    }
+    temp = test_gat(train_dataloader, config, factory_kwargs, mlp_param)
     model.Save(temp, '../data/ignore/gat.model')
 
-    encoder = test_model(
-        train_dataloader = train_dataloader,
-        n_bin = n_bin,
-        n_class = n_class,
-        # Gene number, if not None then reconstructing adj mat.
-        n_gene = None,
-        # n_gene = k,
-        gat_model = gat.GAT(**gat_param),
-        masker = model.Masker(ratio = masker_ratio),
-        bert_encoder = bert.Encoder(**bert_encoder_param),
-    )
-    model.Save(encoder, '../data/ignore/bert_encoder.model')
+    temp = test_bert(train_dataloader, config, factory_kwargs)
+    model.Save(temp, '../data/ignore/bert_encoder.model')
 
-    #
-    # # Test Loading Model
-    # # Saving Fine Tune Model should be fine
-    # test = bert.Fine_Tune_Model(encoder, n_class = 2)
-    # model.Save(test, '../data/ignore/b.model')
-    # fine_tuning = fine_tuner.Model(
-    #     gat = model.Load('../data/ignore/gat.model'),
-    #     bin_pro = model.Binning_Process(n_bin = n_bin),
-    #     bert_model = model.Load('../data/ignore/b.model')
-    # )
-    # # Using data loader now
-    # for input, label in train_dataloader:
-    #     output = fine_tuning(input[0], input[1])
-    #     loss = nn.CrossEntropyLoss()(
-    #         output, label
-    #     )
-    #     loss.backward()
+
+    from sklearn import cluster
+    eps = 0.5
+    # Set model
+    dbscan = cluster.DBSCAN(eps = eps)
+    kmeans = cluster.KMeans(n_clusters = 2)
+    # Flatten feature matrices for clustering
+    data = [torch.reshape(x[0], (-1,)).tolist() for x in samples]
+
+    dbscan.fit(data)
+    kmeans.fit(data)
+    print(dbscan.labels_.astype(int))
+    print(kmeans.labels_.astype(int))

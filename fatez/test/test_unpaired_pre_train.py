@@ -61,31 +61,56 @@ lr = 1e-4
 test_size = 0.3
 early_stop_tolerance = 15
 ##############################
-# GAT params
-gat_param = {
-    'd_model': n_features,   # Feature dim
-    'en_dim': 4,            # Embed dimension output by GAT
-    'n_hidden': 2,          # Number of hidden units in GAT
-    'nhead': 0,             # Number of attention heads in GAT
-    'device': device,
-    'dtype': torch.float32,
-}
-##############################
-# BERT Encoder params
-bert_encoder_param = {
-    'd_model': gat_param['en_dim'],
-    'n_layer': 6,                           # Number of Encoder Layers
-    'nhead': 4,                             # Attention heads
-    'dim_feedforward': gat_param['en_dim'], # Dimension of the feedforward network model.
-    'device': device,
-    'dtype': gat_param['dtype'],
+# config file
+
+config = {
+    "batch_size": batch_size,
+    "epoch": num_epoch,
+    "gat": {
+        "type": "GAT",
+        "params": {
+            "d_model": n_features,  # Feature dim
+            "en_dim": 4,            # Embed dimension output by GAT
+            "n_hidden": 2,          # Number of hidden units in GAT
+            "nhead": 0               # Number of attention heads in GAT
+        }
+    },
+    "encoder": {
+        "d_model": 4,               # == gat params en_dim
+        "n_layer": 6,               # Number of Encoder Layers
+        "nhead": 4,                  # Attention heads
+        "dim_feedforward": 4         # Dimension of the feedforward network model.
+    },
+    "bin_pro": {
+        "n_bin": 100
+    },
+    "masker": {
+        "ratio": 0.15
+    },
+    "pre_trainer": {
+        "n_dim_adj": None,
+        "lr": lr,
+        "weight_decay": 1e-3,
+        "sch_T_0": 2,
+        "sch_T_mult": 2,
+        "sch_eta_min": lr / 50,
+    },
+    "fine_tuner": {
+        "n_class": n_class,
+        "n_hidden": 2,
+        "lr": lr,
+        "weight_decay": 1e-3,
+        "sch_T_0": 2,
+        "sch_T_mult": 2,
+        "sch_eta_min": lr / 50,
+    }
 }
 
-fine_tune_n_hidden = 2           # Number of hidden units in classification model.
-##############################
-# BERT pretrain params
-masker_ratio = 0.15
-n_bin = 100
+# factory_kwargs should be adjusted upon useage
+factory_kwargs = {'device': device, 'dtype': torch.float32,}
+
+
+
 ##############################
 data_save = True
 data_save_dir = 'D:\\Westlake\\pwk lab\\fatez\\hsc_unpaired_data_new_10000_02_5000_2500\\pre_train_model/0213'
@@ -98,52 +123,62 @@ X_train,X_test,y_train,y_test = train_test_split(
     samples,labels,test_size=test_size,train_size = 1-test_size,random_state=0)
 train_dataloader = DataLoader(
     lib.FateZ_Dataset(samples=X_train, labels=y_train),
-    batch_size=batch_size,
+    batch_size = config['batch_size'],
     shuffle=True
 )
 
 test_dataloader = DataLoader(
     lib.FateZ_Dataset(samples=X_test, labels=y_test),
-    batch_size=batch_size,
+    batch_size = config['batch_size'],
     shuffle=True
 )
 
 pretrain_dataloader = DataLoader(
     lib.FateZ_Dataset(samples=samples, labels=labels),
-    batch_size=batch_size,
+    batch_size = config['batch_size'],
     shuffle=True
 )
 """
 model define
-"""
 
-model_gat = gat.GAT(**gat_param)
-bert_encoder = bert.Encoder(**bert_encoder_param)
+Code below should looks more explicit
+"""
+pre_train_model = pre_trainer.Set_Trainer(config, factory_kwargs)
+test_model = fine_tuner.Tuner(
+    gat = pre_train_model.model.gat,
+    encoder = pre_train_model.model.encoder,
+    bin_pro = pre_train_model.model.bin_pro,
+    **config['fine_tuner'],
+    **factory_kwargs,
+).model
+
+
+
+#####################################################################
+"""
+These parts won't be needed later
+"""
 test_model = fine_tuner.Model(
-    gat = model_gat,
-    bin_pro = model.Binning_Process(n_bin = 100),
+    gat = pre_train_model.model.gat,
+    bin_pro = pre_train_model.model.bin_pro,
     bert_model = bert.Fine_Tune_Model(
-        bert_encoder,
+        encoder = pre_train_model.model.encoder,
         n_class = n_class,
-        n_hidden = fine_tune_n_hidden,
+        n_hidden = config['fine_tuner']['n_hidden'],
     ),
     device = device,
 )
-masker = model.Masker(ratio = masker_ratio)
-model_gat.to(device)
-bert_encoder.to(device)
+
 pre_train_model = pre_trainer.Model(
-    gat = model_gat,
-    masker = masker,
-    bin_pro = model.Binning_Process(n_bin = n_bin),
-    bert_model = bert.Pre_Train_Model(
-        bert_encoder, n_dim_node = model_gat.d_model,
-    ),
+    gat = pre_train_model.model.gat,
+    masker = pre_train_model.model.masker,
+    bin_pro = pre_train_model.model.bin_pro,
+    bert_model = pre_train_model.model.bert_model,
     device = device,
 )
 ### adam and CosineAnnealingWarmRestarts
 optimizer = torch.optim.Adam(
-    test_model.parameters(),
+    test_model.parameters(), # u sure? shouldn't it be pre_train_model?
     lr = lr,
     weight_decay = 1e-3
 )
@@ -154,28 +189,37 @@ scheduler = CosineAnnealingWarmRestarts(
     eta_min = lr / 50
 )
 
+# model_gat.to(device)
+# bert_encoder.to(device)
+# test_model.to(device)
+pre_train_model.to(device)
+######################################################################
+
 early_stopping = EarlyStopping.EarlyStopping(
     tolerance = early_stop_tolerance,
     min_delta = 10
 )
-model_gat.to(device)
-bert_encoder.to(device)
-test_model.to(device)
-pre_train_model.to(device)
+
 """
 pre-training
 """
 all_loss = list()
 for epoch in range(num_epoch):
     print(f"Epoch {epoch + 1}\n-------------------------------")
-    train_loss = model_training.pre_training(pretrain_dataloader,
-                                                  pre_train_model,
-                                                  optimizer,
-                                                  device=device)
-    print(
-     f"epoch: {epoch+1}, train_loss: {train_loss}")
-    all_loss.append(train_loss.tolist())
+    train_loss = model_training.pre_training(
+        pretrain_dataloader,
+        pre_train_model,
+        optimizer,
+        device=device
+    )
     scheduler.step()
+
+    # Try this one later
+    # train_loss = pre_train_model.train(pretrain_dataloader)
+
+    print(f"epoch: {epoch+1}, train_loss: {train_loss}")
+    all_loss.append(train_loss.tolist())
+
 if data_save:
     model.Save(
         pre_train_model.bert_model.encoder,
@@ -187,21 +231,31 @@ if data_save:
         data_save_dir + 'bert_fine_tune.model'
     )
     model.Save(
-        model_gat,
+        pre_train_model.gat,
         data_save_dir + 'gat.model'
     )
+
+    # model.Save(
+    #     pre_train_model,
+    #     data_save_dir + 'a.model'
+    # )
+
+
 print(all_loss)
 with open(data_save_dir+'loss.txt', 'w+')as f:
     for i in all_loss:
         f.write(i+'\n')
+
+# Save JSON one might be easier
+JSON.encode(config, data_save_dir + 'config.txt')
 with open(data_save_dir+'config.txt','w+')as f1:
-    f1.write('batch_size: '+batch_size+'\n')
-    f1.write('num_epoch: '+num_epoch+'\n')
-    f1.write('lr: '+lr+'\n')
-    f1.write('masker_ratio: '+masker_ratio+'\n')
-    f1.write('gat en_dim: '+gat_param['en_dim']+'\n')
-    f1.write('gat nhead: '+gat_param['nhead']+'\n')
-    f1.write('gat n_hidden: '+gat_param['n_hidden']+'\n')
+    f1.write('batch_size: '+ config['batch_size'] +'\n')
+    f1.write('num_epoch: '+ config['epoch'] +'\n')
+    f1.write('lr: '+ config['pre_trainer']['lr'] +'\n')
+    f1.write('masker_ratio: '+ config['masker']['ratio'] +'\n')
+    f1.write('gat en_dim: '+ config['gat']['params']['en_dim'] +'\n')
+    f1.write('gat nhead: '+ config['gat']['params']['nhead'] +'\n')
+    f1.write('gat n_hidden: '+ config['gat']['params']['n_hidden'] +'\n')
 """
 fine-tune traning
 """

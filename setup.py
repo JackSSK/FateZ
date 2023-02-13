@@ -15,6 +15,7 @@ setuptools.setup(
     project_urls = {"Bug Tracker": "https://github.com/JackSSK/FateZ/issues",},
     packages = setuptools.find_packages(),
     package_data = {'': [
+        'data/config/*',
         'data/human/*',
         'data/mouse/*',
     ]},

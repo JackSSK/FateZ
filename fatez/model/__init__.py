@@ -13,7 +13,8 @@ from torch.optim import Adam
 from torch.utils.data import DataLoader
 import numpy as np
 from sklearn import cluster, datasets, mixture
-
+import fatez.model.gat as gat
+import fatez.model.sparse_gat as sgat
 
 
 class Error(Exception):
@@ -35,6 +36,7 @@ def Save(model, file_path:str = 'a.model', device:str = 'cpu',):
     model_type = str(type(model))
 
     if (re.search(r'torch.nn.modules.', model_type) or
+        re.search(r'fatez.*.Model', model_type) or
         re.search(r'fatez.model.bert.', model_type) or
         re.search(r'fatez.model.sparse_gat.Spare_GAT', model_type) or
         re.search(r'fatez.model.gat.GAT', model_type)
@@ -60,6 +62,17 @@ def Load(file_path:str = 'a.model', mode:str = 'torch', device:str = 'cpu',):
     else:
         raise Error('Not Supporting Load Mode ' + mode)
     return model
+
+def Set_GAT(config:dict = None, factory_kwargs:dict = None):
+    """
+    Set up GAT model based on given config.
+    """
+    if config['gat']['type'] == 'GAT':
+        return gat.GAT(**config['gat']['params'], **factory_kwargs)
+    elif config['gat']['type'] == 'SGAT':
+        return sgat.Spare_GAT(**config['gat']['params'], **factory_kwargs)
+    else:
+        raise model.Error('Unknown GAT type')
 
 
 
@@ -123,53 +136,3 @@ class Binning_Process(nn.Module):
     def forward(self, input):
         # return int(input * self.n_bin)
         return input
-
-
-
-class LR_Scheduler(object):
-    """
-    Automatically adjust learning rate based on learning steps.
-    """
-
-    def __init__(self,
-        optimizer,
-        n_features:int = None,
-        n_warmup_steps:int = None
-        ):
-        """
-        :param optimizer: <Default = None>
-            The gradient optimizer.
-
-        :param n_features: <int Default = None>
-            The number of expected features in the model input.
-
-        :param n_warmup_steps: <int Default = None>
-            Number of warming up steps. Gradually increase learning rate.
-        """
-
-        self.optimizer = optimizer
-        self.n_warmup_steps = n_warmup_steps
-        self.n_current_steps = 0
-        self.init_learning_rate = np.power(n_features, -0.5)
-
-    def step_and_update_lr(self):
-        self._update_learning_rate()
-        self.optimizer.step()
-
-    def zero_grad(self):
-        self.optimizer.zero_grad()
-
-    def _get_lr_scale(self):
-        return np.min(
-            [
-                np.power(self.n_current_steps, -0.5),
-                np.power(self.n_warmup_steps, -1.5) * self.n_current_steps
-            ]
-        )
-
-    def _update_learning_rate(self):
-        self.n_current_steps += 1
-        lr = self.init_learning_rate * self._get_lr_scale()
-
-        for param_group in self.optimizer.param_groups:
-            param_group['lr'] = lr

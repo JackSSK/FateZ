@@ -2,15 +2,26 @@
 """
 Fine tune model with labled data.
 
-Note: Developing~
-
-author: nkmtmsys
+author: jy, nkmtmsys
 """
 import torch
 import torch.nn as nn
+import torch.optim as optim
 import fatez.model as model
 import fatez.model.bert as bert
 
+
+def Set_Tuner(config:dict = None, factory_kwargs:dict = None):
+    """
+    Set up a Tuner object based on given config file
+    """
+    return Tuner(
+        gat = model.Set_GAT(config, factory_kwargs),
+        encoder = bert.Encoder(**config['encoder'], **factory_kwargs),
+        bin_pro = model.Binning_Process(**config['bin_pro']),
+        **config['fine_tuner'],
+        **factory_kwargs,
+    )
 
 
 class Model(nn.Module):
@@ -28,8 +39,9 @@ class Model(nn.Module):
         super(Model, self).__init__()
         self.factory_kwargs = {'device': device, 'dtype': dtype}
         self.gat = gat.to(self.factory_kwargs['device'])
+        self.bert_model = bert_model.to(self.factory_kwargs['device'])
+        self.encoder = self.bert_model.encoder.to(self.factory_kwargs['device'])
         self.bin_pro= bin_pro
-        self.bert_model = bert_model
 
     def forward(self, fea_mats, adj_mats):
         output = self.gat(fea_mats, adj_mats)
@@ -45,71 +57,119 @@ class Model(nn.Module):
         return output
 
 
-class Tune(object):
+class Tuner(object):
     """
-    The fine-tune process.
+    The fine-tune processing module.
     """
     def __init__(self,
+        # Models to take
         gat = None,
-        bin_pro:model.Binning_Process = None,
         encoder:bert.Encoder = None,
+        bin_pro:model.Binning_Process = None,
+        n_hidden:int = 2,
         n_class:int = 100,
+
+        # Adam optimizer settings
         lr:float = 1e-4,
         betas:set = (0.9, 0.999),
-        weight_decay:float = 0.01,
-        n_warmup_steps:int = 10000,
-        log_freq:int = 10,
-        with_cuda:bool = True,
-        cuda_devices:set = None,
+        weight_decay:float = 0.001,
+
+        # Scheduler params
+        sch_T_0:int = 2,
+        sch_T_mult:int = 2,
+        sch_eta_min:float = 1e-4 / 50,
+
+        # Criterion params
+        ignore_index:int = -100,
+        # ignore_index:int = 0, # For NLLLoss
+        reduction:str = 'mean',
+
+        # factory_kwargs
+        device:str = 'cpu',
         dtype:str = None,
         ):
-        super(Tune, self).__init__()
-        # Setting device
-        cuda_condition = torch.cuda.is_available() and with_cuda
-        self.device = torch.device("cuda:0" if cuda_condition else "cpu")
-
-        self.factory_kwargs = {'n_class':n_class,'device':device,'dtype':dtype}
-        self.gat = gat
-        self.bin_pro = bin_pro
-        self.encoder = encoder
-        self.bert_model = bert.Fine_Tune_Model(self.encoder, **factory_kwargs)
-        sel.model = Model(
-            gat = self.gat,
-            bin_pro = self.bin_pro,
-            bert_model = self.bert_model,
-            device = self.device,
-            dtype = dtype,
+        super(Tuner, self).__init__()
+        self.factory_kwargs = {'device': device, 'dtype': dtype}
+        self.model = Model(
+            gat = gat,
+            bin_pro = bin_pro,
+            bert_model = bert.Fine_Tune_Model(
+                encoder = encoder,
+                n_hidden = n_hidden,
+                n_class = n_class,
+                **self.factory_kwargs
+            ),
+            **self.factory_kwargs,
         )
 
-        # Distributed GPU training if CUDA can detect more than 1 GPU
-        if with_cuda and torch.cuda.device_count() > 1:
-            self.model = nn.DataParallel(self.model, device_ids = cuda_devices)
-
         # Setting the Adam optimizer with hyper-param
-        self.optim = optim.Adam(
+        self.optimizer = optim.Adam(
             self.model.parameters(),
             lr = lr,
             betas = betas,
             weight_decay = weight_decay
         )
-        self.optim_schedule = model.LR_Scheduler(
-            self.optim,
-            self.n_features,
-            n_warmup_steps = n_warmup_steps
+
+        # Set scheduler
+        self.scheduler = optim.lr_scheduler.CosineAnnealingWarmRestarts(
+            self.optimizer,
+            T_0 = sch_T_0,
+            T_mult = sch_T_mult,
+            eta_min = sch_eta_min,
         )
+
         # Using Negative Log Likelihood Loss function
-        self.criterion = nn.NLLLoss(ignore_index = 0)
-        self.log_freq = log_freq
+        self.criterion = nn.CrossEntropyLoss(
+            ignore_index = ignore_index,
+            reduction = reduction,
+        )
 
-    def train(self, epoch, train_data):
-        return self.iteration(epoch, train_data)
+        # Not supporting parallel training now
+        # # Distributed GPU training if CUDA can detect more than 1 GPU
+        # if with_cuda and torch.cuda.device_count() > 1:
+        #     self.model = nn.DataParallel(self.model, device_ids = cuda_devices)
 
-    def test(self, epoch, test_data):
-        return self.iteration(epoch, test_data, train = False)
+    def train(self, data_loader):
+        """
+        Under construction...
+        """
+        size = len(data_loader.dataset)
+        num_batches = len(data_loader)
+        batch_num = 1
+        self.model.train()
+        train_loss, correct = 0, 0
+        out_gat_data = list()
+        for x,y in data_loader:
+            self.optimizer.zero_grad()
+            node_fea_mat = x[0].to(device)
+            adj_mat = x[1].to(device)
+            out_gat = self.model.get_gat_output(node_fea_mat, adj_mat)
+            output = self.model(node_fea_mat, adj_mat)
+            for ele in out_gat.detach().tolist(): out_gat_data.append(ele)
+            loss = self.criterion(output, y)
+            loss.backward()
+            self.optimizer.step()
+            acc = (output.argmax(1)==y).type(torch.float).sum().item()
+            print(f"batch: {batch_num} loss: {loss} accuracy:{acc/num_batches}")
+            batch_num += 1
+            train_loss += loss
+            correct += acc
+        self.scheduler.step()
+        return out_gat_data, train_loss/num_batches, correct/size
 
-    def iteration(self, epoch, data_loader, train = True):
-        # if train:
-        #     self.optim_schedule.zero_grad()
-        #     loss.backward()
-        #     self.optim_schedule.step_and_update_lr()
-        return
+
+    def test(self, data_loader):
+        self.model.eval()
+        test_loss, correct = 0, 0
+        with torch.no_grad():
+            for x, y in data_loader:
+                output = self.model(
+                    x[0].to(self.factory_kwargs['device']),
+                    x[1].to(self.factory_kwargs['device'])
+                )
+                test_loss += self.criterion(output, y).item()
+                correct += (output.argmax(1)==y).type(torch.float).sum().item()
+
+        test_loss /= len(data_loader)
+        correct /= len(data_loader.dataset)
+        return test_loss, correct
