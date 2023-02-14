@@ -56,7 +56,7 @@ n_class = 2
 ###############################
 # General params
 batch_size = 10
-num_epoch = 100
+num_epoch = 20
 lr = 1e-4
 test_size = 0.3
 early_stop_tolerance = 15
@@ -143,7 +143,7 @@ pre_train_model = pre_trainer.Model(
 )
 ### adam and CosineAnnealingWarmRestarts
 optimizer = torch.optim.Adam(
-    test_model.parameters(),
+    pre_train_model.parameters(),
     lr = lr,
     weight_decay = 1e-3
 )
@@ -193,7 +193,7 @@ if data_save:
 print(all_loss)
 with open(data_save_dir+'loss.txt', 'w+')as f:
     for i in all_loss:
-        f.write(i+'\n')
+        f.write(str(i)+'\n')
 with open(data_save_dir+'config.txt','w+')as f1:
     f1.write('batch_size: '+batch_size+'\n')
     f1.write('num_epoch: '+num_epoch+'\n')
