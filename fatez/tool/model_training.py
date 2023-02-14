@@ -30,9 +30,7 @@ def training(dataloader, model_gat, model, loss_fn, optimizer, device):
         out_gat = model_gat(x[0], x[1])
         output = model(x[0].to(device), x[1].to(device))
         for ele in out_gat.detach().tolist(): out_gat_data.append(ele)
-        loss = loss_fn(
-            output, y
-        )
+        loss = loss_fn(output, y)
         loss.backward()
         optimizer.step()
         acc = (output.argmax(1)==y).type(torch.float).sum().item()

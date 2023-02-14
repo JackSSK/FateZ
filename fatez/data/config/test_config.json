@@ -1,0 +1,30 @@
+{
+    "gat": {
+        "type": "GAT",
+        "params": {
+            "d_model": 2,
+            "en_dim": 3,
+            "n_hidden": 2,
+            "nhead": 3
+        }
+    },
+    "encoder": {
+        "d_model": 3,
+        "n_layer": 6,
+        "nhead": 3,
+        "dim_feedforward": 3
+    },
+    "bin_pro": {
+        "n_bin": 100
+    },
+    "masker": {
+        "ratio": 0.5
+    },
+    "pre_trainer": {
+        "n_dim_adj": null
+    },
+    "fine_tuner": {
+        "n_class": 4,
+        "n_hidden": 2
+    }
+}

@@ -88,11 +88,11 @@ class Encoder(nn.Module):
             self.encoder = encoder
         else:
             layer = TransformerEncoderLayer(
-                d_model,
-                nhead,
-                dim_feedforward,
-                dropout,
-                activation,
+                d_model = d_model,
+                nhead = nhead,
+                dim_feedforward = dim_feedforward,
+                dropout = dropout,
+                activation = activation,
                 layer_norm_eps = layer_norm_eps,
                 batch_first = batch_first,
                 **self.factory_kwargs
@@ -118,6 +118,8 @@ class Pre_Train_Model(nn.Module):
         encoder:Encoder = None,
         n_dim_node:int = 2,
         n_dim_adj:int = None,
+        device:str = 'cpu',
+        dtype:str = None,
         ):
         """
         :param encoder:Encoder = None
@@ -130,28 +132,21 @@ class Pre_Train_Model(nn.Module):
             The output dimension for reconstructing adj mat.
         """
         super(Pre_Train_Model, self).__init__()
-        self.encoder = encoder
-        self.factory_kwargs = {
-            'device': self.encoder.factory_kwargs['device'],
-            'dtype': self.encoder.factory_kwargs['dtype']
-        }
-        self.encoder = self.encoder.to(self.factory_kwargs['device'])
+        self.factory_kwargs = {'device': device, 'dtype': dtype,}
+        self.encoder = encoder.to(self.factory_kwargs['device'])
         self.recon_node = mlp.Data_Reconstructor(
-            d_model = self.encoder.dim_feedforward,
+            d_model = self.encoder.d_model,
             out_dim = n_dim_node,
             **self.factory_kwargs
-        )
-        self.recon_node = self.recon_node.to(self.factory_kwargs['device'])
+        ).to(self.factory_kwargs['device'])
         self.recon_adj = None
 
         if n_dim_adj is not None:
             self.recon_adj = mlp.Data_Reconstructor(
-                d_model = self.encoder.dim_feedforward,
+                d_model = self.encoder.d_model,
                 out_dim = n_dim_adj,
                 **self.factory_kwargs
-            )
-            self.recon_adj = self.recon_adj.to(self.factory_kwargs['device'])
-
+            ).to(self.factory_kwargs['device'])
 
     def forward(self, input, mask = None):
         embed_rep = self.encoder(input, mask)
@@ -174,6 +169,8 @@ class Fine_Tune_Model(nn.Module):
         encoder:Encoder = None,
         n_hidden:int = 2,
         n_class:int = 100,
+        device:str = 'cpu',
+        dtype:str = None,
         ):
         """
         :param encoder:Encoder = None
@@ -186,19 +183,14 @@ class Fine_Tune_Model(nn.Module):
             Number of classes to classify,
         """
         super(Fine_Tune_Model, self).__init__()
-        self.encoder = encoder
-        self.factory_kwargs = {
-            'device': self.encoder.factory_kwargs['device'],
-            'dtype': self.encoder.factory_kwargs['dtype']
-        }
-        self.encoder = self.encoder.to(self.encoder.factory_kwargs['device'])
+        self.factory_kwargs = {'device': device, 'dtype': dtype,}
+        self.encoder = encoder.to(self.factory_kwargs['device'])
         self.classifier = mlp.Classifier(
-            d_model = self.encoder.dim_feedforward,
+            d_model = self.encoder.d_model,
             n_hidden = n_hidden,
             n_class = n_class,
             **self.factory_kwargs
-        )
-        self.classifier = self.classifier.to(self.factory_kwargs['device'])
+        ).to(self.factory_kwargs['device'])
 
     def forward(self, input, mask = None):
         output = self.encoder(input, mask)
