@@ -11,5 +11,5 @@ to use the API of each object/function.
     :toctree: generated/
     :recursive:
 
-    Test
+    Faker
     Launch
