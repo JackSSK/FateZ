@@ -5,7 +5,6 @@ from torch.utils.data import DataLoader
 from pkg_resources import resource_filename
 from sklearn import cluster
 import fatez.test as test
-import fatez.lib as lib
 import fatez.model as model
 
 
@@ -24,14 +23,12 @@ if __name__ == '__main__':
     # model.Save(faker.test_gat(), '../data/ignore/gat.model')
     # model.Save(testM, '../data/ignore/trainer.model')
 
-
-    # Get BERT encoded latent representaions
+    # Prepare flatten data for clustering
     dataset = faker.make_data_loader().dataset
     for x, labels in DataLoader(dataset, batch_size = len(dataset)):
         all_fea_mat = x[0]
         all_adj_mat = x[1]
 
-    # Prepare flatten data for clustering
     origin = [torch.reshape(ele, (-1,)).tolist() for ele in all_fea_mat]
     # The encoded representaions made by GAT -> BERT encoder
     encode = [
@@ -40,13 +37,14 @@ if __name__ == '__main__':
         )
     ]
 
+
     # Set clustering models
     eps = 0.5
     n_clusters = len(np.unique(labels))
     dbscan = cluster.DBSCAN(eps = eps)
     kmeans = cluster.KMeans(n_clusters = n_clusters)
 
-    print(labels)
+
 
     # Fit models with original data
     dbscan.fit(origin)
