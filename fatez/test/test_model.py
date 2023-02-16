@@ -22,7 +22,7 @@ if __name__ == '__main__':
     faker = test.Faker()
     testM = faker.test_full_model()
     # model.Save(faker.test_gat(), '../data/ignore/gat.model')
-    # model.Save(faker.test_full_model(), '../data/ignore/bert_encoder.model')
+    # model.Save(testM, '../data/ignore/trainer.model')
 
 
     # Get BERT encoded latent representaions
