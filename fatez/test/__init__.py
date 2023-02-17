@@ -101,6 +101,13 @@ class Faker(object):
         self.factory_kwargs = {'device': device, 'dtype': dtype,}
 
     def make_data_loader(self, test_consist:bool = False):
+        """
+        Generate random data with given parameters and
+        set up a PyTorch DataLoader.
+
+        :return:
+            torch.utils.data.DataLoader
+        """
         samples = [
             [
                 # Fake node feature matrices

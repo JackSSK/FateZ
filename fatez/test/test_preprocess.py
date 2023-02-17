@@ -9,12 +9,12 @@ import fatez.tool.sequence as seq
 if __name__ == '__main__':
     peak_path = ('../data/mouse/filtered_feature_bc_matrix/')
     rna_path = ('../data/mouse/filtered_feature_bc_matrix/')
-    # peak_path = ('../data/ignore/e18_mouse_brain_fresh_5k/')
-    # rna_path = ('../data/ignore/e18_mouse_brain_fresh_5k/')
+    peak_path = ('../data/ignore/e18_mouse_brain_fresh_5k/')
+    rna_path = ('../data/ignore/e18_mouse_brain_fresh_5k/')
     gff_path = '../data/mouse/gencode.vM25.basic.annotation.gff3.gz'
     tf_db_path = 'E:\\public/TF_target_tss_1500.txt.gz'
     tf_db_path = '../data/ignore/TF_target_tss_1500.txt.gz'
-    # cell_type_path = 'E:\\public\\public data\\10X\\e18_mouse_brain_fresh_5k\\e18_mouse_brain_fresh_5k_analysis\\analysis\\clustering\\gex\\graphclust/clusters.csv'
+    cell_type_path = 'E:\\public\\public data\\10X\\e18_mouse_brain_fresh_5k\\e18_mouse_brain_fresh_5k_analysis\\analysis\\clustering\\gex\\graphclust/clusters.csv'
     cell_type_path = '../data/ignore/e18_mouse_brain_fresh_5k/analysis/clustering/gex/graphclust/clusters.csv'
 
     ### load data
