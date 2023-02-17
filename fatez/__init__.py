@@ -41,7 +41,7 @@ from ._main import (
 )
 
 from .test import (
-    Test
+    Faker
 )
 
 __all__ = [

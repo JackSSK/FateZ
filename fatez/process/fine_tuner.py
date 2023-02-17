@@ -53,10 +53,16 @@ class Model(nn.Module):
         return output
 
     def get_gat_output(self, fea_mats, adj_mats,):
-        model = self.gat.eval()
         with torch.no_grad():
-            output = self.gat(fea_mats, adj_mats)
+            output = self.gat.eval()(fea_mats, adj_mats)
             output = self.bin_pro(output)
+        return output
+
+    def get_encoder_output(self, fea_mats, adj_mats,):
+        with torch.no_grad():
+            output = self.gat.eval()(fea_mats, adj_mats)
+            output = self.bin_pro(output)
+            output = self.bert_model.encoder.eval()(output)
         return output
 
 
