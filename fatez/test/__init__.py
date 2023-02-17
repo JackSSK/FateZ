@@ -33,7 +33,7 @@ def test_grn():
 	gene_list = [
 		grn.Gene(id = 'a', symbol = 'AAA'),
 		grn.Gene(id = 'b', symbol = 'BBB'),
-		grn.Gene(id = 'c', symbol = 'CCC'),
+		grn.Gene(id = 'c', symbol = 'CCC')
 	]
 	# fake grps
 	grp_list = [
