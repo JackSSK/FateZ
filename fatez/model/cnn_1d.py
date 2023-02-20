@@ -110,9 +110,13 @@ class Model_1D(nn.Module):
             out = self.model(input)
         return func.softmax(out, dim = -1)
 
+    @staticmethod
+    # Make channel the second dim
+    def reshape(input, order = [0, 2, 1]):
+        return input.permute(*order)
+
 
 if __name__ == '__main__':
-    n_fea = 100
     en_dim = 4
     param = {
         'learning_rate': 0.01,
@@ -125,7 +129,5 @@ if __name__ == '__main__':
 
     a = Model_1D(in_channels = en_dim, **param)
     print(a.model)
-    # We would have (batch, nfea, en_dim) instead.
-    # Remember to reshape!
-    data = torch.randn(2, n_fea, en_dim).permute(0, 2, 1)
-    print(a(data,))
+    data = torch.randn(2, 100, en_dim)
+    print(a(a.reshape(data),))
