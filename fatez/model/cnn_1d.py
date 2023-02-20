@@ -10,22 +10,14 @@ You may want to try torchlayers
 Trying to avoid Lazy module since it's under development
 But so far it's working just fine, so still using lazy module
 
-flattenLength = int(featureNum / pow(maxpool_kernel_size, num_layers))
+flattenLength = int(featureNum / pow(maxpool_kernel_size, num_layer_set))
 self.dense = nn.Linear(flattenLength, densed_size)
 
 author: jy, nkmtmsys
 """
-
-import os
+import math
 import torch
-import numpy as np
-from torch.utils.data import DataLoader
-from pkg_resources import resource_filename
-from sklearn import cluster
-
-
 import torch.nn as nn
-import torch.optim as optim
 import torch.nn.functional as func
 from collections import OrderedDict
 
@@ -34,28 +26,30 @@ from collections import OrderedDict
 # warnings.filterwarnings('ignore')
 
 
-class Model_1D(nn.Module):
+class Model(nn.Module):
     """
-    Defining a CNN model treating input as 1D data
-    with given hyperparameters
-    Layer set number limited to max == 3
+    a 1D CNN model
     """
     def __init__(self,
         in_channels:int = 1,
         n_class:int = 2,
-        learning_rate:float = 0.01,
-        num_layers:int = 2,
+        num_layer_set:int = 1,
         conv_kernel_num:int = 32,
         conv_kernel_size:int = 4,
         maxpool_kernel_size:int = 2,
         densed_size:int = 32,
+        app_check:int = None,
         device:str = 'cpu',
         dtype:str = None,
         ):
         # Initialization
         super().__init__()
-        self.num_layers = num_layers
-        assert self.num_layers > 0
+        self.num_layer_set = num_layer_set
+        self.conv_kernel_num = conv_kernel_num
+        self.conv_kernel_size = conv_kernel_size
+        self.maxpool_kernel_size = maxpool_kernel_size
+        self.factory_kwargs = {'device': device, 'dtype': dtype,}
+        self.app_check = self._check_feas(app_check)
 
         model_dict = OrderedDict([
             ('conv0', nn.Conv1d(
@@ -68,7 +62,7 @@ class Model_1D(nn.Module):
         ])
 
         # Adding Conv blocks
-        for i in range(self.num_layers - 1):
+        for i in range(self.num_layer_set - 1):
             model_dict.update(
                 {
                     f'conv{i+1}': nn.Conv1d(
@@ -94,10 +88,7 @@ class Model_1D(nn.Module):
         model_dict.update({f'decide': nn.Linear(densed_size, n_class)})
 
         self.model = nn.Sequential(model_dict)
-        self.optimizer = optim.SGD(self.model.parameters(), learning_rate)
-        self.loss_func = nn.CrossEntropyLoss()
 
-    # Overwrite the forward function in nn.Module
     def forward(self, input, debug = False):
         if debug:
             print(input.shape)
@@ -110,24 +101,38 @@ class Model_1D(nn.Module):
             out = self.model(input)
         return func.softmax(out, dim = -1)
 
+    def _check_feas(self, app_check):
+        """
+        Check model's applicability on the given data n_featuers.
+        """
+        if app_check is None: return None
+        answer = self.num_layer_set > 0
+        for i in range(self.num_layer_set):
+            app_check = app_check - self.conv_kernel_size + 1
+            app_check = int(app_check / self.maxpool_kernel_size)
+            answer = app_check > 0
+        return answer
+
     @staticmethod
-    # Make channel the second dim
     def reshape(input, order = [0, 2, 1]):
+        """
+        Make channel the second dim
+        """
         return input.permute(*order)
 
 
-if __name__ == '__main__':
-    en_dim = 4
-    param = {
-        'learning_rate': 0.01,
-        'num_layers': 2,
-        'conv_kernel_num': 32,
-        'conv_kernel_size': 4,
-        'maxpool_kernel_size':2,
-        'densed_size': 32
-    }
-
-    a = Model_1D(in_channels = en_dim, **param)
-    print(a.model)
-    data = torch.randn(2, 100, en_dim)
-    print(a(a.reshape(data),))
+# if __name__ == '__main__':
+#     n_fea = 100
+#     en_dim = 4
+#     param = {
+#         'num_layer_set': 3,
+#         'conv_kernel_num': 32,
+#         'conv_kernel_size': 8,
+#         'maxpool_kernel_size':2,
+#         'densed_size': 32
+#     }
+#     #
+#     a = Model(in_channels = en_dim, **param, app_check = n_fea)
+#     print(a.app_check)
+#     data = torch.randn(2, n_fea, en_dim)
+#     print(a(a.reshape(data),))
