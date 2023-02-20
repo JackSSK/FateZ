@@ -79,7 +79,7 @@ class Model_1D(nn.Module):
 
         self.model = nn.Sequential(model_dict)
 
-    def forward(self, input, debug = False):
+    def forward(self, input, debug:bool = False):
         if debug:
             print(input.shape)
             for layer in self.model:
@@ -170,7 +170,7 @@ class Model_2D(nn.Module):
 
         self.model = nn.Sequential(model_dict)
 
-    def forward(self, input, debug = False):
+    def forward(self, input, debug:bool = False):
         if debug:
             print(input.shape)
             for layer in self.model:
@@ -303,11 +303,15 @@ class Model_Hybrid(nn.Module):
             ('decide', nn.Linear(densed_size, n_class))
         ]))
 
-    def forward(self, input):
-        verti_out = self.model_verti(input)
-        horiz_out = self.model_horiz(input)
-        out = self.decision(torch.cat((horiz_out, verti_out), dim = 1))
-        return func.softmax(out, dim = -1)
+    def forward(self, input, debug:bool = False):
+        if debug:
+            print('Under construction...')
+            return
+        else:
+            verti_out = self.model_verti(input)
+            horiz_out = self.model_horiz(input)
+            out = self.decision(torch.cat((horiz_out, verti_out), dim = 1))
+            return func.softmax(out, dim = -1)
 
     def _check_applicability(self, data_shape):
         """
