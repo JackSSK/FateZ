@@ -83,6 +83,9 @@ class Tuner(object):
         betas:set = (0.9, 0.999),
         weight_decay:float = 0.001,
 
+        # Max norm of the gradients, to prevent gradients from exploding.
+        max_norm:float = 0.5,
+
         # Scheduler params
         sch_T_0:int = 2,
         sch_T_mult:int = 2,
@@ -118,6 +121,15 @@ class Tuner(object):
             betas = betas,
             weight_decay = weight_decay
         )
+        # self.optimizer = optim.SGD(
+        #     self.model.parameters(),
+        #     lr = lr,
+        #     betas = betas,
+        #     weight_decay = weight_decay
+        # )
+
+        # Gradient norm clipper param
+        self.max_norm = max_norm
 
         # Set scheduler
         self.scheduler = optim.lr_scheduler.CosineAnnealingWarmRestarts(
@@ -157,6 +169,7 @@ class Tuner(object):
             for ele in out_gat.detach().tolist(): out_gat_data.append(ele)
             loss = self.criterion(output, y)
             loss.backward()
+            nn.utils.clip_grad_norm_(self.model.parameters(), self.max_norm)
             self.optimizer.step()
             acc = (output.argmax(1)==y).type(torch.float).sum().item()
             print(f"batch: {batch_num} loss: {loss} accuracy:{acc/num_batches}")
