@@ -345,6 +345,7 @@ class Model_Hybrid(nn.Module):
 if __name__ == '__main__':
     # n_fea = 100
     # en_dim = 4
+    # data = torch.randn(2, n_fea, en_dim)
     # param_1d = {
     #     'num_layer_set': 3,
     #     'conv_kernel_num': 32,
@@ -367,7 +368,6 @@ if __name__ == '__main__':
     #     'maxpool_kernel_size': 2,
     #     'densed_size': 32
     # }
-    # data = torch.randn(2, n_fea, en_dim)
     #
     # a = Model_1D(in_channels = en_dim, **param_1d, data_shape = data.shape)
     # print(a.applicable)
