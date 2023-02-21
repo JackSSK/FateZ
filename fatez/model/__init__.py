@@ -14,7 +14,6 @@ from torch.utils.data import DataLoader
 import numpy as np
 from sklearn import cluster, datasets, mixture
 import fatez.model.gat as gat
-import fatez.model.sparse_gat as sgat
 
 
 class Error(Exception):
@@ -38,7 +37,7 @@ def Save(model, file_path:str = 'a.model', device:str = 'cpu',):
     if (re.search(r'torch.nn.modules.', model_type) or
         re.search(r'fatez.*.Model', model_type) or
         re.search(r'fatez.model.bert.', model_type) or
-        re.search(r'fatez.model.sparse_gat.Spare_GAT', model_type) or
+        re.search(r'fatez.model.gat.Sparse_Model', model_type) or
         re.search(r'fatez.model.gat.GAT', model_type)
         ):
         torch.save(model.cpu(), file_path)
@@ -68,9 +67,9 @@ def Set_GAT(config:dict = None, factory_kwargs:dict = None):
     Set up GAT model based on given config.
     """
     if config['gat']['type'] == 'GAT':
-        return gat.GAT(**config['gat']['params'], **factory_kwargs)
+        return gat.Model(**config['gat']['params'], **factory_kwargs)
     elif config['gat']['type'] == 'SGAT':
-        return sgat.Spare_GAT(**config['gat']['params'], **factory_kwargs)
+        return gat.Sparse_Model(**config['gat']['params'], **factory_kwargs)
     else:
         raise model.Error('Unknown GAT type')
 

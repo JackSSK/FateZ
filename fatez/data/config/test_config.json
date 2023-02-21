@@ -25,6 +25,10 @@
     },
     "fine_tuner": {
         "n_class": 4,
-        "n_hidden": 2
+        "clf_type": "MLP",
+        "clf_params":{
+          "n_hidden": 2,
+          "n_layer_set": 2
+        }
     }
 }

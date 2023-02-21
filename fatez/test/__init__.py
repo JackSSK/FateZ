@@ -181,7 +181,7 @@ class Faker(object):
                 'n_hidden': 4,
                 'n_class': self.n_class,
             }
-            decision = mlp.Classifier(**mlp_param, **self.factory_kwargs)
+            decision = mlp.Model(**mlp_param, **self.factory_kwargs)
 
         # Using data loader to train
         for input, label in data_loader:
@@ -227,8 +227,7 @@ class Faker(object):
             gat = trainer.model.gat,
             encoder = trainer.model.encoder,
             bin_pro = trainer.model.bin_pro,
-            n_hidden = config['fine_tuner']['n_hidden'],
-            n_class = config['fine_tuner']['n_class'],
+            **config['fine_tuner'],
             **self.factory_kwargs,
         )
         for input, label in data_loader:

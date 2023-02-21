@@ -9,7 +9,7 @@ import torch.nn as nn
 import torch.optim as optim
 import fatez.model as model
 import fatez.model.bert as bert
-# import fatez.process.grn_encoder as grn_encoder
+
 
 
 def Set_Trainer(config:dict = None, factory_kwargs:dict = None):

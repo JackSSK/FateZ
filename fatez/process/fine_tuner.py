@@ -8,6 +8,9 @@ import torch
 import torch.nn as nn
 import torch.optim as optim
 import fatez.model as model
+import fatez.model.mlp as mlp
+import fatez.model.cnn as cnn
+import fatez.model.rnn as rnn
 import fatez.model.bert as bert
 
 
@@ -75,7 +78,8 @@ class Tuner(object):
         gat = None,
         encoder:bert.Encoder = None,
         bin_pro:model.Binning_Process = None,
-        n_hidden:int = 2,
+        clf_type:str = 'MLP',
+        clf_params:dict = {'n_hidden': 2},
         n_class:int = 100,
 
         # Adam optimizer settings
@@ -107,8 +111,12 @@ class Tuner(object):
             bin_pro = bin_pro,
             bert_model = bert.Fine_Tune_Model(
                 encoder = encoder,
-                n_hidden = n_hidden,
-                n_class = n_class,
+                classifier = self.__set_classifier(
+                    n_dim = encoder.d_model,
+                    n_class = n_class,
+                    clf_type = clf_type,
+                    clf_params = clf_params,
+                ),
                 **self.factory_kwargs
             ),
             **self.factory_kwargs,
@@ -179,7 +187,6 @@ class Tuner(object):
         self.scheduler.step()
         return out_gat_data, train_loss/num_batches, correct/size
 
-
     def test(self, data_loader):
         self.model.eval()
         test_loss, correct = 0, 0
@@ -195,3 +202,64 @@ class Tuner(object):
         test_loss /= len(data_loader)
         correct /= len(data_loader.dataset)
         return test_loss, correct
+
+    def __set_classifier(self,
+        n_dim:int = 4,
+        n_class:int = 2,
+        clf_type:str = 'MLP',
+        clf_params:dict = {'n_hidden': 2},
+        ):
+        """
+        Set up classifier model accordingly.
+        """
+        if clf_type.upper() == 'MLP':
+            return mlp.Model(
+                d_model = n_dim,
+                n_class = n_class,
+                **clf_params,
+                **self.factory_kwargs,
+            )
+        elif clf_type.upper() == 'CNN_1D':
+            return cnn.Model_1D(
+                n_channels = n_dim,
+                n_class = n_class,
+                **clf_params,
+                **self.factory_kwargs,
+            )
+        elif clf_type.upper() == 'CNN_2D':
+            return cnn.Model_2D(
+                n_channels = n_dim,
+                n_class = n_class,
+                **clf_params,
+                **self.factory_kwargs,
+            )
+        elif clf_type.upper() == 'CNN_HYB':
+            return cnn.Model_Hybrid(
+                n_channels = n_dim,
+                n_class = n_class,
+                **clf_params,
+                **self.factory_kwargs,
+            )
+        elif clf_type.upper() == 'RNN':
+            return rnn.RNN(
+                input_size = n_dim,
+                n_class = n_class,
+                **clf_params,
+                **self.factory_kwargs,
+            )
+        elif clf_type.upper() == 'GRU':
+            return rnn.GRU(
+                input_size = n_dim,
+                n_class = n_class,
+                **clf_params,
+                **self.factory_kwargs,
+            )
+        elif clf_type.upper() == 'LSTM':
+            return rnn.LSTM(
+                input_size = n_dim,
+                n_class = n_class,
+                **clf_params,
+                **self.factory_kwargs,
+            )
+        else:
+            raise model.Error('Unknown Classifier Type:', clf_type)

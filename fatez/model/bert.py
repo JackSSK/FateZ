@@ -2,11 +2,6 @@
 """
 BERT modeling
 
-ToDo:
-    1. Pre_Train & Fine_Tune Process
-        Note: Revise the iteration part
-    2. Revise Data_Reconstructor and Classifier if necessary
-
 author: jy, nkmtmsys
 """
 
@@ -19,7 +14,6 @@ from torch.nn import LayerNorm
 from torch.nn import TransformerEncoder
 from torch.nn import TransformerEncoderLayer
 
-import fatez.model as model
 import fatez.model.mlp as mlp
 
 
@@ -134,17 +128,21 @@ class Pre_Train_Model(nn.Module):
         super(Pre_Train_Model, self).__init__()
         self.factory_kwargs = {'device': device, 'dtype': dtype,}
         self.encoder = encoder.to(self.factory_kwargs['device'])
-        self.recon_node = mlp.Data_Reconstructor(
+        self.recon_node = mlp.Model(
+            type = 'RECON',
             d_model = self.encoder.d_model,
-            out_dim = n_dim_node,
+            n_layer_set = 1,
+            n_class = n_dim_node,
             **self.factory_kwargs
         ).to(self.factory_kwargs['device'])
         self.recon_adj = None
 
         if n_dim_adj is not None:
-            self.recon_adj = mlp.Data_Reconstructor(
+            self.recon_adj = mlp.Model(
+                type = 'RECON',
                 d_model = self.encoder.d_model,
-                out_dim = n_dim_adj,
+                n_layer_set = 1,
+                n_class = n_dim_adj,
                 **self.factory_kwargs
             ).to(self.factory_kwargs['device'])
 
@@ -167,8 +165,7 @@ class Fine_Tune_Model(nn.Module):
     """
     def __init__(self,
         encoder:Encoder = None,
-        n_hidden:int = 2,
-        n_class:int = 100,
+        classifier = None,
         device:str = 'cpu',
         dtype:str = None,
         ):
@@ -176,21 +173,13 @@ class Fine_Tune_Model(nn.Module):
         :param encoder:Encoder = None
             The Encoder to build fine-tune model with.
 
-        :param n_hidden:int = 2
-            The hidden units for classifier.
-
-        :param n_class:int = 100
-            Number of classes to classify,
+        :param classifier = None
+            The classification model for making predictions.
         """
         super(Fine_Tune_Model, self).__init__()
         self.factory_kwargs = {'device': device, 'dtype': dtype,}
         self.encoder = encoder.to(self.factory_kwargs['device'])
-        self.classifier = mlp.Classifier(
-            d_model = self.encoder.d_model,
-            n_hidden = n_hidden,
-            n_class = n_class,
-            **self.factory_kwargs
-        ).to(self.factory_kwargs['device'])
+        self.classifier = classifier.to(self.factory_kwargs['device'])
 
     def forward(self, input, mask = None):
         output = self.encoder(input, mask)
