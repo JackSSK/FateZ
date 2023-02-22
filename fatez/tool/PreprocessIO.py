@@ -3,7 +3,7 @@ import numpy as np
 import os
 
 
-def output_csv_dict_df(matrix_dict,output_path):
+def output_csv_dict_df(matrix_dict, output_path):
     for i in matrix_dict:
         df_use = matrix_dict[i]
         if output_path[-1] != '/':

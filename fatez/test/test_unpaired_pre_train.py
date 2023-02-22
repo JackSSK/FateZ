@@ -9,7 +9,7 @@ from torch.optim.lr_scheduler import CosineAnnealingWarmRestarts
 import fatez.lib as lib
 import fatez.tool.JSON as JSON
 from fatez.tool import PreprocessIO
-from fatez.tool import EarlyStopping
+from fatez.process import early_stopper
 from fatez.tool import model_training
 import fatez.model as model
 import fatez.model.gat as gat
@@ -200,7 +200,7 @@ scheduler = CosineAnnealingWarmRestarts(
 pre_train_model.to(device)
 ######################################################################
 
-early_stopping = EarlyStopping.EarlyStopping(
+early_stopping = early_stopper.Monitor(
     tolerance = early_stop_tolerance,
     min_delta = 10
 )
@@ -273,8 +273,8 @@ fine-tune traning
 #                                                , device=device)
 #     print(
 #         f"epoch: {epoch+1}, test_loss: {test_loss}, test accuracy: {test_acc}")
-#     early_stopping(train_loss, test_loss)
-#     if early_stopping.early_stop:
+#
+#     if early_stopping(train_loss, test_loss):
 #         print("We are at epoch:", i)
 #         break
 # if data_save:
