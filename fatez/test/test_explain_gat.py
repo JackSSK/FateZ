@@ -8,7 +8,6 @@ import fatez.process.fine_tuner as fine_tuner
 import fatez.model.bert as bert
 import fatez.model as model
 import shap
-from fatez.tool import PreprocessIO
 import pandas as pd
 import numpy as np
 import torch.nn as nn

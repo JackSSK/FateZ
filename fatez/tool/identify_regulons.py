@@ -3,8 +3,12 @@ import numpy as np
 import torch
 import torch.nn.functional as torch_F
 import fatez.process.explainer as explainer
-class Regulon():
 
+
+class Regulon():
+    """
+    ?
+    """
     def __init__(self,feature_mt,grp):
         self.feature_mt = feature_mt
         self.gene_rank = {}
@@ -37,6 +41,7 @@ class Regulon():
         ###
 
         self.gene_importance_values = gene_importance_values_all
+
     def explain_grp(self,gat_model,top_grp_num:int = 20,ignore_tf:str=''):
         ### explain grp for analyzing GRP importances
         grp_importance = gat_model.explain(
@@ -131,4 +136,3 @@ class Regulon():
 
 
         return gene_rank
-
