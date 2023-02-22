@@ -1,6 +1,6 @@
 
 Welcome to the documentation Page!
-=================================
+============================================
 
 Some descriptions here
 
@@ -12,7 +12,7 @@ Some descriptions here
 
 
 Install
-=================================
+===========================================
 
 FateZ can be cloned from `GitHub <https://github.com/JackSSK/FateZ/>`_ ::
 
@@ -22,7 +22,7 @@ FateZ can be cloned from `GitHub <https://github.com/JackSSK/FateZ/>`_ ::
 
 
 Test
-=================================
+===========================================
 
 After installation, a performance test can be carried out with::
 
@@ -31,7 +31,7 @@ After installation, a performance test can be carried out with::
 
 
 Contents
-=================================
+===========================================
 .. toctree::
    :maxdepth: 2
 

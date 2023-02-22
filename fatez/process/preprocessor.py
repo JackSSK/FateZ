@@ -41,6 +41,13 @@ class Preprocessor():
         tf_target_db_path:str = None,
         data_type:str = None
         ):
+        """
+        :param rna_path: <class fatez.lib.preprocess.preprocess>
+        	The object of prospective regulatory source gene.
+
+        :param atac_path: <class fatez.lib.preprocess.preprocess>
+        	The object of prospective regulatory target gene.
+        """
         self.rna_path = rna_path
         self.atac_path = atac_path
         self.gff_path = gff_path
@@ -57,22 +64,15 @@ class Preprocessor():
         self.tf_target_db = dict()
         self.motif_enrich_score = dict()
 
-    """
-    :param rna_path: <class fatez.lib.preprocess.preprocess>
-    	The object of prospective regulatory source gene.
-
-    :param atac_path: <class fatez.lib.preprocess.preprocess>
-    	The object of prospective regulatory target gene.
-    """
-
-
-
     def load_data(self,
         matrix_format:str = '10x_paired',
         debug_mode:bool = False
         ):
         """
-        Probably we won't need the next few lines?
+        Load in data
+
+        ToDo:
+            Init a DF directly, no need to use lists for chr and position maybe.
         """
         sc.settings.verbosity = 0
             # verbosity: errors (0), warnings (1), info (2), hints (3)
@@ -80,7 +80,6 @@ class Preprocessor():
             sc.settings.verbosity = 3
             sc.logging.print_header()
             sc.settings.set_figure_params(dpi=80, facecolor='white')
-
 
         chr_list = list()
         start_list = list()
@@ -104,67 +103,37 @@ class Preprocessor():
             self.atac_mt = self.atac_mt[
                 :, len(self.rna_mt.var_names):(len(self.atac_mt.var_names) - 1)
             ]
-
-            peak_names = list(self.atac_mt.var_names)
-
-            # ### extract chromosome start and end
-            for i in peak_names:
-                peak = i.split(':')
-                peak1 = peak[1].split('-')
-                chr_list.append(peak[0])
-                start_list.append(peak1[0])
-                end_list.append(peak1[1])
             atac_array = self.atac_mt.X.toarray().T
-            for i in range(len(peak_names)):
-                peak_name = peak_names[i]
-                self.peak_count[peak_name] = atac_array[i]
 
         ### load unparied data or ???
         elif matrix_format == '10x_unpaired':
-            self.rna_mt = sc.read_10x_mtx(
-                self.rna_path, var_names = 'gene_ids'
-            )
-            if self.atac_path[-1] !='/':
-                self.atac_path = self.atac_path + '/'
+            self.rna_mt = sc.read_10x_mtx(self.rna_path, var_names = 'gene_ids')
+            if self.atac_path[-1] !='/': self.atac_path += '/'
             mtx = anndata.read_mtx(self.atac_path+'matrix.mtx.gz').T
-            peak = pd.read_table(self.atac_path+'features.tsv.gz',header=None)
+            peak = pd.read_table(self.atac_path+'features.tsv.gz', header=None)
             barcode = pd.read_table(
-                self.atac_path + 'barcodes.tsv.gz',
-                header = None
+                self.atac_path + 'barcodes.tsv.gz', header = None
             )
             mtx.obs_names = list(barcode[0])
             mtx.var_names = list(peak[0])
             self.atac_mt = mtx
-            peak_names = list(self.atac_mt.var_names)
-            for i in peak_names:
-                peak = i.split(':')
-                peak1 = peak[1].split('-')
-                chr_list.append(peak[0])
-                start_list.append(peak1[0])
-                end_list.append(peak1[1])
             atac_array = self.atac_mt.X.toarray().T
-            for i in range(len(peak_names)):
-                peak_name = peak_names[i]
-                self.peak_count[peak_name] = atac_array[i]
 
         elif matrix_format == 'text_unpaired':
             self.rna_mt = sc.read_text(self.rna_path)
             self.atac_mt = sc.read_text(self.atac_path)
-
             atac_array = self.atac_mt.X.T
 
-            peak_names = list(self.atac_mt.var_names)
+        # ### extract chromosome start and end
+        # Assertion here?
+        for i, name in enumerate(list(self.atac_mt.var_names)):
+            temp = name.split(':')
+            positions = temp[1].split('-')
+            chr_list.append(temp[0])
+            start_list.append(positions[0])
+            end_list.append(positions[1])
+            self.peak_count[name] = atac_array[i]
 
-            # ### extract chromosome start and end
-            for i in peak_names:
-                peak = i.split(':')
-                peak1 = peak[1].split('-')
-                chr_list.append(peak[0])
-                start_list.append(peak1[0])
-                end_list.append(peak1[1])
-            for i in range(len(peak_names)):
-                peak_name = peak_names[i]
-                self.peak_count[peak_name] = atac_array[i]
 
         # gff = gff1.Reader(self.gff_path)
         # gff_template = gff.get_genes_gencode()
@@ -191,13 +160,16 @@ class Preprocessor():
 
         self.peak_region_df = pd.DataFrame(
             {'chr': chr_list, 'start': start_list, 'end': end_list},
-            index = peak_names
+            index = list(self.atac_mt.var_names)
         )
 
         ###remove nan
         self.rna_mt = self.rna_mt[:,~self.rna_mt.var_names.isnull()]
         self.atac_mt = self.atac_mt[:,~self.atac_mt.var_names.isnull()]
         ### load tf target db
+        """
+        If following method would only be used here, then just add codes here.
+        """
         self.__get_target_related_tf()
 
 
@@ -239,12 +211,8 @@ class Preprocessor():
         ]
         ### peak_count dict
         atac_array = self.atac_mt.X.toarray().T
-        peak_names = list(self.atac_mt.var_names)
-        for i in range(len(peak_names)):
-            peak_name = peak_names[i]
-            self.peak_count[peak_name] = atac_array[i]
-
-
+        for i, name in enumerate(list(self.atac_mt.var_names)):
+            self.peak_count[name] = atac_array[i]
 
     def merge_peak(self, width = 250):
         """
@@ -315,7 +283,6 @@ class Preprocessor():
             index = row_name_list
         )
 
-
     def add_cell_label(self,cell_types,modality:str = 'rna'):
         if modality == 'rna':
             self.rna_mt = self.rna_mt[
@@ -329,8 +296,6 @@ class Preprocessor():
             self.atac_mt.obs['cell_types'] = list(cell_types)
         else:
             print('input correct modality')
-
-
 
     def annotate_peaks(self,tss_region=[2000,1000]):
         template = tgrn.Template_GRN(id='gff')
@@ -370,12 +335,16 @@ class Preprocessor():
 
                     # Load position
                     position = pd.Interval(
-                        ele['pos'][0]-tss_region[0], ele['pos'][0]+tss_region[1], closed = 'both',
+                        ele['pos'][0]-tss_region[0],
+                        ele['pos'][0]+tss_region[1],
+                        closed = 'both',
                     )
                     # Load promoter
                     if ele['promoter']:
                         promoter = pd.Interval(
-                            ele['promoter'][0],ele['promoter'][1],closed='both',
+                            ele['promoter'][0],
+                            ele['promoter'][1],
+                            closed = 'both',
                         )
 
                     # Check overlaps
@@ -430,134 +399,109 @@ class Preprocessor():
                         else:
                             cur_index -= 1
                             break
-        annotations = grn_recon.Reverse_Peaks_Ann(annotations)
-        self.peak_annotations = annotations
-
+        self.peak_annotations = grn_recon.Reverse_Peaks_Ann(annotations)
 
     def make_pseudo_networks(self,
         network_cell_size:int = 10,
         data_type:str = 'paired',
         same_cell_type = True,
         network_number:int = 10,
-        method = 'sample_cells'
         ):
         """
         Because of the sparsity of single cell data and data asymmetry,
         pick up several cells to make pseudo cell help to increase model
-        accuracy, and to significantly reduce running time. This function
-        provides two strategies to make pseudo cell: 'sample_cells' and
-        'slidewindow'
+        accuracy, and to significantly reduce running time.
+        This function makes pseudo cell with 'sample_cells'
         """
         #pseudo_sample_dict = {}
         ### sample cells
-        if method == 'sample_cells':
-            if same_cell_type:
+        if same_cell_type:
+            ### intersect cell types
+            if data_type == 'unpaired':
+                cell_type_use = np.intersect1d(
+                    list(set(self.rna_mt.obs.cell_types)),
+                    list(set(self.atac_mt.obs.cell_types))
+                )
+            elif data_type == 'paired':
+                cell_type_use = set(self.rna_mt.obs.cell_types)
 
-                ### intersect cell types
+            for i in cell_type_use:
+                rna_data = self.rna_mt[self.rna_mt.obs.cell_types == i]
+                # Good habit to init var even may not be used in all cases
+                atac_data = None
                 if data_type == 'unpaired':
-                    cell_type_use = np.intersect1d(
-                        list(set(self.rna_mt.obs.cell_types)),list(set(
-                            self.atac_mt.obs.cell_types)))
-                elif data_type == 'paired':
-                    cell_type_use = set(self.rna_mt.obs.cell_types)
+                    atac_data = self.atac_mt[self.atac_mt.obs.cell_types == i]
+                for j in range(network_number):
+                    key = str(i) + str(j)
+                    rna_cell_use = random.sample(
+                        list(range(len(rna_data))), network_cell_size
+                    )
+                    cell_name = list(rna_data[rna_cell_use].obs_names)
+                    # Too long
+                    rna_cell_use = [list(self.rna_mt.obs_names).index(x) for x in cell_name]
 
-                for i in cell_type_use:
-                    rna_network_cell_type = self.rna_mt[
-                        self.rna_mt.obs.cell_types == i]
+                    if data_type == 'paired':
+                        # rna_cell_use = self.rna_mt.obs_names[random.sample(range(len(self.rna_mt.obs_names)),
+                        #                                                  network_cell_size)]
+                        self.__update_psNetwork(key, rna_cell_use, rna_cell_use)
+
                     if data_type == 'unpaired':
-                        atac_network_cell_type = self.atac_mt[
-                            self.atac_mt.obs.cell_types == i]
-                    for j in range(network_number):
-                        if data_type == 'paired':
-                            # rna_cell_use = self.rna_mt.obs_names[random.sample(range(len(self.rna_mt.obs_names)),
-                            #                                                  network_cell_size)]
-                            rna_cell_use = random.sample(list(range(
-                                len(rna_network_cell_type))), network_cell_size)
-                            cell_name = list(rna_network_cell_type[
-                                                 rna_cell_use].obs_names)
-                            rna_cell_use = []
-                            for cell in cell_name:
-                                rna_cell_use.append(list(
-                                    self.rna_mt.obs_names).index(cell))
+                        atac_cell_use = random.sample(
+                            list(range(len(atac_data))), network_cell_size
+                        )
+                        cell_name = list(atac_data[atac_cell_use].obs_names)
+                        self.__update_psNetwork(
+                            key,
+                            rna_cell_use,
+                            [list(self.atac_mt.obs_names).index(x) for x in cell_name]
+                        )
 
-                            atac_cell_use = rna_cell_use
+        else:
+            for i in range(network_number):
+                #pseudo_sample_dict[i] = {'rna':[],'atac':[]}
+                ### sample cells
+                if data_type == 'paired':
+                    #rna_cell_use = self.rna_mt.obs_names[random.sample(range(len(self.rna_mt.obs_names)),
+                    #                                                  network_cell_size)]
+                    rna_cell_use = random.sample(
+                        list(range(len(self.rna_mt.obs_names))),
+                        network_cell_size
+                    )
+                    self.__update_psNetwork(i, rna_cell_use, rna_cell_use)
 
-                        if data_type == 'unpaired':
+                elif data_type == 'unpaired':
+                    #rna_cell_use = self.rna_mt.obs_names[random.sample(range(len(self.rna_mt.obs_names)),
+                    #                                                   network_cell_size)]
+                    #atac_cell_use = self.atac_mt.obs_names[random.sample(range(len(self.atac_mt.obs_names)),
+                    #                                           network_cell_size)]
+                    rna_cell_use = random.sample(
+                        list(range(len(self.rna_mt.obs_names))),
+                        network_cell_size
+                    )
+                    atac_cell_use = random.sample(
+                        list(range(len(self.atac_mt.obs_names))),
+                        network_cell_size
+                    )
+                    self.__update_psNetwork(i, rna_cell_use, atac_cell_use)
+        #         ### output gene and peak matrixs
+        #
+        #         rna_pseudo = self.rna_mt[rna_cell_use]
+        #         rna_pseudo_network = pd.DataFrame(rna_pseudo.X.todense().T)
+        #         rna_pseudo_network.index = list(rna_pseudo.var_names.values)
+        #         rna_pseudo_network.columns = rna_pseudo.obs_names.values
+        #         pseudo_sample_dict[i]['rna'] = rna_pseudo_network
+        #
+        #         atac_pseudo = self.atac_mt[atac_cell_use]
+        #         atac_pseudo_network = pd.DataFrame(atac_pseudo.X.todense().T)
+        #         atac_pseudo_network.index = list(atac_pseudo.var_names.values)
+        #         atac_pseudo_network.columns = atac_pseudo.obs_names.values
+        #         pseudo_sample_dict[i]['atac'] = atac_pseudo_network
+        # return pseudo_sample_dict
 
-                            rna_cell_use = random.sample(list(range(
-                                len(rna_network_cell_type))), network_cell_size)
-                            cell_name = list(rna_network_cell_type[
-                                                 rna_cell_use].obs_names)
-                            rna_cell_use = []
-                            for cell in cell_name:
-                                rna_cell_use.append(list(
-                                    self.rna_mt.obs_names).index(cell))
+    def slidewindow(self):
+        print('under development')
 
-                            atac_cell_use = random.sample(list(
-                                range(len(atac_network_cell_type))),
-                                network_cell_size)
-                            cell_name = list(atac_network_cell_type[
-                                                 atac_cell_use].obs_names)
-                            atac_cell_use = []
-                            for cell in cell_name:
-                                atac_cell_use.append(list(
-                                    self.atac_mt.obs_names).index(cell))
-
-                        key_name = str(i) + str(j)
-                        self.pseudo_network[key_name] = {'rna': [], 'atac': []}
-                        self.pseudo_network[key_name]['rna'] = rna_cell_use
-                        self.pseudo_network[key_name]['atac'] = atac_cell_use
-
-            else:
-                for i in range(network_number):
-                        #pseudo_sample_dict[i] = {'rna':[],'atac':[]}
-                        ### sample cells
-                        if data_type == 'paired':
-                            #rna_cell_use = self.rna_mt.obs_names[random.sample(range(len(self.rna_mt.obs_names)),
-                            #                                                  network_cell_size)]
-                            rna_cell_use = random.sample(list(
-                                range(len(self.rna_mt.obs_names))),
-                                network_cell_size)
-                            atac_cell_use = rna_cell_use
-
-                        if data_type == 'unpaired':
-                            #rna_cell_use = self.rna_mt.obs_names[random.sample(range(len(self.rna_mt.obs_names)),
-                            #                                                   network_cell_size)]
-                            #atac_cell_use = self.atac_mt.obs_names[random.sample(range(len(self.atac_mt.obs_names)),
-                            #                                           network_cell_size)]
-                            rna_cell_use = random.sample(list(range(
-                                len(self.rna_mt.obs_names))), network_cell_size)
-                            atac_cell_use = random.sample(list(
-                                range(len(self.atac_mt.obs_names))),
-                                network_cell_size)
-
-
-
-                        self.pseudo_network[i] = {'rna': [], 'atac': []}
-                        self.pseudo_network[i]['rna'] = rna_cell_use
-                        self.pseudo_network[i]['atac'] = atac_cell_use
-            #         ### output gene and peak matrixs
-            #
-            #         rna_pseudo = self.rna_mt[rna_cell_use]
-            #         rna_pseudo_network = pd.DataFrame(rna_pseudo.X.todense().T)
-            #         rna_pseudo_network.index = list(rna_pseudo.var_names.values)
-            #         rna_pseudo_network.columns = rna_pseudo.obs_names.values
-            #         pseudo_sample_dict[i]['rna'] = rna_pseudo_network
-            #
-            #         atac_pseudo = self.atac_mt[atac_cell_use]
-            #         atac_pseudo_network = pd.DataFrame(atac_pseudo.X.todense().T)
-            #         atac_pseudo_network.index = list(atac_pseudo.var_names.values)
-            #         atac_pseudo_network.columns = atac_pseudo.obs_names.values
-            #         pseudo_sample_dict[i]['atac'] = atac_pseudo_network
-            # return pseudo_sample_dict
-        elif method == 'slidewindow':
-            print('under development')
-
-
-
-
-
-    def cal_peak_gene_cor(self,exp_thr = 0,cor_thr = 0.6):
+    def cal_peak_gene_cor(self, exp_thr = 0, cor_thr = 0.6):
          warnings.filterwarnings('ignore')
          for network in list(self.pseudo_network.keys()):
              print(network)
@@ -610,24 +554,20 @@ class Preprocessor():
                     else:
                         cor_max_peak = peak_series.index[0]
                     #     cor_max = peak_series[0]
-                    peak_mean_count = self.peak_count[cor_max_peak][
-                        atac_cell_use].mean()
+                    mean_count = self.peak_count[cor_max_peak][atac_cell_use].mean()
                     self.peak_gene_links[network][i]['peak'] = cor_max_peak
                     # self.peak_gene_links[network][i][
                     #     'peak_correlation'] = cor_max
-                    self.peak_gene_links[network][i][
-                        'peak_mean_count'] = peak_mean_count
+                    self.peak_gene_links[network][i]['peak_mean_count'] = mean_count
                     # self.peak_gene_links[network][i][
                     #     'gene_mean_count'] = gene_mean_count
                     # self.peak_gene_links[network][i][
                     #     'related_tf'] = related_tf
                 else:
-                    self.peak_gene_links[network][i][
-                        'peak'] = None
+                    self.peak_gene_links[network][i]['peak'] = None
                     # self.peak_gene_links[network][i][
                     #     'peak_correlation'] = 0
-                    self.peak_gene_links[network][i][
-                        'peak_mean_count'] = 0
+                    self.peak_gene_links[network][i]['peak_mean_count'] = 0
                     # self.peak_gene_links[network][i][
                     #     'gene_mean_count'] = gene_mean_count
                     # self.peak_gene_links[network][i][
@@ -656,7 +596,7 @@ class Preprocessor():
         motif_score_mt = np.array(motif_score_mt)
         self.motif_enrich_score = motif_score_mt
 
-    def generate_grp(self,expressed_cell_percent_thr:int=0.05):
+    def generate_grp(self, expressed_cell_percent_thr:int = 0.05):
         ### This strategy is faster than using for
         ### loop to ilterate millions grps
         ### Basicaly, this strategy first using numpy
@@ -705,7 +645,6 @@ class Preprocessor():
         return df_use
 
     def output_pseudo_samples(self):
-
         pseudo_sample_dict = {}
         gene_all = []
         for i in list(self.peak_gene_links.keys()):
@@ -722,8 +661,6 @@ class Preprocessor():
             rna_pseudo_network = pd.DataFrame(rna_pseudo.X.todense().T)
             rna_pseudo_network.index = list(rna_pseudo.var_names.values)
             rna_pseudo_network.columns = rna_pseudo.obs_names.values
-
-
             rna_pseudo_network = rna_pseudo_network.loc[gene_all]
 
             ### first feature mean expression
@@ -733,19 +670,25 @@ class Preprocessor():
             peak_mean_count = []
             for j in gene_all:
                 if j in gene_use:
-                    count = self.peak_gene_links[i][j]['peak_mean_count']
-                    peak_mean_count.append(count)
+                    peak_mean_count.append(
+                        self.peak_gene_links[i][j]['peak_mean_count']
+                    )
                 else:
                     peak_mean_count.append(0)
-            pseudo_df = pd.DataFrame({'gene_mean_exp':list(gene_mean_exp)
-                                         ,'peak_mean_count':peak_mean_count},
-                                     index=list(gene_all))
-
-            pseudo_sample_dict[i] = pseudo_df
+            pseudo_sample_dict[i] = pd.DataFrame(
+                {
+                    'gene_mean_exp': list(gene_mean_exp),
+                    'peak_mean_count': peak_mean_count
+                },
+                index = list(gene_all)
+            )
         return pseudo_sample_dict
 
+    def __update_psNetwork(self, key, rna_cell_use, atac_cell_use):
+        assert key not in self.pseudo_network
+        self.pseudo_network[key] = {'rna': rna_cell_use, 'atac': atac_cell_use}
 
-    def __extract_expressed_tfs(self,expressed_cell_percent:int=0.05):
+    def __extract_expressed_tfs(self,expressed_cell_percent:int = 0.05):
         path = resource_filename(
             __name__, '../data/' + 'mouse' + '/Transfac201803_MotifTFsF.txt.gz'
         )
@@ -765,13 +708,11 @@ class Preprocessor():
         tf_use = tf_use[tf_use_idx]
         return tf_use
 
-
-
-
+    # R u using this?
     def __is_overlapping(self,x1, x2, y1, y2):
         return max(x1, y1) <= min(x2, y2)
 
-    def __get_target_related_tf(self,motif_score_type:str = 'mean'):
+    def __get_target_related_tf(self, motif_score_type:str = 'mean'):
         motif1 = pd.read_table(self.tf_target_db_path)
         target_tf_dict = {}
 

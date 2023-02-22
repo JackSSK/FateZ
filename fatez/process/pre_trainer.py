@@ -9,7 +9,7 @@ import torch.nn as nn
 import torch.optim as optim
 import fatez.model as model
 import fatez.model.bert as bert
-# import fatez.process.grn_encoder as grn_encoder
+
 
 
 def Set_Trainer(config:dict = None, factory_kwargs:dict = None):
@@ -89,6 +89,9 @@ class Trainer(object):
         betas:set = (0.9, 0.999),
         weight_decay:float = 0.001,
 
+        # Max norm of the gradients, to prevent gradients from exploding.
+        max_norm:float = 0.5,
+
         # Scheduler params
         sch_T_0:int = 2,
         sch_T_mult:int = 2,
@@ -123,6 +126,15 @@ class Trainer(object):
             betas = betas,
             weight_decay = weight_decay
         )
+        # self.optimizer = optim.SGD(
+        #     self.model.parameters(),
+        #     lr = lr,
+        #     betas = betas,
+        #     weight_decay = weight_decay
+        # )
+
+        # Gradient norm clipper param
+        self.max_norm = max_norm
 
         # Set scheduler
         self.scheduler = optim.lr_scheduler.CosineAnnealingWarmRestarts(
@@ -163,6 +175,7 @@ class Trainer(object):
             else:
                 loss = loss_node
             loss.backward()
+            nn.utils.clip_grad_norm_(self.model.parameters(), self.max_norm)
             self.optimizer.step()
 
             # Some logs

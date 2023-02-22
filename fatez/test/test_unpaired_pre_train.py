@@ -98,7 +98,10 @@ config = {
     },
     "fine_tuner": {
         "n_class": n_class,
-        "n_hidden": 2,
+        "clf_type": 'MLP',
+        "clf_params": {
+            "n_hidden": 2,
+        },
         "lr": lr,
         "weight_decay": 1e-3,
         "sch_T_0": 2,

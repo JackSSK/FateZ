@@ -92,13 +92,13 @@ labels = labels.to(device)
 """
 model define
 """
-model_gat = gat.GAT(
+model_gat = gat.Model(
     d_model = 2,
     en_dim = 8,
     nhead = None,
     device = device,
 )
-decison = mlp.Classifier(
+decison = mlp.Model(
     d_model = 8,
     n_hidden = 4,
     n_class = 2,

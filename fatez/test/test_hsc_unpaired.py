@@ -96,7 +96,7 @@ test_dataloader = DataLoader(
 model define
 """
 
-model_gat = gat.GAT(
+model_gat = gat.Model(
     d_model = n_features,
     en_dim = en_dim,
     nhead = gat_nhead,

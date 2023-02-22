@@ -5,11 +5,11 @@
 Examples
 ----------------
 
-Here are some examples parallel the namespace structure of FateZ.
-Each public object or function in FateZ has (or going to have) a corresponding example notebook here that demonstrates its API usage.
+Here are some examples for general usages and applying FateZ on different tasks.
+
 
 .. toctree::
     :glob:
     :maxdepth: 1
 
-    notebooks/note.ipynb
+    notebooks/*
