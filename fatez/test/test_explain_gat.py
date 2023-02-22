@@ -12,7 +12,7 @@ from fatez.tool import PreprocessIO
 import pandas as pd
 import numpy as np
 import torch.nn as nn
-from fatez.tool import model_testing
+from fatez.tool import model_training
 device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
 mlp_param = {
     'd_model': 8,
