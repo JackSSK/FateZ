@@ -60,6 +60,7 @@ num_epoch = 20
 lr = 1e-4
 test_size = 0.3
 early_stop_tolerance = 15
+pre_train_adj = True
 ##############################
 # config file
 
@@ -113,8 +114,10 @@ factory_kwargs = {'device': device, 'dtype': torch.float32,}
 
 ##############################
 data_save = True
-data_save_dir = 'D:\\Westlake\\pwk lab\\fatez\\hsc_unpaired_data_new_10000_02_5000_2500\\pre_train_model/0213'
+data_save_dir = 'D:\\Westlake\\pwk lab\\fatez\\hsc_unpaired_data_new_10000_02_5000_2500\\pre_train_model/0217_pretrain_adj'
 outgat_dir = data_save_dir+'out_gat/'
+if  pre_train_adj:
+    config['pre_trainer']['n_dim_adj'] = matrix2.shape[1]
 #os.makedirs(outgat_dir )
 """
 dataloader
@@ -177,7 +180,7 @@ pre_train_model = pre_trainer.Model(
 )
 ### adam and CosineAnnealingWarmRestarts
 optimizer = torch.optim.Adam(
-    pre_train_model.parameters()
+    pre_train_model.parameters(),
     lr = lr,
     weight_decay = 1e-3
 )
@@ -247,14 +250,6 @@ with open(data_save_dir+'loss.txt', 'w+')as f:
 
 # Save JSON one might be easier
 JSON.encode(config, data_save_dir + 'config.txt')
-with open(data_save_dir+'config.txt','w+')as f1:
-    f1.write('batch_size: '+ config['batch_size'] +'\n')
-    f1.write('num_epoch: '+ config['epoch'] +'\n')
-    f1.write('lr: '+ config['pre_trainer']['lr'] +'\n')
-    f1.write('masker_ratio: '+ config['masker']['ratio'] +'\n')
-    f1.write('gat en_dim: '+ config['gat']['params']['en_dim'] +'\n')
-    f1.write('gat nhead: '+ config['gat']['params']['nhead'] +'\n')
-    f1.write('gat n_hidden: '+ config['gat']['params']['n_hidden'] +'\n')
 """
 fine-tune traning
 """
