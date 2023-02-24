@@ -42,7 +42,7 @@ network.annotate_peaks(tss_region)
 print(network.peak_annotations['ENSMUSG00000027684'])
 print(network.peak_annotations['ENSMUSG00000015053'])
 network.make_pseudo_networks(data_type='unpaired',
-                             network_number=pseudo_cell_num_per_cell_type,
+                             specific_network_number=pseudo_cell_num_per_cell_type,
                              network_cell_size = 10)
 ### pseudo network check
 print(rna_cell_type[list(network.rna_mt[network.pseudo_network['AE0']['rna']].obs_names)])

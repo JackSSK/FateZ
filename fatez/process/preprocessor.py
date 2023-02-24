@@ -405,7 +405,7 @@ class Preprocessor():
         network_cell_size:int = 10,
         data_type:str = 'paired',
         same_cell_type = True,
-        network_number:int = 10,
+        specific_network_number = None,
         ):
         """
         Because of the sparsity of single cell data and data asymmetry,
@@ -431,6 +431,17 @@ class Preprocessor():
                 atac_data = None
                 if data_type == 'unpaired':
                     atac_data = self.atac_mt[self.atac_mt.obs.cell_types == i]
+
+                ### set pseudo sample num. when cell number of this cell type
+                ### < 1000, pseudo sample number is set as 1000. when >1000,
+                ### pseudo sample number = cell number of this cell type
+                if specific_network_number == None:
+                    if  max(len(atac_data),len(rna_data)) <1000:
+                        network_number = 1000
+                    else:
+                        network_number = max(len(atac_data),len(rna_data))
+                else:
+                    network_number = specific_network_number
                 for j in range(network_number):
                     key = str(i) + str(j)
                     rna_cell_use = random.sample(
