@@ -12,7 +12,7 @@ class Monitor:
     The monitor object for early stopping.
     """
     def __init__(self,
-        type:str = 'ACCUM',
+        type:str = 'CONTI',
         tolerance:int = 5,
         min_delta:float = 0.0
         ):
@@ -30,5 +30,7 @@ class Monitor:
             # Reset counter if not meeting criteria continuously.
             if type == 'CONTI':
                 self.counter = 0
+            elif type == 'ACCUM':
+                continue
 
         return self.counter >= self.tolerance

@@ -146,7 +146,7 @@ class LSTM(nn.Module):
         out = func.softmax(self.fc(out[:, -1, :]), dim = 1)
         return out
 
-if __name__ == '__main__':
+# if __name__ == '__main__':
     # n_fea = 100
     # en_dim = 3
     # data = torch.randn(2, n_fea, en_dim)

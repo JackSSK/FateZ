@@ -120,7 +120,7 @@ class Trainer(object):
         )
 
         # Setting the Adam optimizer with hyper-param
-        self.optimizer = optim.Adam(
+        self.optimizer = optim.AdamW(
             self.model.parameters(),
             lr = lr,
             betas = betas,
