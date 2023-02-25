@@ -63,7 +63,7 @@ class Preprocessor():
         self.peak_gene_links = dict()
         self.tf_target_db = dict()
         self.motif_enrich_score = dict()
-
+        self.gff_gene = list()
     def load_data(self,
         matrix_format:str = '10x_paired',
         debug_mode:bool = False
@@ -300,6 +300,7 @@ class Preprocessor():
     def annotate_peaks(self,tss_region=[2000,1000]):
         template = tgrn.Template_GRN(id='gff')
         template.load_genes(gff_path=self.gff_path)
+        self.gff_gene = list(template.genes.keys())
         template.load_cres()
         template.get_genetic_regions()
         annotations = dict()
@@ -468,7 +469,7 @@ class Preprocessor():
                         )
 
         else:
-            for i in range(network_number):
+            for i in range(specific_network_number):
                 #pseudo_sample_dict[i] = {'rna':[],'atac':[]}
                 ### sample cells
                 if data_type == 'paired':
@@ -621,37 +622,33 @@ class Preprocessor():
             gene_use = list(self.peak_gene_links[i].keys())
             gene_all = gene_all +gene_use
         gene_all = list(set(gene_all))
+        ### add zero matrix
+        gene_diff = np.setdiff1d(self.gff_gene, gene_all)
+        zero_mt = np.zeros((len(gene_diff),len(self.rna_mt)))
 
         ### calculate correlation between genes
         ### then melt df to get all grps
         ### correlation calculation method in numpy
         mt_use = self.rna_mt[:, gene_all]
-        mt_cor = np.corrcoef(mt_use.X.todense().T)
+        mt_use = mt_use.X.todense().T
+        mt_use = np.concatenate(mt_use,zero_mt)
+        mt_cor = np.corrcoef(mt_use)
         mt_cor_df = pd.DataFrame(mt_cor)
-        mt_cor_df.index = gene_all
-        mt_cor_df.columns = gene_all
+        mt_cor_df.index = gene_all + gene_diff
+        mt_cor_df.columns = gene_all + gene_diff
         ### extract expressed tfs
-        expressed_tfs = self.__extract_expressed_tfs(
-            expressed_cell_percent=expressed_cell_percent_thr)
-        expressed_tfs = np.intersect1d(expressed_tfs,gene_all)
-
-        #for i in list(self.peak_gene_links.keys()):
-
-            ### filter grp based on genes in pseudo cell
-            #gene_use = list(self.peak_gene_links[i].keys())
-            #df_use = mt_cor_df[gene_use]
-        df_use = mt_cor_df.loc[expressed_tfs]
-            # grp_use = all_grp.loc[all_grp['source'].isin(gene_use)]
-            # grp_use = grp_use.loc[grp_use['target'].isin(gene_use)]
-
-            # for j in gene_use:
-            #     ### filter grp based on target gene related tfs
-            #     tf_use = self.peak_gene_links[i][j]['related_tf']
-            #     tf_use = np.intersect1d(tf_use,list(df_use.index))
-            #     df_use = df_use.loc[tf_use]
-            #     # grp_use = grp_use.loc[grp_use['source'].isin(tf_use)]
-
-            #pseudo_network_grp[i] = df_use
+        # expressed_tfs = self.__extract_expressed_tfs(
+        #     expressed_cell_percent=expressed_cell_percent_thr)
+        # expressed_tfs = np.intersect1d(expressed_tfs,gene_all)
+        #
+        # df_use = mt_cor_df.loc[expressed_tfs]
+        path = resource_filename(
+            __name__, '../data/' + 'mouse' + '/Transfac201803_MotifTFsF.txt.gz'
+        )
+        ### filter tfs
+        tf_motifs = transfac.Reader(path=path).get_tfs()
+        tf_all = list(tf_motifs.keys())
+        df_use = mt_cor_df.loc[tf_all]
 
         return df_use
 
@@ -662,6 +659,8 @@ class Preprocessor():
             gene_use = list(self.peak_gene_links[i].keys())
             gene_all = gene_all + gene_use
         gene_all = list(set(gene_all))
+        gene_diff = np.setdiff1d(self.gff_gene,gene_all)
+
         for i in list(self.peak_gene_links.keys()):
             ### pseudo sample
             pseudo_sample_dict[i] = {'rna': [], 'atac': []}
@@ -672,27 +671,26 @@ class Preprocessor():
             rna_pseudo_network = pd.DataFrame(rna_pseudo.X.todense().T)
             rna_pseudo_network.index = list(rna_pseudo.var_names.values)
             rna_pseudo_network.columns = rna_pseudo.obs_names.values
+            ### whether select invariable gene
             rna_pseudo_network = rna_pseudo_network.loc[gene_all]
 
+            ### define all feature mt
+            fea_mt = pd.DataFrame(
+                {
+                    'gene_mean_exp': [0]*len(self.gff_gene),
+                    'peak_mean_count': [0]*len(self.gff_gene)
+                },
+                index=list(self.gff_gene)
+            )
             ### first feature mean expression
-            gene_mean_exp = rna_pseudo_network.mean(axis=1)
+            gene_mean_exp = pd.Series(rna_pseudo_network.mean(axis=1),
+                                      index=rna_pseudo_network.index)
 
             ### second feature  overlapped peak count
-            peak_mean_count = []
             for j in gene_all:
+                fea_mt.loc[j][0] = gene_mean_exp[j]
                 if j in gene_use:
-                    peak_mean_count.append(
-                        self.peak_gene_links[i][j]['peak_mean_count']
-                    )
-                else:
-                    peak_mean_count.append(0)
-            pseudo_sample_dict[i] = pd.DataFrame(
-                {
-                    'gene_mean_exp': list(gene_mean_exp),
-                    'peak_mean_count': peak_mean_count
-                },
-                index = list(gene_all)
-            )
+                    fea_mt.loc[j][1] = self.peak_gene_links[i][j]['peak_mean_count']
         return pseudo_sample_dict
 
     def __update_psNetwork(self, key, rna_cell_use, atac_cell_use):
@@ -745,3 +743,5 @@ class Preprocessor():
             target_tf_dict[row[4]]['score'] = motif_score
 
         self.tf_target_db = target_tf_dict
+
+
