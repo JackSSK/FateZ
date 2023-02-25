@@ -623,7 +623,7 @@ class Preprocessor():
             gene_all = gene_all +gene_use
         gene_all = list(set(gene_all))
         ### add zero matrix
-        gene_diff = np.setdiff1d(self.gff_gene, gene_all)
+        gene_diff = list(np.setdiff1d(self.gff_gene, gene_all))
         zero_mt = np.zeros((len(gene_diff),len(self.rna_mt)))
 
         ### calculate correlation between genes
@@ -631,7 +631,7 @@ class Preprocessor():
         ### correlation calculation method in numpy
         mt_use = self.rna_mt[:, gene_all]
         mt_use = mt_use.X.todense().T
-        mt_use = np.concatenate(mt_use,zero_mt)
+        mt_use = np.concatenate([mt_use,zero_mt],axis=0)
         mt_cor = np.corrcoef(mt_use)
         mt_cor_df = pd.DataFrame(mt_cor)
         mt_cor_df.index = gene_all + gene_diff
@@ -648,7 +648,10 @@ class Preprocessor():
         ### filter tfs
         tf_motifs = transfac.Reader(path=path).get_tfs()
         tf_all = list(tf_motifs.keys())
+        tf_all = list(np.intersect1d(tf_all,self.gff_gene))
         df_use = mt_cor_df.loc[tf_all]
+        df_use = df_use[self.gff_gene]
+        df_use = df_use.loc[tf_all]
 
         return df_use
 
@@ -691,6 +694,7 @@ class Preprocessor():
                 fea_mt.loc[j][0] = gene_mean_exp[j]
                 if j in gene_use:
                     fea_mt.loc[j][1] = self.peak_gene_links[i][j]['peak_mean_count']
+            pseudo_sample_dict[i] = fea_mt
         return pseudo_sample_dict
 
     def __update_psNetwork(self, key, rna_cell_use, atac_cell_use):
