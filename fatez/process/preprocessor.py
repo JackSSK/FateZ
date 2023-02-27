@@ -437,12 +437,19 @@ class Preprocessor():
                 ### < 1000, pseudo sample number is set as 1000. when >1000,
                 ### pseudo sample number = cell number of this cell type
                 if specific_network_number == None:
-                    if  max(len(atac_data),len(rna_data)) <1000:
-                        network_number = 1000
-                    else:
-                        network_number = max(len(atac_data),len(rna_data))
+                    if data_type == 'unpaired':
+                        if  max(len(atac_data.obs),len(rna_data.obs)) <1000:
+                            network_number = 1000
+                        else:
+                            network_number = max(len(atac_data), len(rna_data))
+                    elif data_type == 'paired':
+                        if  len(rna_data.obs) <1000:
+                            network_number = 1000
+                        else:
+                            network_number = len(rna_data)
                 else:
                     network_number = specific_network_number
+
                 for j in range(network_number):
                     key = str(i) + str(j)
                     rna_cell_use = random.sample(

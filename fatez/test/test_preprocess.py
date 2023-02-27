@@ -5,17 +5,13 @@ import pandas as pd
 import numpy as np
 import fatez.tool.sequence as seq
 # os.chdir("D:\\Westlake\\pwk lab\\fatez\\FateZ\\fatez\\test")
-
+import sys
 if __name__ == '__main__':
-    peak_path = ('../data/mouse/filtered_feature_bc_matrix/')
-    rna_path = ('../data/mouse/filtered_feature_bc_matrix/')
-    peak_path = ('../data/ignore/e18_mouse_brain_fresh_5k/')
-    rna_path = ('../data/ignore/e18_mouse_brain_fresh_5k/')
+    peak_path = ('E:\\public\\public_data\\10X mouse brain\\data')
+    rna_path = ('E:\\public\\public_data\\10X mouse brain\\data')
     gff_path = '../data/mouse/gencode.vM25.basic.annotation.gff3.gz'
-    tf_db_path = 'E:\\public/TF_target_tss_1500.txt.gz'
-    tf_db_path = '../data/ignore/TF_target_tss_1500.txt.gz'
-    cell_type_path = 'E:\\public\\public data\\10X\\e18_mouse_brain_fresh_5k\\e18_mouse_brain_fresh_5k_analysis\\analysis\\clustering\\gex\\graphclust/clusters.csv'
-    cell_type_path = '../data/ignore/e18_mouse_brain_fresh_5k/analysis/clustering/gex/graphclust/clusters.csv'
+    tf_db_path = 'E:\\public/TF_target_tss1500.txt.gz'
+    cell_type_path = 'E:\\public\\public_data\\10X mouse brain\\clusters.csv'
 
     ### load data
     network = pre.Preprocessor(
@@ -56,7 +52,7 @@ if __name__ == '__main__':
 
     ### pseudo cell
     t1 = time.time()
-    network.make_pseudo_networks(data_type='paired',network_number=2)
+    network.make_pseudo_networks(data_type='paired')
     t2 = time.time()
     print(t2 - t1)
     print(network.pseudo_network.keys())
@@ -69,17 +65,9 @@ if __name__ == '__main__':
 
     ### calculate correlation between gene and peak
     ### select peak with top correlation
-    t1 = time.time()
     network.cal_peak_gene_cor(exp_thr = 0.1)
     matrix1 = network.output_pseudo_samples()
-    print(matrix1['10'])
-    t2 = time.time()
-    print(t2-t1)
-    t1 = time.time()
     matrix2 = network.generate_grp()
-    t2 = time.time()
-    print(t2-t1)
-    print('network network')
-    print(len(matrix1))
-    print(len(matrix2))
+
+
     ### construct grp with expressed genes and its tfs with motif enrichment in target promoter
