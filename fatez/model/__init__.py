@@ -135,3 +135,18 @@ class Binning_Process(nn.Module):
     def forward(self, input):
         # return int(input * self.n_bin)
         return input
+
+
+
+class Position_Encoder(nn.Module):
+    """
+    Absolute positional encoding.
+    SAT tested transformer + Random Walk PE, maybe we can try as 
+    """
+
+    def __init__(self, n_features, n_dim):
+        super(Position_Encoder, self).__init__()
+        self.encoder = nn.Embedding(n_features, n_dim)
+
+    def forward(self, x):
+        return x + self.encoder(torch.arange(x.shape[1], device = x.device))
