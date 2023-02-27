@@ -123,6 +123,30 @@ class Preprocessor():
             self.rna_mt = sc.read_text(self.rna_path)
             self.atac_mt = sc.read_text(self.atac_path)
             atac_array = self.atac_mt.X.T
+        elif matrix_format == 'paired':
+            ###
+            if self.rna_path[-1] != '/': self.rna_path += '/'
+            mtx = anndata.read_mtx(self.rna_path + 'matrix.mtx.gz').T
+            gene = pd.read_table(self.rna_path + 'features.tsv.gz',
+                                 header=None)
+            barcode = pd.read_table(
+                self.rna_path + 'barcodes.tsv.gz', header=None)
+            mtx.obs_names = list(barcode[0])
+            mtx.var_names = list(gene[0])
+            self.rna_mt = mtx
+
+            ###
+            if self.atac_path[-1] !='/': self.atac_path += '/'
+            mtx_atac = anndata.read_mtx(self.atac_path +'matrix.mtx.gz').T
+            peak = pd.read_table(self.atac_path+'features.tsv.gz', header=None)
+            barcode = pd.read_table(
+                self.atac_path + 'barcodes.tsv.gz', header = None
+            )
+            mtx_atac.obs_names = list(barcode[0])
+            mtx_atac.var_names = list(peak[0])
+            self.atac_mt = mtx_atac
+            atac_array = self.atac_mt.X.toarray().T
+
 
         # ### extract chromosome start and end
         # Assertion here?

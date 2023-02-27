@@ -3,12 +3,15 @@ import numpy as np
 import os
 
 
-def output_csv_dict_df(matrix_dict, output_path):
+def output_csv_dict_df(matrix_dict, output_path,sample=None):
     for i in matrix_dict:
         df_use = matrix_dict[i]
         if output_path[-1] != '/':
             output_path = output_path + '/'
-        df_use.to_csv(output_path+i+'.csv')
+        if sample == None:
+            df_use.to_csv(output_path+i+'.csv')
+        else:
+            df_use.to_csv(output_path +sample+'#'+ i + '.csv')
 
 
 
