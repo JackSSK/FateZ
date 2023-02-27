@@ -451,7 +451,7 @@ class Preprocessor():
                     network_number = specific_network_number
 
                 for j in range(network_number):
-                    key = str(i) + str(j)
+                    key = str(i) +'_'+ str(j)
                     rna_cell_use = random.sample(
                         list(range(len(rna_data))), network_cell_size
                     )
