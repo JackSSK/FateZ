@@ -6,7 +6,6 @@ Note: Try to keep line length within 81 Chars
 
 author: jjy
 """
-import time
 
 import anndata
 import pandas as pd
@@ -126,14 +125,14 @@ class Preprocessor():
         elif matrix_format == 'paired':
             ###
             if self.rna_path[-1] != '/': self.rna_path += '/'
-            mtx = anndata.read_mtx(self.rna_path + 'matrix.mtx.gz').T
+            mtx = anndata.read_mtx(self.rna_path + 'matrix.mtx.gz')
             gene = pd.read_table(self.rna_path + 'features.tsv.gz',
                                  header=None)
             barcode = pd.read_table(
                 self.rna_path + 'barcodes.tsv.gz', header=None)
-            mtx.obs_names = list(barcode[0])
-            mtx.var_names = list(gene[0])
-            self.rna_mt = mtx
+            mtx.obs_names = list(gene[0])
+            mtx.var_names = list(barcode[0])
+            self.rna_mt = mtx.T
 
             ###
             if self.atac_path[-1] !='/': self.atac_path += '/'
@@ -325,6 +324,37 @@ class Preprocessor():
         template = tgrn.Template_GRN(id='gff')
         template.load_genes(gff_path=self.gff_path)
         self.gff_gene = list(template.genes.keys())
+        ### get symbol
+        ### id change
+        symbol_list = list()
+        for i in template.genes.keys():
+            symbol_list.append(template.genes[i].symbol)
+        id_table = pd.Series(self.gff_gene,index=symbol_list)
+        if self.rna_mt.var_names[0][0:3]!='ENS':
+            gff_intersect_gene = list(np.intersect1d(symbol_list,
+                                                     list(
+                                                         self.rna_mt.var_names)))
+            self.rna_mt = self.rna_mt[:, gff_intersect_gene]
+            ### check duplicated
+            id_use = id_table[self.rna_mt.var_names]
+            id_use = pd.Series(id_use.index,index=id_use)
+            dup_id = id_use[id_use.duplicated()].values
+            id_use = id_use[-id_use.duplicated()]
+            id_use = pd.Series(id_use.index,index=id_use)
+            print('The following genes are duplicated when change symbol to'
+                  ' ENS')
+            print(dup_id)
+
+            self.rna_mt.var_names = id_use[self.rna_mt.var_names].values
+
+        else:
+            gff_intersect_gene = list(np.intersect1d(self.gff_gene,
+                                                     list(
+                                                         self.rna_mt.var_names)))
+
+            self.rna_mt.var_names = self.rna_mt[:, gff_intersect_gene]
+
+
         template.load_cres()
         template.get_genetic_regions()
         annotations = dict()
