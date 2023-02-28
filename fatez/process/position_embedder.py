@@ -4,6 +4,11 @@ Modules for positional embedding.
 Both trainable and untrainable methods are here.
 
 author: jy
+
+ToDo:
+Randowm Walking PE not done yet.
+Pos Embed before GNN or after GNN not decided yet:
+    Current version embed after GNN since GNN should be pos sensitive
 """
 import torch
 import torch.nn as nn
