@@ -307,6 +307,14 @@ class Preprocessor():
         )
 
     def add_cell_label(self,cell_types,modality:str = 'rna'):
+
+        ### modify nonstandard cell type name
+        for i, name in enumerate(cell_types):
+            if ' ' in name:
+                cell_types[i] = cell_types[i].replace(' ', '-')
+            if '/' in name:
+                cell_types[i] = cell_types[i].replace('/', '-')
+
         if modality == 'rna':
             self.rna_mt = self.rna_mt[
                 np.intersect1d(cell_types.index, self.rna_mt.obs_names)

@@ -11,7 +11,7 @@ def output_csv_dict_df(matrix_dict, output_path,sample=None):
         if sample == None:
             df_use.to_csv(output_path+i+'.csv')
         else:
-            df_use.to_csv(output_path +sample+'#'+ i + '.csv')
+            df_use.to_csv(output_path +sample+'#' + str(i)+'.csv')
 
 
 
