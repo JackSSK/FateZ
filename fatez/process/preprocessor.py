@@ -469,6 +469,7 @@ class Preprocessor():
         data_type:str = 'paired',
         same_cell_type = True,
         specific_network_number = None,
+        network_number_thr = 1000
         ):
         """
         Because of the sparsity of single cell data and data asymmetry,
@@ -500,13 +501,14 @@ class Preprocessor():
                 ### pseudo sample number = cell number of this cell type
                 if specific_network_number == None:
                     if data_type == 'unpaired':
-                        if  max(len(atac_data.obs),len(rna_data.obs)) <1000:
-                            network_number = 1000
+                        if  max(len(atac_data.obs),
+                                len(rna_data.obs)) < network_number_thr:
+                            network_number = network_number_thr
                         else:
                             network_number = max(len(atac_data), len(rna_data))
                     elif data_type == 'paired':
-                        if  len(rna_data.obs) <1000:
-                            network_number = 1000
+                        if  len(rna_data.obs) <network_number_thr:
+                            network_number = network_number_thr
                         else:
                             network_number = len(rna_data)
                 else:
