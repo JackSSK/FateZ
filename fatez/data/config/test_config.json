@@ -17,7 +17,7 @@
     "pos_embedder": {
         "type": "ABS",
         "params": {
-            "n_features": 4,
+            "n_embed": 4,
             "n_dim": 3
         }
     },

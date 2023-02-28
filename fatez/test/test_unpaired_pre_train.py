@@ -73,19 +73,21 @@ config = {
             "d_model": n_features,  # Feature dim
             "en_dim": 4,            # Embed dimension output by GAT
             "n_hidden": 2,          # Number of hidden units in GAT
-            "nhead": 0               # Number of attention heads in GAT
+            "nhead": 0              # Number of attention heads in GAT
         }
     },
     "encoder": {
         "d_model": 4,               # == gat params en_dim
         "n_layer": 6,               # Number of Encoder Layers
-        "nhead": 4,                  # Attention heads
-        "dim_feedforward": 4         # Dimension of the feedforward network model.
+        "nhead": 4,                 # Attention heads
+        "dim_feedforward": 4        # Dimension of the feedforward network model.
     },
     "pos_embedder": {
-        "type": "Skip",
+        "type": "Skip",             # Not using any positional embedding method
+        # "type": "ABS",              # Absolute positional embedding
         "params": {
-            "n_features": 100
+            "n_embed": 100,         # Number of TFs
+            "n_dim": n_features,
         }
     },
     "masker": {

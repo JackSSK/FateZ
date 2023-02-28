@@ -50,15 +50,15 @@ class Absolute_Encode(nn.Module):
     Absolute positional encoding.
     """
     def __init__(self,
-        n_features,
-        n_dim,
+        n_embed:int = None,
+        n_dim:int = None,
         device:str = 'cpu',
         dtype:type = torch.float32,
         **kwargs
         ):
         super(Absolute_Encode, self).__init__()
         self.encoder = nn.Embedding(
-            num_embeddings = n_features,
+            num_embeddings = n_embed,
             embedding_dim = n_dim,
             dtype = dtype
         )
