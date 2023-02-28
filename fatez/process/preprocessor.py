@@ -744,7 +744,8 @@ class Preprocessor():
                     'gene_mean_exp': [0]*len(self.gff_gene),
                     'peak_mean_count': [0]*len(self.gff_gene)
                 },
-                index=list(self.gff_gene)
+                index=list(self.gff_gene),
+                dtype='float64'
             )
             ### first feature mean expression
             gene_mean_exp = pd.Series(rna_pseudo_network.mean(axis=1),
