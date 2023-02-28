@@ -6,14 +6,11 @@ author: jy, nkmtmsys
 """
 import re
 import tqdm
-import random
 import torch
 import torch.nn as nn
-from torch.optim import Adam
 from torch.utils.data import DataLoader
 import numpy as np
 from sklearn import cluster, datasets, mixture
-import fatez.model.gat as gat
 
 
 class Error(Exception):
@@ -62,55 +59,6 @@ def Load(file_path:str = 'a.model', mode:str = 'torch', device:str = 'cpu',):
         raise Error('Not Supporting Load Mode ' + mode)
     return model
 
-def Set_GAT(config:dict = None, factory_kwargs:dict = None):
-    """
-    Set up GAT model based on given config.
-    """
-    if config['gat']['type'] == 'GAT':
-        return gat.Model(**config['gat']['params'], **factory_kwargs)
-    elif config['gat']['type'] == 'SGAT':
-        return gat.Sparse_Model(**config['gat']['params'], **factory_kwargs)
-    else:
-        raise model.Error('Unknown GAT type')
-
-
-
-class Masker(object):
-    """
-    Make masks for BERT encoder input.
-    """
-    def __init__(self, ratio, seed = None):
-        super(Masker, self).__init__()
-        self.ratio = ratio
-        self.seed = seed
-        self.choices = None
-
-    def make_2d_mask(self, size, ):
-        # Set random seed
-        if self.seed is not None:
-            random.seed(self.seed)
-            self.seed += 1
-        # Make tensors
-        answer = torch.ones(size)
-        mask = torch.zeros(size[-1])
-        # Set random choices to mask
-        choices = random.choices(range(size[-2]), k = int(size[-2]*self.ratio))
-        assert choices is not None
-        self.choices = choices
-        # Make mask
-        for ind in choices:
-            answer[ind] = mask
-        return answer
-
-    def mask(self, input, factory_kwargs = None):
-        mask = self.make_2d_mask(input[0].size())
-        if factory_kwargs is not None:
-            mask = mask.to(factory_kwargs['device'])
-        try:
-            return torch.multiply(input, mask)
-        except:
-            raise Error('Something else is wrong')
-
 
 
 class Binning_Process(nn.Module):
@@ -121,7 +69,7 @@ class Binning_Process(nn.Module):
     Clustering is way too comp expensive.
     """
 
-    def __init__(self, n_bin, config = None):
+    def __init__(self, n_bin = None, config = None, **kwargs):
         super(Binning_Process, self).__init__()
         self.n_bin = n_bin
         # self.config = config
@@ -135,18 +83,3 @@ class Binning_Process(nn.Module):
     def forward(self, input):
         # return int(input * self.n_bin)
         return input
-
-
-
-class Position_Encoder(nn.Module):
-    """
-    Absolute positional encoding.
-    SAT tested transformer + Random Walk PE, maybe we can try as 
-    """
-
-    def __init__(self, n_features, n_dim):
-        super(Position_Encoder, self).__init__()
-        self.encoder = nn.Embedding(n_features, n_dim)
-
-    def forward(self, x):
-        return x + self.encoder(torch.arange(x.shape[1], device = x.device))

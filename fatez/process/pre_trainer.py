@@ -4,15 +4,18 @@ Pre-train model with unlabeled data
 
 author: jy, nkmtmsys
 """
+import random
 import torch
 import torch.nn as nn
 import torch.optim as optim
 import fatez.model as model
+import fatez.model.gat as gat
 import fatez.model.bert as bert
+import fatez.process.position_embedder as pe
 
 
 
-def Set_Trainer(config:dict = None, factory_kwargs:dict = None):
+def Set(config:dict = None, factory_kwargs:dict = None):
     """
     Set up a Trainer object based on given config file
 
@@ -20,13 +23,51 @@ def Set_Trainer(config:dict = None, factory_kwargs:dict = None):
         Do NOT use this method if loading pre-trained models.
     """
     return Trainer(
-        gat = model.Set_GAT(config, factory_kwargs),
+        gat = gat.Set(config, factory_kwargs),
         encoder = bert.Encoder(**config['encoder'], **factory_kwargs),
-        masker = model.Masker(**config['masker']),
-        bin_pro = model.Binning_Process(**config['bin_pro']),
+        masker = Masker(**config['masker']),
+        pos_embedder = pe.Set(config, factory_kwargs),
         **config['pre_trainer'],
         **factory_kwargs,
     )
+
+
+
+class Masker(object):
+    """
+    Make masks for BERT encoder input.
+    """
+    def __init__(self, ratio, seed = None):
+        super(Masker, self).__init__()
+        self.ratio = ratio
+        self.seed = seed
+        self.choices = None
+
+    def make_2d_mask(self, size, ):
+        # Set random seed
+        if self.seed is not None:
+            random.seed(self.seed)
+            self.seed += 1
+        # Make tensors
+        answer = torch.ones(size)
+        mask = torch.zeros(size[-1])
+        # Set random choices to mask
+        choices = random.choices(range(size[-2]), k = int(size[-2]*self.ratio))
+        assert choices is not None
+        self.choices = choices
+        # Make mask
+        for ind in choices:
+            answer[ind] = mask
+        return answer
+
+    def mask(self, input, factory_kwargs = None):
+        mask = self.make_2d_mask(input[0].size())
+        if factory_kwargs is not None:
+            mask = mask.to(factory_kwargs['device'])
+        try:
+            return torch.multiply(input, mask)
+        except:
+            raise Error('Something else is wrong')
 
 
 
@@ -36,8 +77,8 @@ class Model(nn.Module):
     """
     def __init__(self,
         gat = None,
-        masker:model.Masker = None,
-        bin_pro:model.Binning_Process = None,
+        masker:Masker = None,
+        pos_embedder = None,
         bert_model:bert.Pre_Train_Model = None,
         device:str = 'cpu',
         dtype:str = None,
@@ -48,11 +89,11 @@ class Model(nn.Module):
         self.bert_model = bert_model.to(self.factory_kwargs['device'])
         self.encoder = self.bert_model.encoder.to(self.factory_kwargs['device'])
         self.masker = masker
-        self.bin_pro= bin_pro
+        self.pos_embedder= pos_embedder
 
     def forward(self, fea_mats, adj_mats,):
         output = self.gat(fea_mats, adj_mats)
-        output = self.bin_pro(output)
+        output = self.pos_embedder(output)
         output = self.masker.mask(output, factory_kwargs = self.factory_kwargs)
         output = self.bert_model(output,)
         return output
@@ -60,13 +101,13 @@ class Model(nn.Module):
     def get_gat_output(self, fea_mats, adj_mats,):
         with torch.no_grad():
             output = self.gat.eval()(fea_mats, adj_mats)
-            output = self.bin_pro(output)
+            output = self.pos_embedder(output)
         return output
 
     def get_encoder_output(self, fea_mats, adj_mats,):
         with torch.no_grad():
             output = self.gat.eval()(fea_mats, adj_mats)
-            output = self.bin_pro(output)
+            output = self.pos_embedder(output)
             output = self.bert_model.encoder.eval()(output)
         return output
 
@@ -80,8 +121,8 @@ class Trainer(object):
         # Models to take
         gat = None,
         encoder:bert.Encoder = None,
-        masker:model.Masker = None,
-        bin_pro:model.Binning_Process = None,
+        masker:Masker = None,
+        pos_embedder = None,
         n_dim_adj:int = None,
 
         # Adam optimizer settings
@@ -109,7 +150,7 @@ class Trainer(object):
         self.model = Model(
             gat = gat,
             masker = masker,
-            bin_pro = bin_pro,
+            pos_embedder = pos_embedder,
             bert_model = bert.Pre_Train_Model(
                 encoder = encoder,
                 n_dim_node = gat.d_model,

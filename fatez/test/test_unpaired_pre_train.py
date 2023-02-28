@@ -82,8 +82,11 @@ config = {
         "nhead": 4,                  # Attention heads
         "dim_feedforward": 4         # Dimension of the feedforward network model.
     },
-    "bin_pro": {
-        "n_bin": 100
+    "pos_embedder": {
+        "type": "Skip",
+        "params": {
+            "n_features": 100
+        }
     },
     "masker": {
         "ratio": 0.15
@@ -148,11 +151,11 @@ pretrain_dataloader = DataLoader(
 model define
 Code below should looks more explicit
 """
-pre_train_model = pre_trainer.Set_Trainer(config, factory_kwargs)
+pre_train_model = pre_trainer.Set(config, factory_kwargs)
 test_model = fine_tuner.Tuner(
     gat = pre_train_model.model.gat,
     encoder = pre_train_model.model.encoder,
-    bin_pro = pre_train_model.model.bin_pro,
+    pos_embedder = pre_train_model.model.pos_embedder,
     **config['fine_tuner'],
     **factory_kwargs,
 ).model
@@ -165,7 +168,7 @@ These parts won't be needed later
 """
 test_model = fine_tuner.Model(
     gat = pre_train_model.model.gat,
-    bin_pro = pre_train_model.model.bin_pro,
+    pos_embedder = pre_train_model.model.pos_embedder,
     bert_model = bert.Fine_Tune_Model(
         encoder = pre_train_model.model.encoder,
         n_class = n_class,
@@ -177,7 +180,7 @@ test_model = fine_tuner.Model(
 pre_train_model = pre_trainer.Model(
     gat = pre_train_model.model.gat,
     masker = pre_train_model.model.masker,
-    bin_pro = pre_train_model.model.bin_pro,
+    pos_embedder = pre_train_model.model.pos_embedder,
     bert_model = pre_train_model.model.bert_model,
     device = device,
 )

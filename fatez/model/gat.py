@@ -10,6 +10,21 @@ import torch
 import torch.nn as nn
 import torch.optim as optim
 import torch.nn.functional as F
+import fatez.model as model
+
+
+
+def Set(config:dict = None, factory_kwargs:dict = None):
+    """
+    Set up GAT model based on given config.
+    """
+    if config['gat']['type'] == 'GAT':
+        return Model(**config['gat']['params'], **factory_kwargs)
+    elif config['gat']['type'] == 'SGAT':
+        return Sparse_Model(**config['gat']['params'], **factory_kwargs)
+    else:
+        raise model.Error('Unknown GAT type')
+
 
 
 def _prepare_attentions(e_values, adj_mat):
@@ -36,6 +51,8 @@ def _prepare_attentions(e_values, adj_mat):
     attention = attention.masked_fill(attention == 0, float(-9e15))
     attention = F.softmax(attention, dim = 1)
     return attention
+
+
 
 def Get_Attention(fea_mat, adj_mat, weights, a_values, out_dim):
     """

@@ -15,7 +15,7 @@ import fatez.model as model
 import fatez.model.gat as gat
 import fatez.model.bert as bert
 import fatez.process.fine_tuner as fine_tuner
-
+import fatez.process.position_embedder as pe
 from sklearn.model_selection import train_test_split
 
 """
@@ -112,7 +112,7 @@ bert_encoder = bert.Encoder(
 )
 test_model = fine_tuner.Model(
     gat = model_gat,
-    bin_pro = model.Binning_Process(n_bin = 100),
+    pos_embedder = pe.Skip(),
     bert_model = bert.Fine_Tune_Model(
         bert_encoder,
         n_class = n_class,

@@ -9,12 +9,15 @@ import torch.nn as nn
 import torch.optim as optim
 import fatez.model as model
 import fatez.model.mlp as mlp
+import fatez.model.gat as gat
 import fatez.model.cnn as cnn
 import fatez.model.rnn as rnn
 import fatez.model.bert as bert
+import fatez.process.position_embedder as pe
 
 
-def Set_Tuner(config:dict = None, factory_kwargs:dict = None):
+
+def Set(config:dict = None, factory_kwargs:dict = None):
     """
     Set up a Tuner object based on given config file
 
@@ -22,12 +25,13 @@ def Set_Tuner(config:dict = None, factory_kwargs:dict = None):
         Do NOT use this method if loading pre-trained models.
     """
     return Tuner(
-        gat = model.Set_GAT(config, factory_kwargs),
+        gat = gat.Set(config, factory_kwargs),
         encoder = bert.Encoder(**config['encoder'], **factory_kwargs),
-        bin_pro = model.Binning_Process(**config['bin_pro']),
+        pos_embedder = pe.Set(config, factory_kwargs),
         **config['fine_tuner'],
         **factory_kwargs,
     )
+
 
 
 class Model(nn.Module):
@@ -37,7 +41,7 @@ class Model(nn.Module):
     """
     def __init__(self,
         gat = None,
-        bin_pro:model.Binning_Process = None,
+        pos_embedder = None,
         bert_model:bert.Fine_Tune_Model = None,
         device:str = 'cpu',
         dtype:str = None,
@@ -47,24 +51,24 @@ class Model(nn.Module):
         self.gat = gat.to(self.factory_kwargs['device'])
         self.bert_model = bert_model.to(self.factory_kwargs['device'])
         self.encoder = self.bert_model.encoder.to(self.factory_kwargs['device'])
-        self.bin_pro= bin_pro
+        self.pos_embedder= pos_embedder
 
     def forward(self, fea_mats, adj_mats):
         output = self.gat(fea_mats, adj_mats)
-        output = self.bin_pro(output)
+        output = self.pos_embedder(output)
         output = self.bert_model(output)
         return output
 
     def get_gat_output(self, fea_mats, adj_mats,):
         with torch.no_grad():
             output = self.gat.eval()(fea_mats, adj_mats)
-            output = self.bin_pro(output)
+            output = self.pos_embedder(output)
         return output
 
     def get_encoder_output(self, fea_mats, adj_mats,):
         with torch.no_grad():
             output = self.gat.eval()(fea_mats, adj_mats)
-            output = self.bin_pro(output)
+            output = self.pos_embedder(output)
             output = self.bert_model.encoder.eval()(output)
         return output
 
@@ -77,7 +81,7 @@ class Tuner(object):
         # Models to take
         gat = None,
         encoder:bert.Encoder = None,
-        bin_pro:model.Binning_Process = None,
+        pos_embedder = None,
         clf_type:str = 'MLP',
         clf_params:dict = {'n_hidden': 2},
         n_class:int = 100,
@@ -108,7 +112,7 @@ class Tuner(object):
         self.factory_kwargs = {'device': device, 'dtype': dtype}
         self.model = Model(
             gat = gat,
-            bin_pro = bin_pro,
+            pos_embedder = pos_embedder,
             bert_model = bert.Fine_Tune_Model(
                 encoder = encoder,
                 classifier = self.__set_classifier(

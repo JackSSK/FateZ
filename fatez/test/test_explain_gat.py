@@ -12,6 +12,7 @@ import pandas as pd
 import numpy as np
 import torch.nn as nn
 from fatez.tool import model_training
+import fatez.process.position_embedder as pe
 device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
 mlp_param = {
     'd_model': 8,
@@ -29,7 +30,7 @@ out_gat = JSON.decode('D:\\Westlake\\pwk lab\\fatez\\gat_gradient\\nhead0_nhidde
 # gat_model = torch.load('../data/ignore/gat.model')
 # fine_tuning = fine_tuner.Model(
 #     gat = gat_model,
-#     bin_pro = model.Binning_Process(n_bin = 100),
+#     pos_embedder = pe.Skip(n_features = 100),
 #     bert_model = bert.Fine_Tune_Model(bert_encoder, n_class = 2)
 # )
 # fine_tuning = bert.Fine_Tune_Model(bert_encoder, n_class = 2)

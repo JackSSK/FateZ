@@ -14,8 +14,11 @@
         "nhead": 3,
         "dim_feedforward": 3
     },
-    "bin_pro": {
-        "n_bin": 100
+    "pos_embedder": {
+        "type": "Skip",
+        "params": {
+            "n_features": 100
+        }
     },
     "masker": {
         "ratio": 0.5

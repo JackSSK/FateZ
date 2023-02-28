@@ -16,6 +16,7 @@ from transformers import AdamW
 from torch.utils.data import DataLoader
 import random
 import fatez.lib as lib
+import fatez.process.position_embedder as pe
 ### preprocess parameters
 pseudo_cell_num_per_cell_type = 2
 correlation_thr_to_get_gene_related_peak = 0.6
@@ -116,7 +117,7 @@ bert_encoder = bert.Encoder(
 )
 test_model = fine_tuner.Model(
     gat = model_gat,
-    bin_pro = model.Binning_Process(n_bin = 100),
+    pos_embedder = pe.Skip(n_features = 100),
     bert_model = bert.Fine_Tune_Model(bert_encoder, n_class = 2)
 )
 optimizer = torch.optim.Adam(test_model.parameters(),

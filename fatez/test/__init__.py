@@ -15,6 +15,7 @@ import fatez.tool.gff as gff
 import fatez.tool.JSON as JSON
 import fatez.model as model
 import fatez.model.mlp as mlp
+import fatez.model.gat as gat
 import fatez.process.explainer as explainer
 import fatez.process.fine_tuner as fine_tuner
 import fatez.process.pre_trainer as pre_trainer
@@ -174,7 +175,7 @@ class Faker(object):
         # Initialize
         data_loader = self.make_data_loader()
         if config is None: config = self.config
-        gat_model = model.Set_GAT(config, self.factory_kwargs)
+        gat_model = gat.Set(config, self.factory_kwargs)
         if decision is None:
             mlp_param = {
                 'd_model': self.config['gat']['params']['en_dim'],
@@ -218,7 +219,7 @@ class Faker(object):
         if config is None: config = self.config
 
         # Pre-train part
-        trainer = pre_trainer.Set_Trainer(config, self.factory_kwargs)
+        trainer = pre_trainer.Set(config, self.factory_kwargs)
         pt_loss = trainer.train(data_loader)
         print(f'\tPre-Trainer Green.\n')
 
@@ -226,7 +227,7 @@ class Faker(object):
         tuner = fine_tuner.Tuner(
             gat = trainer.model.gat,
             encoder = trainer.model.encoder,
-            bin_pro = trainer.model.bin_pro,
+            pos_embedder = trainer.model.pos_embedder,
             **config['fine_tuner'],
             **self.factory_kwargs,
         )
