@@ -44,14 +44,23 @@ class Absolute_Encode(nn.Module):
     """
     Absolute positional encoding.
     """
-    def __init__(self, n_features, n_dim, **kwargs):
-        super(Position_Encoder, self).__init__()
-        self.encoder = nn.Embedding(n_features, n_dim)
-
-    def forward(self, x, feature_ind:int = 1):
-        return x + self.encoder(
-            torch.arange(x.shape[feature_ind], device = x.device)
+    def __init__(self,
+        n_features,
+        n_dim,
+        device:str = 'cpu',
+        dtype:type = torch.float32,
+        **kwargs
+        ):
+        super(Absolute_Encode, self).__init__()
+        self.encoder = nn.Embedding(
+            num_embeddings = n_features,
+            embedding_dim = n_dim,
+            dtype = dtype
         )
+        self.factory_kwargs = {'device': device, 'dtype': dtype,}
+
+    def forward(self, x, fea_ind:int = 1):
+        return x + self.encoder(torch.arange(x.shape[fea_ind], device=x.device))
 
 
 

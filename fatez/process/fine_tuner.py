@@ -40,35 +40,39 @@ class Model(nn.Module):
     needs of XAI mechanism.
     """
     def __init__(self,
-        gat = None,
         pos_embedder = None,
+        gat = None,
         bert_model:bert.Fine_Tune_Model = None,
         device:str = 'cpu',
         dtype:str = None,
         ):
         super(Model, self).__init__()
         self.factory_kwargs = {'device': device, 'dtype': dtype}
+        self.pos_embedder = pos_embedder.to(self.factory_kwargs['device'])
         self.gat = gat.to(self.factory_kwargs['device'])
         self.bert_model = bert_model.to(self.factory_kwargs['device'])
         self.encoder = self.bert_model.encoder.to(self.factory_kwargs['device'])
-        self.pos_embedder= pos_embedder
+
 
     def forward(self, fea_mats, adj_mats):
+        # Will need to revise this if pos embed after GAT
+        # fea_mats = self.pos_embedder(fea_mats)
         output = self.gat(fea_mats, adj_mats)
-        output = self.pos_embedder(output)
         output = self.bert_model(output)
         return output
 
     def get_gat_output(self, fea_mats, adj_mats,):
         with torch.no_grad():
+            # Will need to revise this if pos embed after GAT
+            # fea_mats = self.pos_embedder.eval()(fea_mats)
             output = self.gat.eval()(fea_mats, adj_mats)
-            output = self.pos_embedder(output)
         return output
 
     def get_encoder_output(self, fea_mats, adj_mats,):
         with torch.no_grad():
+            # Will need to revise this if pos embed after GAT
+            # fea_mats = self.pos_embedder.eval()(fea_mats)
             output = self.gat.eval()(fea_mats, adj_mats)
-            output = self.pos_embedder(output)
             output = self.bert_model.encoder.eval()(output)
         return output
 
@@ -115,6 +119,8 @@ class Tuner(object):
             pos_embedder = pos_embedder,
             bert_model = bert.Fine_Tune_Model(
                 encoder = encoder,
+                # Will need to take this away if embed before GAT.
+                pos_embedder = pos_embedder,
                 classifier = self.__set_classifier(
                     n_dim = encoder.d_model,
                     n_class = n_class,

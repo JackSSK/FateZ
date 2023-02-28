@@ -13,9 +13,8 @@ import torch.nn.functional as F
 from torch.nn import LayerNorm
 from torch.nn import TransformerEncoder
 from torch.nn import TransformerEncoderLayer
-
 import fatez.model.mlp as mlp
-
+import fatez.process.position_embedder as pe
 
 class Encoder(nn.Module):
     """
@@ -110,6 +109,7 @@ class Pre_Train_Model(nn.Module):
     """
     def __init__(self,
         encoder:Encoder = None,
+        pos_embedder = pe.Skip(),
         n_dim_node:int = 2,
         n_dim_adj:int = None,
         device:str = 'cpu',
@@ -146,8 +146,11 @@ class Pre_Train_Model(nn.Module):
                 **self.factory_kwargs
             ).to(self.factory_kwargs['device'])
 
+        self.pos_embedder = pos_embedder.to(self.factory_kwargs['device'])
+
     def forward(self, input, mask = None):
-        embed_rep = self.encoder(input, mask)
+        output = self.pos_embedder(input)
+        embed_rep = self.encoder(output, mask)
         node_mat = self.recon_node(embed_rep)
 
         if self.recon_adj is not None:
@@ -165,6 +168,7 @@ class Fine_Tune_Model(nn.Module):
     """
     def __init__(self,
         encoder:Encoder = None,
+        pos_embedder = pe.Skip(),
         classifier = None,
         device:str = 'cpu',
         dtype:str = None,
@@ -180,8 +184,10 @@ class Fine_Tune_Model(nn.Module):
         self.factory_kwargs = {'device': device, 'dtype': dtype,}
         self.encoder = encoder.to(self.factory_kwargs['device'])
         self.classifier = classifier.to(self.factory_kwargs['device'])
+        self.pos_embedder = pos_embedder.to(self.factory_kwargs['device'])
 
     def forward(self, input, mask = None):
-        output = self.encoder(input, mask)
+        output = self.pos_embedder(input)
+        output = self.encoder(output, mask)
         output = self.classifier(output)
         return output

@@ -15,9 +15,10 @@
         "dim_feedforward": 3
     },
     "pos_embedder": {
-        "type": "Skip",
+        "type": "ABS",
         "params": {
-            "n_features": 100
+            "n_features": 4,
+            "n_dim": 3
         }
     },
     "masker": {
