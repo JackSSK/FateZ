@@ -20,9 +20,9 @@ def Set(config:dict = None, factory_kwargs:dict = None):
     """
     Set up positional embedder based on given config.
     """
-    if config['pos_embedder']['type'] == 'Skip':
+    if config['pos_embedder']['type'].upper() == 'SKIP':
         return Skip()
-    elif config['pos_embedder']['type'] == 'ABS':
+    elif config['pos_embedder']['type'].upper() == 'ABS':
         return Absolute_Encode(
             **config['pos_embedder']['params'], **factory_kwargs
         )
