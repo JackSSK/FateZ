@@ -25,9 +25,10 @@ def Set(config:dict = None, factory_kwargs:dict = None):
         Do NOT use this method if loading pre-trained models.
     """
     return Tuner(
-        gat = gat.Set(config, factory_kwargs),
+        gat = gat.Set(config['gat'], factory_kwargs),
         encoder = bert.Encoder(**config['encoder'], **factory_kwargs),
-        pos_embedder = pe.Set(config, factory_kwargs),
+        graph_embedder = pe.Set(config['graph_embedder'], factory_kwargs),
+        rep_embedder = pe.Set(config['rep_embedder'], factory_kwargs),
         **config['fine_tuner'],
         **factory_kwargs,
     )
@@ -40,7 +41,7 @@ class Model(nn.Module):
     needs of XAI mechanism.
     """
     def __init__(self,
-        pos_embedder = None,
+        graph_embedder = None,
         gat = None,
         bert_model:bert.Fine_Tune_Model = None,
         device:str = 'cpu',
@@ -48,31 +49,26 @@ class Model(nn.Module):
         ):
         super(Model, self).__init__()
         self.factory_kwargs = {'device': device, 'dtype': dtype}
-        self.pos_embedder = pos_embedder.to(self.factory_kwargs['device'])
+        self.graph_embedder = graph_embedder.to(self.factory_kwargs['device'])
         self.gat = gat.to(self.factory_kwargs['device'])
         self.bert_model = bert_model.to(self.factory_kwargs['device'])
-        self.encoder = self.bert_model.encoder.to(self.factory_kwargs['device'])
-
 
     def forward(self, fea_mats, adj_mats):
-        # Will need to revise this if pos embed after GAT
-        # fea_mats = self.pos_embedder(fea_mats)
-        output = self.gat(fea_mats, adj_mats)
+        output = self.graph_embedder(fea_mats, adj = adj_mats)
+        output = self.gat(output, adj_mats)
         output = self.bert_model(output)
         return output
 
     def get_gat_output(self, fea_mats, adj_mats,):
         with torch.no_grad():
-            # Will need to revise this if pos embed after GAT
-            # fea_mats = self.pos_embedder.eval()(fea_mats)
-            output = self.gat.eval()(fea_mats, adj_mats)
+            output = self.graph_embedder.eval()(fea_mats, adj = adj_mats)
+            output = self.gat.eval()(output, adj_mats)
         return output
 
     def get_encoder_output(self, fea_mats, adj_mats,):
         with torch.no_grad():
-            # Will need to revise this if pos embed after GAT
-            # fea_mats = self.pos_embedder.eval()(fea_mats)
-            output = self.gat.eval()(fea_mats, adj_mats)
+            output = self.graph_embedder.eval()(fea_mats, adj = adj_mats)
+            output = self.gat.eval()(output, adj_mats)
             output = self.bert_model.encoder.eval()(output)
         return output
 
@@ -85,7 +81,8 @@ class Tuner(object):
         # Models to take
         gat = None,
         encoder:bert.Encoder = None,
-        pos_embedder = None,
+        graph_embedder = pe.Skip(),
+        rep_embedder = pe.Skip(),
         clf_type:str = 'MLP',
         clf_params:dict = {'n_hidden': 2},
         n_class:int = 100,
@@ -116,11 +113,11 @@ class Tuner(object):
         self.factory_kwargs = {'device': device, 'dtype': dtype}
         self.model = Model(
             gat = gat,
-            pos_embedder = pos_embedder,
+            graph_embedder = graph_embedder,
             bert_model = bert.Fine_Tune_Model(
                 encoder = encoder,
                 # Will need to take this away if embed before GAT.
-                pos_embedder = pos_embedder,
+                rep_embedder = rep_embedder,
                 classifier = self.__set_classifier(
                     n_dim = encoder.d_model,
                     n_class = n_class,

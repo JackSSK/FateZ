@@ -20,16 +20,16 @@ def Set(config:dict = None, factory_kwargs:dict = None):
     """
     Set up positional embedder based on given config.
     """
-    if config['pos_embedder']['type'].upper() == 'SKIP':
+    if config['type'].upper() == 'SKIP':
         return Skip()
-    elif config['pos_embedder']['type'].upper() == 'ABS':
+    elif config['type'].upper() == 'ABS':
         return Absolute_Encode(
-            **config['pos_embedder']['params'], **factory_kwargs
+            **config['params'], **factory_kwargs
         )
-    elif config['pos_embedder']['type'] == 'ABS':
+    elif config['type'] == 'ABS':
         return
     else:
-        raise model.Error(f'Unknown pos_embedder type')
+        raise model.Error(f'Unknown rep_embedder type')
 
 
 
@@ -40,7 +40,7 @@ class Skip(nn.Module):
     def __init__(self, **kwargs):
         super(Skip, self).__init__()
 
-    def forward(self, input):
+    def forward(self, input, **kwargs):
         return input
 
 
@@ -64,7 +64,7 @@ class Absolute_Encode(nn.Module):
         )
         self.factory_kwargs = {'device': device, 'dtype': dtype,}
 
-    def forward(self, x, fea_ind:int = 1):
+    def forward(self, x, fea_ind:int = 1, **kwargs):
         return x + self.encoder(torch.arange(x.shape[fea_ind], device=x.device))
 
 

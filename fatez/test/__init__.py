@@ -2,6 +2,9 @@
 """
 Test script to make sure FateZ working properly
 
+ToDo:
+Need to revise explainary mechanism if using graph embedder
+
 author: jy
 """
 import shap
@@ -19,6 +22,7 @@ import fatez.model.gat as gat
 import fatez.process.explainer as explainer
 import fatez.process.fine_tuner as fine_tuner
 import fatez.process.pre_trainer as pre_trainer
+import fatez.process.position_embedder as pe
 from pkg_resources import resource_filename
 
 
@@ -175,7 +179,8 @@ class Faker(object):
         # Initialize
         data_loader = self.make_data_loader()
         if config is None: config = self.config
-        gat_model = gat.Set(config, self.factory_kwargs)
+        graph_embedder = pe.Skip()
+        gat_model = gat.Set(config['gat'], self.factory_kwargs)
         if decision is None:
             mlp_param = {
                 'd_model': self.config['gat']['params']['en_dim'],
@@ -186,12 +191,17 @@ class Faker(object):
 
         # Using data loader to train
         for input, label in data_loader:
-            out_gat = gat_model(input[0], input[1])
+            output = graph_embedder(input[0], input[1])
+            out_gat = gat_model(output, input[1])
             output = decision(out_gat)
             loss = nn.CrossEntropyLoss()(output, label)
             loss.backward()
         print(f'\tGAT Green.\n')
 
+
+        """
+        Need to revise explainary mechanism if using graph embedder
+        """
         gat_explain = gat_model.explain(input[0][0], input[1][0])
         # print(gat_explain)
         explain = shap.GradientExplainer(decision, out_gat)
@@ -226,8 +236,9 @@ class Faker(object):
         # Fine tune part
         tuner = fine_tuner.Tuner(
             gat = trainer.model.gat,
-            encoder = trainer.model.encoder,
-            pos_embedder = trainer.model.pos_embedder,
+            encoder = trainer.model.bert_model.encoder,
+            graph_embedder = trainer.model.graph_embedder,
+            rep_embedder = trainer.model.bert_model.rep_embedder,
             **config['fine_tuner'],
             **self.factory_kwargs,
         )

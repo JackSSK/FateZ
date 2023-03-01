@@ -23,10 +23,11 @@ def Set(config:dict = None, factory_kwargs:dict = None):
         Do NOT use this method if loading pre-trained models.
     """
     return Trainer(
-        gat = gat.Set(config, factory_kwargs),
+        gat = gat.Set(config['gat'], factory_kwargs),
         encoder = bert.Encoder(**config['encoder'], **factory_kwargs),
         masker = Masker(**config['masker']),
-        pos_embedder = pe.Set(config, factory_kwargs),
+        graph_embedder = pe.Set(config['graph_embedder'], factory_kwargs),
+        rep_embedder = pe.Set(config['rep_embedder'], factory_kwargs),
         **config['pre_trainer'],
         **factory_kwargs,
     )
@@ -76,42 +77,38 @@ class Model(nn.Module):
     Full model for pre-training.
     """
     def __init__(self,
+        graph_embedder = None,
         gat = None,
         masker:Masker = None,
-        pos_embedder = None,
         bert_model:bert.Pre_Train_Model = None,
         device:str = 'cpu',
         dtype:str = None,
         ):
         super(Model, self).__init__()
         self.factory_kwargs = {'device': device, 'dtype': dtype,}
-        self.pos_embedder = pos_embedder.to(self.factory_kwargs['device'])
+        self.graph_embedder = graph_embedder.to(self.factory_kwargs['device'])
         self.gat = gat.to(self.factory_kwargs['device'])
         self.bert_model = bert_model.to(self.factory_kwargs['device'])
-        self.encoder = self.bert_model.encoder.to(self.factory_kwargs['device'])
         self.masker = masker
 
 
     def forward(self, fea_mats, adj_mats,):
-        # Will need to revise this if pos embed after GAT
-        # fea_mats = self.pos_embedder(fea_mats)
-        output = self.gat(fea_mats, adj_mats)
+        output = self.graph_embedder(fea_mats, adj = adj_mats)
+        output = self.gat(output, adj_mats)
         output = self.masker.mask(output, factory_kwargs = self.factory_kwargs)
         output = self.bert_model(output,)
         return output
 
     def get_gat_output(self, fea_mats, adj_mats,):
         with torch.no_grad():
-            # Will need to revise this if pos embed after GAT
-            # fea_mats = self.pos_embedder.eval()(fea_mats)
-            output = self.gat.eval()(fea_mats, adj_mats)
+            output = self.graph_embedder.eval()(fea_mats, adj = adj_mats)
+            output = self.gat.eval()(output, adj_mats)
         return output
 
     def get_encoder_output(self, fea_mats, adj_mats,):
         with torch.no_grad():
-            # Will need to revise this if pos embed after GAT
-            # fea_mats = self.pos_embedder.eval()(fea_mats)
-            output = self.gat.eval()(fea_mats, adj_mats)
+            output = self.graph_embedder.eval()(fea_mats, adj = adj_mats)
+            output = self.gat.eval()(output, adj_mats)
             output = self.bert_model.encoder.eval()(output)
         return output
 
@@ -125,8 +122,9 @@ class Trainer(object):
         # Models to take
         gat = None,
         encoder:bert.Encoder = None,
-        masker:Masker = None,
-        pos_embedder = None,
+        masker:Masker = Masker(ratio = 0.15),
+        graph_embedder = pe.Skip(),
+        rep_embedder = pe.Skip(),
         n_dim_adj:int = None,
 
         # Adam optimizer settings
@@ -154,11 +152,11 @@ class Trainer(object):
         self.model = Model(
             gat = gat,
             masker = masker,
-            pos_embedder = pos_embedder,
+            graph_embedder = graph_embedder,
             bert_model = bert.Pre_Train_Model(
                 encoder = encoder,
                 # Will need to take this away if embed before GAT.
-                pos_embedder = pos_embedder,
+                rep_embedder = rep_embedder,
                 n_dim_node = gat.d_model,
                 n_dim_adj = n_dim_adj,
                 **self.factory_kwargs,

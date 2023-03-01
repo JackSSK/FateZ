@@ -33,7 +33,7 @@ output_result = False
 model_gat = model.Load('D:\\Westlake\\pwk lab\\fatez\\hsc_unpaired_data_new_10000_02_5000_2500\\model\\nhead0_endim8_nhidden2_lr-3_epoch50_batch_size_20\\gat.model')
 fine_tuning = fine_tuner.Model(
     gat = model.Load('D:\\Westlake\\pwk lab\\fatez\\hsc_unpaired_data_new_10000_02_5000_2500\\model\\nhead0_endim8_nhidden2_lr-3_epoch50_batch_size_20\\gat.model'),
-    pos_embedder = pe.Skip(),
+    rep_embedder = pe.Skip(),
     bert_model = model.Load('D:\\Westlake\\pwk lab\\fatez\\hsc_unpaired_data_new_10000_02_5000_2500\\model\\nhead0_endim8_nhidden2_lr-3_epoch50_batch_size_20\\bert_fine_tune.model')
 )
 fine_tuning.to(device)

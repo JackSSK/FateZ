@@ -82,9 +82,16 @@ config = {
         "nhead": 4,                 # Attention heads
         "dim_feedforward": 4        # Dimension of the feedforward network model.
     },
-    "pos_embedder": {
+    "rep_embedder": {
         "type": "Skip",             # Not using any positional embedding method
         # "type": "ABS",              # Absolute positional embedding
+        "params": {
+            "n_embed": 100,         # Number of TFs
+            "n_dim": n_features,
+        }
+    },
+    "graph_embedder": {
+        "type": "Skip",             # Not using any positional embedding method
         "params": {
             "n_embed": 100,         # Number of TFs
             "n_dim": n_features,
@@ -157,7 +164,7 @@ pre_train_model = pre_trainer.Set(config, factory_kwargs)
 test_model = fine_tuner.Tuner(
     gat = pre_train_model.model.gat,
     encoder = pre_train_model.model.encoder,
-    pos_embedder = pre_train_model.model.pos_embedder,
+    rep_embedder = pre_train_model.model.rep_embedder,
     **config['fine_tuner'],
     **factory_kwargs,
 ).model
@@ -170,7 +177,7 @@ These parts won't be needed later
 """
 test_model = fine_tuner.Model(
     gat = pre_train_model.model.gat,
-    pos_embedder = pre_train_model.model.pos_embedder,
+    rep_embedder = pre_train_model.model.rep_embedder,
     bert_model = bert.Fine_Tune_Model(
         encoder = pre_train_model.model.encoder,
         n_class = n_class,
@@ -182,7 +189,7 @@ test_model = fine_tuner.Model(
 pre_train_model = pre_trainer.Model(
     gat = pre_train_model.model.gat,
     masker = pre_train_model.model.masker,
-    pos_embedder = pre_train_model.model.pos_embedder,
+    rep_embedder = pre_train_model.model.rep_embedder,
     bert_model = pre_train_model.model.bert_model,
     device = device,
 )

@@ -14,7 +14,14 @@
         "nhead": 3,
         "dim_feedforward": 3
     },
-    "pos_embedder": {
+    "graph_embedder": {
+        "type": "abs",
+        "params": {
+            "n_embed": 10,
+            "n_dim": 2
+        }
+    },
+    "rep_embedder": {
         "type": "ABS",
         "params": {
             "n_embed": 4,

@@ -117,7 +117,7 @@ bert_encoder = bert.Encoder(
 )
 test_model = fine_tuner.Model(
     gat = model_gat,
-    pos_embedder = pe.Skip(n_features = 100),
+    rep_embedder = pe.Skip(n_features = 100),
     bert_model = bert.Fine_Tune_Model(bert_encoder, n_class = 2)
 )
 optimizer = torch.optim.Adam(test_model.parameters(),

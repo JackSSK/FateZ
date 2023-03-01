@@ -30,7 +30,7 @@ out_gat = JSON.decode('D:\\Westlake\\pwk lab\\fatez\\gat_gradient\\nhead0_nhidde
 # gat_model = torch.load('../data/ignore/gat.model')
 # fine_tuning = fine_tuner.Model(
 #     gat = gat_model,
-#     pos_embedder = pe.Skip(n_features = 100),
+#     rep_embedder = pe.Skip(n_features = 100),
 #     bert_model = bert.Fine_Tune_Model(bert_encoder, n_class = 2)
 # )
 # fine_tuning = bert.Fine_Tune_Model(bert_encoder, n_class = 2)

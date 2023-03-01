@@ -18,10 +18,10 @@ def Set(config:dict = None, factory_kwargs:dict = None):
     """
     Set up GAT model based on given config.
     """
-    if config['gat']['type'].upper() == 'GAT':
-        return Model(**config['gat']['params'], **factory_kwargs)
-    elif config['gat']['type'].upper() == 'SGAT':
-        return Sparse_Model(**config['gat']['params'], **factory_kwargs)
+    if config['type'].upper() == 'GAT':
+        return Model(**config['params'], **factory_kwargs)
+    elif config['type'].upper() == 'SGAT':
+        return Sparse_Model(**config['params'], **factory_kwargs)
     else:
         raise model.Error('Unknown GAT type')
 

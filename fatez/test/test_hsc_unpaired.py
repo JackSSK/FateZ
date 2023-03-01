@@ -112,7 +112,7 @@ bert_encoder = bert.Encoder(
 )
 test_model = fine_tuner.Model(
     gat = model_gat,
-    pos_embedder = pe.Skip(),
+    rep_embedder = pe.Skip(),
     bert_model = bert.Fine_Tune_Model(
         bert_encoder,
         n_class = n_class,

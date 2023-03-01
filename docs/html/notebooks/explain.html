@@ -435,7 +435,7 @@ div.rendered_html tbody tr:hover {
 </div>
 <div class="output_area docutils container">
 <div class="highlight"><pre>
-Pre-Trainer total loss:0.8922308087348938
+Pre-Trainer total loss:1.1127713918685913
 
 </pre></div></div>
 </div>
@@ -456,7 +456,7 @@ Pre-Trainer total loss:0.8922308087348938
 </div>
 <div class="output_area docutils container">
 <div class="highlight"><pre>
-Pre-Trainer total loss:1.9862079620361328
+Pre-Trainer total loss:1.924447774887085
 
 </pre></div></div>
 </div>
@@ -464,13 +464,13 @@ Pre-Trainer total loss:1.9862079620361328
 <div class="section" id="Then,-we-can-go-for-fine-tuning-part-with-class-labels.">
 <h2>Then, we can go for fine tuning part with class labels.<a class="headerlink" href="#Then,-we-can-go-for-fine-tuning-part-with-class-labels." title="Permalink to this heading"></a></h2>
 <div class="nbinput nblast docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[6]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[7]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">tuner</span> <span class="o">=</span> <span class="n">fine_tuner</span><span class="o">.</span><span class="n">Tuner</span><span class="p">(</span>
     <span class="n">gat</span> <span class="o">=</span> <span class="n">trainer</span><span class="o">.</span><span class="n">model</span><span class="o">.</span><span class="n">gat</span><span class="p">,</span>
-    <span class="n">encoder</span> <span class="o">=</span> <span class="n">trainer</span><span class="o">.</span><span class="n">model</span><span class="o">.</span><span class="n">encoder</span><span class="p">,</span>
-    <span class="n">pos_embedder</span> <span class="o">=</span> <span class="n">trainer</span><span class="o">.</span><span class="n">model</span><span class="o">.</span><span class="n">pos_embedder</span><span class="p">,</span>
+    <span class="n">encoder</span> <span class="o">=</span> <span class="n">trainer</span><span class="o">.</span><span class="n">model</span><span class="o">.</span><span class="n">bert_model</span><span class="o">.</span><span class="n">encoder</span><span class="p">,</span>
+    <span class="n">rep_embedder</span> <span class="o">=</span> <span class="n">trainer</span><span class="o">.</span><span class="n">model</span><span class="o">.</span><span class="n">bert_model</span><span class="o">.</span><span class="n">rep_embedder</span><span class="p">,</span>
     <span class="o">**</span><span class="n">config</span><span class="p">[</span><span class="s1">&#39;fine_tuner&#39;</span><span class="p">],</span>
     <span class="o">**</span><span class="n">factory_kwargs</span><span class="p">,</span>
 <span class="p">)</span>
@@ -486,7 +486,7 @@ Pre-Trainer total loss:1.9862079620361328
 <h2>To explain Fine Tuning model in general.<a class="headerlink" href="#To-explain-Fine-Tuning-model-in-general." title="Permalink to this heading"></a></h2>
 <p>Note: to make overall conclusion on the contribution of a specific gene, we would need to sum up importance values for every feature dimension (RNA-count, peaks)</p>
 <div class="nbinput docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[7]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[8]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># Get background data</span>
@@ -522,7 +522,7 @@ Each class has explain in shape of (1, 10, 3).
 <h2>To explain the BERT part for analyzing importances of TFs only.<a class="headerlink" href="#To-explain-the-BERT-part-for-analyzing-importances-of-TFs-only." title="Permalink to this heading"></a></h2>
 <p>Note: similarly, we would want to sum up values across embed dimensions.</p>
 <div class="nbinput docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[8]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[9]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># We also should accumulate gat_out for every trained input.</span>
@@ -550,7 +550,7 @@ Each class has explain in shape of (1, 4, 3).
 <h2>To explain the GAT for analyzing GRP importances.<a class="headerlink" href="#To-explain-the-GAT-for-analyzing-GRP-importances." title="Permalink to this heading"></a></h2>
 <p>The grp_explain here is purely based on the GAT attention weights.</p>
 <div class="nbinput docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[9]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[10]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">grp_explain</span> <span class="o">=</span> <span class="n">tuner</span><span class="o">.</span><span class="n">model</span><span class="o">.</span><span class="n">gat</span><span class="o">.</span><span class="n">explain</span><span class="p">(</span><span class="nb">input</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="mi">0</span><span class="p">],</span> <span class="nb">input</span><span class="p">[</span><span class="mi">1</span><span class="p">][</span><span class="mi">0</span><span class="p">])</span>
@@ -575,7 +575,7 @@ torch.Size([4, 10])
 </div>
 <p>Utilizing the importance values of each gene or TF regulon inferred from the calculated shapley values above would be sufficent to obtain importances of each GRP.</p>
 <div class="nbinput docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[10]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[11]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># Sum up shapley values of each features for every node (gene or TF).</span>
