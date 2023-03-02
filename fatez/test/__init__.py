@@ -24,7 +24,7 @@ import fatez.process.fine_tuner as fine_tuner
 import fatez.process.pre_trainer as pre_trainer
 import fatez.process.position_embedder as pe
 from pkg_resources import resource_filename
-
+from collections import OrderedDict
 
 
 def make_template_grn_jjy():
@@ -89,7 +89,8 @@ class Faker(object):
         super(Faker, self).__init__()
         if model_config is None:
             path = '../data/config/gat_bert_config.json'
-            path = '../data/config/gat_bert_cnn1d_config.json'
+            # path = '../data/config/gat_bert_cnn1d_config.json'
+            # path = '../data/config/gat_bert_rnn_config.json'
             self.config = JSON.decode(resource_filename(__name__, path))
         else:
             self.config = model_config
@@ -191,7 +192,7 @@ class Faker(object):
 
         # Using data loader to train
         for input, label in data_loader:
-            output = graph_embedder(input[0], input[1])
+            output = graph_embedder(input[0], adj = input[1])
             out_gat = gat_model(output, input[1])
             output = decision(out_gat)
             loss = nn.CrossEntropyLoss()(output, label)
