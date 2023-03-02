@@ -1,7 +1,7 @@
-﻿fatez.Faker
-===========
+﻿fatez.test.Faker
+================
 
-.. currentmodule:: fatez
+.. currentmodule:: fatez.test
 
 .. autoclass:: Faker
 

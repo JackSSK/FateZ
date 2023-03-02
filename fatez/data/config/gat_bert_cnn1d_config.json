@@ -1,0 +1,48 @@
+{
+    "gat": {
+        "type": "GAT",
+        "params": {
+            "d_model": 2,
+            "en_dim": 3,
+            "n_hidden": 2,
+            "nhead": 3
+        }
+    },
+    "encoder": {
+        "d_model": 3,
+        "n_layer": 6,
+        "nhead": 3,
+        "dim_feedforward": 3
+    },
+    "graph_embedder": {
+        "type": "abs",
+        "params": {
+            "n_embed": 10,
+            "n_dim": 2
+        }
+    },
+    "rep_embedder": {
+        "type": "ABS",
+        "params": {
+            "n_embed": 4,
+            "n_dim": 3
+        }
+    },
+    "masker": {
+        "ratio": 0.5
+    },
+    "pre_trainer": {
+        "n_dim_adj": null
+    },
+    "fine_tuner": {
+        "n_class": 4,
+        "clf_type": "CNN_1D",
+        "clf_params":{
+          "n_layer_set": 1,
+          "conv_kernel_num": 8,
+          "conv_kernel_size": 3,
+          "maxpool_kernel_size": 2,
+          "densed_size": 8
+        }
+    }
+}

@@ -88,9 +88,9 @@ class Faker(object):
         ):
         super(Faker, self).__init__()
         if model_config is None:
-            self.config = JSON.decode(
-                resource_filename(__name__, '../data/config/test_config.json')
-            )
+            path = '../data/config/gat_bert_config.json'
+            path = '../data/config/gat_bert_cnn1d_config.json'
+            self.config = JSON.decode(resource_filename(__name__, path))
         else:
             self.config = model_config
         self.k = k
@@ -255,4 +255,4 @@ class Faker(object):
         # print(shap_values)
         print(f'\tExplainer Green.\n')
 
-        return trainer.model
+        return trainer.model, tuner.model

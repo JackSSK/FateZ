@@ -73,6 +73,7 @@ class Model(nn.Module):
         return output
 
 
+
 class Tuner(object):
     """
     The fine-tune processing module.
@@ -228,21 +229,21 @@ class Tuner(object):
             )
         elif clf_type.upper() == 'CNN_1D':
             return cnn.Model_1D(
-                n_channels = n_dim,
+                in_channels = n_dim,
                 n_class = n_class,
                 **clf_params,
                 **self.factory_kwargs,
             )
         elif clf_type.upper() == 'CNN_2D':
             return cnn.Model_2D(
-                n_channels = n_dim,
+                in_channels = n_dim,
                 n_class = n_class,
                 **clf_params,
                 **self.factory_kwargs,
             )
         elif clf_type.upper() == 'CNN_HYB':
             return cnn.Model_Hybrid(
-                n_channels = n_dim,
+                in_channels = n_dim,
                 n_class = n_class,
                 **clf_params,
                 **self.factory_kwargs,

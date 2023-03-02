@@ -36,11 +36,11 @@ __version__ = "0.0.1a5"
 __author__ = "JackSSK"
 __email__ = "gyu17@jhu.edu"
 
-from ._main import (
+from ._main import(
     Launch
 )
 
-from .test import (
+from .test import(
     Faker
 )
 

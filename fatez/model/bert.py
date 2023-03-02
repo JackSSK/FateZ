@@ -16,6 +16,9 @@ from torch.nn import TransformerEncoderLayer
 import fatez.model.mlp as mlp
 import fatez.process.position_embedder as pe
 
+
+
+
 class Encoder(nn.Module):
     """
     The Encoder for BERT model.
@@ -35,12 +38,6 @@ class Encoder(nn.Module):
         dtype:str = None,
         ):
         """
-        :param encoder <torch.nn.TransformerEncoder = None>
-            The encoder to load.
-
-    	:param encoder <torch.nn.TransformerEncoder = None>
-            The encoder to load.
-
         :param d_model <int = 512>
             Number of expected features in the inputs.
 
@@ -77,25 +74,23 @@ class Encoder(nn.Module):
         self.d_model = d_model
         self.dim_feedforward = dim_feedforward
         self.factory_kwargs = {'device':device, 'dtype':dtype}
-        if encoder is not None:
-            self.encoder = encoder
-        else:
-            layer = TransformerEncoderLayer(
-                d_model = d_model,
-                nhead = nhead,
-                dim_feedforward = dim_feedforward,
-                dropout = dropout,
-                activation = activation,
-                layer_norm_eps = layer_norm_eps,
-                batch_first = batch_first,
-                **self.factory_kwargs
-            )
-            encoder_norm = LayerNorm(
-                d_model,
-                eps = layer_norm_eps,
-                **self.factory_kwargs
-            )
-            self.encoder = TransformerEncoder(layer, n_layer, encoder_norm)
+        layer = TransformerEncoderLayer(
+            d_model = d_model,
+            nhead = nhead,
+            dim_feedforward = dim_feedforward,
+            dropout = dropout,
+            activation = activation,
+            layer_norm_eps = layer_norm_eps,
+            batch_first = batch_first,
+            **self.factory_kwargs
+        )
+        encoder_norm = LayerNorm(
+            d_model,
+            eps = layer_norm_eps,
+            **self.factory_kwargs
+        )
+        self.encoder = TransformerEncoder(layer, n_layer, encoder_norm)
+
 
     def forward(self, input, mask = None):
         output = self.encoder(input, mask)

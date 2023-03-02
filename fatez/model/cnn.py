@@ -359,23 +359,23 @@ class Model_Hybrid(nn.Module):
             )
 
 # if __name__ == '__main__':
-#     n_fea = 100
-#     en_dim = 4
-#     data = torch.randn(2, n_fea, en_dim)
-#     param_1d = {
-#         'n_layer_set': 3,
-#         'conv_kernel_num': 32,
-#         'conv_kernel_size': 8,
-#         'maxpool_kernel_size':2,
-#         'densed_size': 32
-#     }
-#     param_2d = {
-#         'n_layer_set': 1,
-#         'conv_kernel_num': 32,
-#         'conv_kernel_size': (8, 3),
-#         'maxpool_kernel_size': (2, 2),
-#         'densed_size': 32
-#     }
+    # n_fea = 100
+    # en_dim = 4
+    # data = torch.randn(2, n_fea, en_dim)
+    # param_1d = {
+    #     'n_layer_set': 3,
+    #     'conv_kernel_num': 32,
+    #     'conv_kernel_size': 8,
+    #     'maxpool_kernel_size':2,
+    #     'densed_size': 32
+    # }
+    # param_2d = {
+    #     'n_layer_set': 1,
+    #     'conv_kernel_num': 32,
+    #     'conv_kernel_size': (8, 3),
+    #     'maxpool_kernel_size': (2, 2),
+    #     'densed_size': 32
+    # }
 #     param_hyb = {
 #         'n_layer_set': 1,
 #         'conv_kernel_num': 32,
