@@ -469,7 +469,8 @@ class Model(nn.Module):
             else:
                 x = F.elu(self.last(x, adj_mat))
             answer.append(x)
-        return torch.stack(answer, 0)
+        answer = torch.stack(answer, 0)
+        return answer
 
     def explain(self, fea_mat, adj_mat):
         """
@@ -642,7 +643,8 @@ class Sparse_Model(nn.Module):
             else:
                 x = F.elu(self.last(x, adj_mat))
             answer.append(x)
-        return torch.stack(answer, 0)
+        answer = torch.stack(answer, 0)
+        return answer
 
     def explain(self, fea_mat, adj_mat):
         """

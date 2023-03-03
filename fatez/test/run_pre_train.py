@@ -152,6 +152,7 @@ data_save_dir = '/storage/peiweikeLab/jiangjunyao/fatez/model/pre_train/'
 outgat_dir = data_save_dir+'out_gat/'
 if  pre_train_adj:
     config['pre_trainer']['n_dim_adj'] = matrix2.shape[1]
+    
 #os.makedirs(outgat_dir )
 """
 dataloader
@@ -175,106 +176,37 @@ pretrain_dataloader = DataLoader(
     batch_size = config['batch_size'],
     shuffle=True
 )
-"""
-model define
-Code below should looks more explicit
-"""
-pre_train_model = pre_trainer.Set(config, factory_kwargs)
-# test_model = fine_tuner.Tuner(
-#     gat = pre_train_model.model.gat,
-#     encoder = pre_train_model.model.bert_model.encoder ,
-#     rep_embedder = pre_train_model.model.rep_embedder,
-#     **config['fine_tuner'],
-#     **factory_kwargs,
-# ).model
 
-
-
-#####################################################################
-"""
-These parts won't be needed later
-"""
-# test_model = fine_tuner.Model(
-#     gat = pre_train_model.model.gat,
-#     rep_embedder = pre_train_model.model.rep_embedder,
-#     bert_model = bert.Fine_Tune_Model(
-#         encoder = pre_train_model.model.encoder,
-#         n_class = n_class,
-#         n_hidden = config['fine_tuner']['n_hidden'],
-#     ),
-#     device = device,
-# )
-
-# pre_train_model = pre_trainer.Model(
-#     gat = pre_train_model.model.gat,
-#     masker = pre_train_model.model.masker,
-#     rep_embedder = pre_train_model.model.rep_embedder,
-#     bert_model = pre_train_model.model.bert_model,
-#     device = device,
-# )
-### adam and CosineAnnealingWarmRestarts
-optimizer = torch.optim.Adam(
-    pre-train-model.model.parameters(),
-    lr = lr,
-    weight_decay = 1e-3
-)
-scheduler = CosineAnnealingWarmRestarts(
-    optimizer,
-    T_0 = 2,
-    T_mult=2,
-    eta_min = lr / 50
-)
-
-# model_gat.to(device)
-# bert_encoder.to(device)
-# test_model.to(device)
-pre_train_model.to(device)
-######################################################################
-
-early_stopping = early_stopper.Monitor(
-    tolerance = early_stop_tolerance,
-    min_delta = 10
-)
 
 """
 pre-training
 """
+pre_train_model = pre_trainer.Set(config, factory_kwargs)
 all_loss = list()
 for epoch in range(num_epoch):
     print(f"Epoch {epoch + 1}\n-------------------------------")
-    train_loss = model_training.pre_training(
-        pretrain_dataloader,
-        pre_train_model,
-        optimizer,
-        device=device
-    )
-    scheduler.step()
-
-    # Try this one later
-    # train_loss = pre_train_model.train(pretrain_dataloader)
-
+    train_loss = pre_train_model.train(pretrain_dataloader, print_log = True)
     print(f"epoch: {epoch+1}, train_loss: {train_loss}")
     all_loss.append(train_loss.tolist())
 
 if data_save:
-    model.Save(
-        pre_train_model.bert_model.encoder,
-        data_save_dir + 'bert_encoder.model'
-    )
-    # Use this to save whole bert model
-    model.Save(
-        pre_train_model.bert_model,
-        data_save_dir + 'bert_fine_tune.model'
-    )
-    model.Save(
-        pre_train_model.gat,
-        data_save_dir + 'gat.model'
-    )
-
     # model.Save(
-    #     pre_train_model,
-    #     data_save_dir + 'a.model'
+    #     pre_train_model.model.bert_model.encoder,
+    #     data_save_dir + 'bert_encoder.model'
     # )
+    # # Use this to save whole bert model
+    # model.Save(
+    #     pre_train_model.model.bert_model,
+    #     data_save_dir + 'bert_fine_tune.model'
+    # )
+    # model.Save(
+    #     pre_train_model.model.gat,
+    #     data_save_dir + 'gat.model'
+    # )
+    model.Save(
+        pre_train_model.model,
+        data_save_dir + 'full_pre_train.model'
+    )
 
 
 print(all_loss)
@@ -284,9 +216,22 @@ with open(data_save_dir+'loss.txt', 'w+')as f:
 
 # Save JSON one might be easier
 JSON.encode(config, data_save_dir + 'config.txt')
+
 """
 fine-tune traning
 """
+early_stopping = early_stopper.Monitor(
+    tolerance = early_stop_tolerance,
+    min_delta = 10
+)
+# test_model = fine_tuner.Tuner(
+#     gat = pre_train_model.model.gat,
+#     encoder = pre_train_model.model.bert_model.encoder ,
+#     rep_embedder = pre_train_model.model.rep_embedder,
+#     **config['fine_tuner'],
+#     **factory_kwargs,
+# ).model
+
 # all_loss = list()
 # for epoch in range(num_epoch):
 #     print(f"Epoch {epoch + 1}\n-------------------------------")
