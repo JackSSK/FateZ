@@ -185,7 +185,7 @@ class Preprocessor():
             {'chr': chr_list, 'start': start_list, 'end': end_list},
             index = list(self.atac_mt.var_names)
         )
-
+        self.atac_mt.obs_names_make_unique()
         ###remove nan
         self.rna_mt = self.rna_mt[:,~self.rna_mt.var_names.isnull()]
         self.atac_mt = self.atac_mt[:,~self.atac_mt.var_names.isnull()]
@@ -310,9 +310,9 @@ class Preprocessor():
 
         ### modify nonstandard cell type name
         for i, name in enumerate(cell_types):
-            if ' ' in name:
+            if ' ' in str(name):
                 cell_types[i] = cell_types[i].replace(' ', '-')
-            if '/' in name:
+            if '/' in str(name):
                 cell_types[i] = cell_types[i].replace('/', '-')
 
         if modality == 'rna':
@@ -322,7 +322,8 @@ class Preprocessor():
             cell_types = cell_types[list(self.rna_mt.obs_names)]
             self.rna_mt.obs['cell_types'] = list(cell_types)
         elif modality == 'atac':
-            self.atac_mt = self.atac_mt[cell_types.index]
+            self.atac_mt = self.atac_mt = self.atac_mt[
+                np.intersect1d(cell_types.index, self.atac_mt.obs_names)]
             cell_types = cell_types[list(self.atac_mt.obs_names)]
             self.atac_mt.obs['cell_types'] = list(cell_types)
         else:
@@ -360,7 +361,7 @@ class Preprocessor():
                                                      list(
                                                          self.rna_mt.var_names)))
 
-            self.rna_mt.var_names = self.rna_mt[:, gff_intersect_gene]
+            self.rna_mt = self.rna_mt[:, gff_intersect_gene]
 
 
         template.load_cres()
