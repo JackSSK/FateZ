@@ -152,7 +152,7 @@ data_save_dir = '/storage/peiweikeLab/jiangjunyao/fatez/model/pre_train/'
 outgat_dir = data_save_dir+'out_gat/'
 if  pre_train_adj:
     config['pre_trainer']['n_dim_adj'] = matrix2.shape[1]
-    
+
 #os.makedirs(outgat_dir )
 """
 dataloader

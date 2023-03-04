@@ -226,34 +226,34 @@ class Faker(object):
         """
         print('Testing Full Model.\n')
         # Initialize
+        epoch = 1
         data_loader = self.make_data_loader()
         if config is None: config = self.config
 
         # Pre-train part
         trainer = pre_trainer.Set(config, self.factory_kwargs)
-        pt_loss = trainer.train(data_loader)
+        for i in range(epoch):
+            pt_loss = trainer.train(data_loader)
         print(f'\tPre-Trainer Green.\n')
 
         # Fine tune part
-        tuner = fine_tuner.Tuner(
-            gat = trainer.model.gat,
-            encoder = trainer.model.bert_model.encoder,
-            graph_embedder = trainer.model.graph_embedder,
-            rep_embedder = trainer.model.bert_model.rep_embedder,
-            **config['fine_tuner'],
-            **self.factory_kwargs,
+        tuner = fine_tuner.Set(
+            config, self.factory_kwargs, prev_model = trainer.model
         )
-        for input, label in data_loader:
-            output = tuner.model(input[0], input[1])
-            loss = tuner.criterion(output, label)
-            loss.backward()
+        for i in range(epoch):
+            ft_loss, ft_acc = tuner.train(data_loader)
+        # Test fine tune model
+        test_loss, test_acc = tuner.test(data_loader)
         print(f'\tFine-Tuner Green.\n')
 
         # Test explain
-        gat_explain = tuner.model.gat.explain(input[0][0], input[1][0])
-        explain = explainer.Gradient(tuner.model, input)
-        shap_values = explain.shap_values(input, return_variances = True)
-        # print(shap_values)
+        for x, y in data_loader:
+            gat_explain = tuner.model.gat.explain(x[0][0], x[1][0])
+            # print(gat_explain)
+            explain = explainer.Gradient(tuner.model, x)
+            shap_values = explain.shap_values(x, return_variances = True)
+            # print(shap_values)
+            break
         print(f'\tExplainer Green.\n')
 
         return trainer.model, tuner.model
