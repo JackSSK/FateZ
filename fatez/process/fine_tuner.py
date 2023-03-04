@@ -13,6 +13,7 @@ import fatez.model.gat as gat
 import fatez.model.cnn as cnn
 import fatez.model.rnn as rnn
 import fatez.model.bert as bert
+import fatez.model.transformer as transformer
 import fatez.process.position_embedder as pe
 
 
@@ -24,7 +25,7 @@ def Set(config:dict = None, factory_kwargs:dict = None, prev_model = None,):
     if prev_model is None:
         return Tuner(
             gat = gat.Set(config['gat'], factory_kwargs),
-            encoder = bert.Encoder(**config['encoder'], **factory_kwargs),
+            encoder = transformer.Encoder(**config['encoder'],**factory_kwargs),
             graph_embedder = pe.Set(config['graph_embedder'], factory_kwargs),
             rep_embedder = pe.Set(config['rep_embedder'], factory_kwargs),
             **config['fine_tuner'],
@@ -88,7 +89,7 @@ class Tuner(object):
     def __init__(self,
         # Models to take
         gat = None,
-        encoder:bert.Encoder = None,
+        encoder:transformer.Encoder = None,
         graph_embedder = pe.Skip(),
         rep_embedder = pe.Skip(),
         clf_type:str = 'MLP',

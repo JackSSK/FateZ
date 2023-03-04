@@ -9,6 +9,7 @@ import fatez.model.gat as gat
 import fatez.model.mlp as mlp
 import fatez.model.sparse_gat as sgat
 import fatez.model.bert as bert
+import fatez.model.transformer as transformer
 import fatez.process.fine_tuner as fine_tuner
 import fatez.process.preprocessor as pre
 import pandas as pd
@@ -108,7 +109,7 @@ decison = mlp.Model(
 
 
 # Need to make sure d_model is divisible by nhead
-bert_encoder = bert.Encoder(
+bert_encoder = transformer.Encoder(
     d_model = 8,
     n_layer = 6,
     nhead = 8,

@@ -12,6 +12,7 @@ from fatez.tool import PreprocessIO
 from fatez.process import early_stopper
 from fatez.tool import model_training
 import fatez.model as model
+import fatez.model.transformer as transformer
 import fatez.model.gat as gat
 import fatez.model.bert as bert
 import fatez.process.fine_tuner as fine_tuner
@@ -103,7 +104,7 @@ model_gat = gat.Model(
     device = device,
     n_hidden = gat_n_hidden,
 )
-bert_encoder = bert.Encoder(
+bert_encoder = transformer.Encoder(
     d_model = model_gat.en_dim,
     n_layer = n_layer,
     nhead = bert_nhead,
