@@ -13,25 +13,33 @@ import fatez.model.gat as gat
 import fatez.model.cnn as cnn
 import fatez.model.rnn as rnn
 import fatez.model.bert as bert
+import fatez.model.transformer as transformer
 import fatez.process.position_embedder as pe
 
 
 
-def Set(config:dict = None, factory_kwargs:dict = None):
+def Set(config:dict = None, factory_kwargs:dict = None, prev_model = None,):
     """
-    Set up a Tuner object based on given config file
-
-    Note:
-        Do NOT use this method if loading pre-trained models.
+    Set up a Tuner object based on given config file (and pre-trained model)
     """
-    return Tuner(
-        gat = gat.Set(config['gat'], factory_kwargs),
-        encoder = bert.Encoder(**config['encoder'], **factory_kwargs),
-        graph_embedder = pe.Set(config['graph_embedder'], factory_kwargs),
-        rep_embedder = pe.Set(config['rep_embedder'], factory_kwargs),
-        **config['fine_tuner'],
-        **factory_kwargs,
-    )
+    if prev_model is None:
+        return Tuner(
+            gat = gat.Set(config['gat'], factory_kwargs),
+            encoder = transformer.Encoder(**config['encoder'],**factory_kwargs),
+            graph_embedder = pe.Set(config['graph_embedder'], factory_kwargs),
+            rep_embedder = pe.Set(config['rep_embedder'], factory_kwargs),
+            **config['fine_tuner'],
+            **factory_kwargs,
+        )
+    else:
+        return Tuner(
+            gat = prev_model.gat,
+            encoder = prev_model.bert_model.encoder,
+            graph_embedder = prev_model.graph_embedder,
+            rep_embedder = prev_model.bert_model.rep_embedder,
+            **config['fine_tuner'],
+            **factory_kwargs,
+        )
 
 
 
@@ -81,7 +89,7 @@ class Tuner(object):
     def __init__(self,
         # Models to take
         gat = None,
-        encoder:bert.Encoder = None,
+        encoder:transformer.Encoder = None,
         graph_embedder = pe.Skip(),
         rep_embedder = pe.Skip(),
         clf_type:str = 'MLP',
@@ -166,34 +174,49 @@ class Tuner(object):
         # if with_cuda and torch.cuda.device_count() > 1:
         #     self.model = nn.DataParallel(self.model, device_ids = cuda_devices)
 
-    def train(self, data_loader):
-        """
-        Under construction...
-        """
-        size = len(data_loader.dataset)
-        num_batches = len(data_loader)
-        batch_num = 1
+    def train(self,
+        data_loader,
+        print_log:bool = False,
+        save_gat_out:bool = False
+        ):
         self.model.train()
-        train_loss, correct = 0, 0
+        num_batches = len(data_loader)
+        cur_batch = 1
+        best_loss = 99
+        train_loss = 0
+        correct = 0
         out_gat_data = list()
+
         for x,y in data_loader:
             self.optimizer.zero_grad()
-            node_fea_mat = x[0].to(device)
-            adj_mat = x[1].to(device)
-            out_gat = self.model.get_gat_output(node_fea_mat, adj_mat)
+            node_fea_mat = x[0].to(self.factory_kwargs['device'])
+            adj_mat = x[1].to(self.factory_kwargs['device'])
+
             output = self.model(node_fea_mat, adj_mat)
-            for ele in out_gat.detach().tolist(): out_gat_data.append(ele)
+
+            # if save_gat_out:
+            #     out_gat = self.model.get_gat_output(node_fea_mat, adj_mat)
+            #     for ele in out_gat.detach().tolist():
+            #         out_gat_data.append(ele)
+
             loss = self.criterion(output, y)
             loss.backward()
             nn.utils.clip_grad_norm_(self.model.parameters(), self.max_norm)
             self.optimizer.step()
-            acc = (output.argmax(1)==y).type(torch.float).sum().item()
-            print(f"batch: {batch_num} loss: {loss} accuracy:{acc/num_batches}")
-            batch_num += 1
+
+            best_loss = min(best_loss, loss)
             train_loss += loss
+            acc = (output.argmax(1)==y).type(torch.float).sum().item()
             correct += acc
+
+            # Some logs
+            if print_log:
+                print(f"Batch:{cur_batch} Loss:{loss} ACC:{acc/num_batches}")
+                cur_batch += 1
+
         self.scheduler.step()
-        return out_gat_data, train_loss/num_batches, correct/size
+        # return best_loss
+        return train_loss/num_batches, correct/len(data_loader.dataset)
 
     def test(self, data_loader):
         self.model.eval()

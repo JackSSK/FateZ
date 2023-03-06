@@ -11,26 +11,35 @@ import torch.optim as optim
 import fatez.model as model
 import fatez.model.gat as gat
 import fatez.model.bert as bert
+import fatez.model.transformer as transformer
 import fatez.process.position_embedder as pe
 
 
 
-def Set(config:dict = None, factory_kwargs:dict = None):
+def Set(config:dict = None, factory_kwargs:dict = None, prev_model = None,):
     """
-    Set up a Trainer object based on given config file
-
-    Note:
-        Do NOT use this method if loading pre-trained models.
+    Set up a Trainer object based on given config file (and pre-trained model)
     """
-    return Trainer(
-        gat = gat.Set(config['gat'], factory_kwargs),
-        encoder = bert.Encoder(**config['encoder'], **factory_kwargs),
-        masker = Masker(**config['masker']),
-        graph_embedder = pe.Set(config['graph_embedder'], factory_kwargs),
-        rep_embedder = pe.Set(config['rep_embedder'], factory_kwargs),
-        **config['pre_trainer'],
-        **factory_kwargs,
-    )
+    if prev_model is None:
+        return Trainer(
+            gat = gat.Set(config['gat'], factory_kwargs),
+            encoder = transformer.Encoder(**config['encoder'],**factory_kwargs),
+            masker = Masker(**config['masker']),
+            graph_embedder = pe.Set(config['graph_embedder'], factory_kwargs),
+            rep_embedder = pe.Set(config['rep_embedder'], factory_kwargs),
+            **config['pre_trainer'],
+            **factory_kwargs,
+        )
+    else:
+        return Trainer(
+            gat = prev_model.gat,
+            encoder = prev_model.bert_model.encoder,
+            masker = Masker(**config['masker']),
+            graph_embedder = prev_model.graph_embedder,
+            rep_embedder = prev_model.bert_model.rep_embedder,
+            **config['pre_trainer'],
+            **factory_kwargs,
+        )
 
 
 
@@ -121,7 +130,7 @@ class Trainer(object):
     def __init__(self,
         # Models to take
         gat = None,
-        encoder:bert.Encoder = None,
+        encoder:transformer.Encoder = None,
         masker:Masker = Masker(ratio = 0.15),
         graph_embedder = pe.Skip(),
         rep_embedder = pe.Skip(),
@@ -198,11 +207,11 @@ class Trainer(object):
         #     self.model = nn.DataParallel(self.model, device_ids = cuda_devices)
 
     def train(self, data_loader, print_log:bool = False):
+        self.model.train()
         cur_batch = 1
         best_loss = 99
         train_loss = 0
 
-        self.model.train()
         for x, _ in data_loader:
             self.optimizer.zero_grad()
             node_fea_mat = x[0].to(self.factory_kwargs['device'])
@@ -221,16 +230,18 @@ class Trainer(object):
                 loss = loss_node + loss_adj
             else:
                 loss = loss_node
+
             loss.backward()
             nn.utils.clip_grad_norm_(self.model.parameters(), self.max_norm)
             self.optimizer.step()
 
-            # Some logs
-            if print_log:
-                print(f"batch: {cur_batch} loss: {loss}")
-                cur_batch += 1
             best_loss = min(best_loss, loss)
             train_loss += loss
+
+            # Some logs
+            if print_log:
+                print(f"Batch: {cur_batch} Loss: {loss}")
+                cur_batch += 1
 
         self.scheduler.step()
         # return best_loss
