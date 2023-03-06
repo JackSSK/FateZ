@@ -228,7 +228,7 @@ class Faker(object):
         # Pre-train part
         trainer = pre_trainer.Set(config, self.factory_kwargs)
         for i in range(epoch):
-            pt_loss = trainer.train(data_loader)
+            report = trainer.train(data_loader)
         print(f'\tPre-Trainer Green.\n')
 
         # Fine tune part
@@ -236,9 +236,9 @@ class Faker(object):
             config, self.factory_kwargs, prev_model = trainer.model
         )
         for i in range(epoch):
-            ft_loss, ft_acc = tuner.train(data_loader)
+            report = tuner.train(data_loader, report_batch = True)
         # Test fine tune model
-        test_loss, test_acc = tuner.test(data_loader)
+        report = tuner.test(data_loader, report_batch = True)
         print(f'\tFine-Tuner Green.\n')
 
         # Test explain

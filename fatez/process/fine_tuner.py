@@ -7,6 +7,8 @@ author: jy, nkmtmsys
 import torch
 import torch.nn as nn
 import torch.optim as optim
+import pandas as pd
+from torchmetrics import AUROC
 import fatez.model as model
 import fatez.model.mlp as mlp
 import fatez.model.gat as gat
@@ -15,7 +17,7 @@ import fatez.model.rnn as rnn
 import fatez.model.bert as bert
 import fatez.model.transformer as transformer
 import fatez.process.position_embedder as pe
-from torchmetrics import AUROC
+
 
 
 def Set(config:dict = None, factory_kwargs:dict = None, prev_model = None,):
@@ -175,18 +177,14 @@ class Tuner(object):
         # if with_cuda and torch.cuda.device_count() > 1:
         #     self.model = nn.DataParallel(self.model, device_ids = cuda_devices)
 
-    def train(self,
-        data_loader,
-        print_log:bool = False,
-        save_gat_out:bool = False
-        ):
+    def train(self, data_loader, report_batch:bool = False,):
+        # save_gat_out:bool = False
         self.model.train()
         num_batches = len(data_loader)
-        cur_batch = 1
         best_loss = 99
-        train_loss = 0
-        correct = 0
+        loss_all, acc_all = 0, 0
         out_gat_data = list()
+        report = list()
 
         for x,y in data_loader:
             self.optimizer.zero_grad()
@@ -205,51 +203,53 @@ class Tuner(object):
             nn.utils.clip_grad_norm_(self.model.parameters(), self.max_norm)
             self.optimizer.step()
 
-            best_loss = min(best_loss, loss)
-            train_loss += loss
-            acc = (output.argmax(1)==y).type(torch.float).sum().item()
-            correct += acc
-
-            # Some logs
-            if print_log:
-                print(f"Batch:{cur_batch} Loss:{loss} ACC:{acc/num_batches}")
-                cur_batch += 1
+            # Accumulate
+            acc = (output.argmax(1)==y).type(torch.float).sum().item() / len(y)
+            best_loss = min(best_loss, loss.item())
+            loss_all += loss
+            acc_all += acc
+            if report_batch: report.append([loss.item(), acc])
 
         self.scheduler.step()
-        # return best_loss
-        return train_loss/num_batches, correct/len(data_loader.dataset)
+        report.append([loss_all.item() / num_batches, acc_all / num_batches])
+        report = pd.DataFrame(report)
+        report.columns = ['Loss', 'ACC',]
+        return report
 
-    def test(self, data_loader,write_result = False,out_dir = './'):
+    def test(self, data_loader, report_batch = False):
         self.model.eval()
-        test_loss, acc_all,auroc_all = 0, 0, 0
+        num_batches = len(data_loader)
+        report = list()
+        loss_all, acc_all, auroc_all = 0, 0, 0
+        auroc = AUROC(task = "binary")
         with torch.no_grad():
             for x, y in data_loader:
                 output = self.model(
                     x[0].to(self.factory_kwargs['device']),
                     x[1].to(self.factory_kwargs['device'])
                 )
+
+                # Batch specific
                 loss = self.criterion(output, y).item()
-                test_loss += loss
-                correct = (output.argmax(1)==y).type(torch.float).sum().item()
-                acc_all += correct
-                auroc = AUROC(task="binary")
-                roc = auroc(output, x[1].to(self.factory_kwargs['device']))
-                auroc_all += roc
-                if write_result:
-                    with open(out_dir + 'report.txt', 'w+') as f1:
-                        f1.write('loss' + '\t' + 'acc' + '\t' + 'auroc' + '\n')
-                        f1.write(
-                            str(loss) + '\t' + str(correct) + '\t' + str(
-                                roc) + '\n')
-        test_loss /= len(data_loader)
-        acc_all /= len(data_loader.dataset)
-        auroc_all /= len(data_loader.dataset)
-        if write_result:
-            with open(out_dir + 'report.txt', 'w+') as f1:
-                f1.write(
-                    str(test_loss) + '\t' + str(correct) + '\t' + str(
-                        auroc_all) + '\n')
-        return test_loss, correct, auroc_all
+                acc = (output.argmax(1)==y).type(torch.float).sum().item()
+                acc = acc / len(y)
+                auc_score = auroc(output,x[1].to(self.factory_kwargs['device']))
+                auc_score = auc_score.item()
+                if report_batch: report.append([loss, acc, auc_score])
+
+                # Accumulate
+                loss_all += loss
+                acc_all += acc
+                auroc_all += auc_score
+
+        report.append([
+            loss_all / num_batches,
+            acc_all / num_batches,
+            auroc_all / num_batches
+        ])
+        report = pd.DataFrame(report)
+        report.columns = ['Loss', 'ACC', 'AUROC']
+        return report
 
     def __set_classifier(self,
         n_dim:int = 4,
