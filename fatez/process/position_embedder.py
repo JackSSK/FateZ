@@ -16,16 +16,14 @@ import torch.nn as nn
 # import torch_geometric.utils as utils
 
 
-def Set(config:dict = None, factory_kwargs:dict = None):
+def Set(config:dict=None, input_sizes:list=None, factory_kwargs:dict=None):
     """
     Set up positional embedder based on given config.
     """
     if config['type'].upper() == 'SKIP':
         return Skip()
     elif config['type'].upper() == 'ABS':
-        return Absolute_Encode(
-            **config['params'], **factory_kwargs
-        )
+        return Absolute_Encode(**config['params'], **factory_kwargs)
     elif config['type'] == 'ABS':
         return
     else:

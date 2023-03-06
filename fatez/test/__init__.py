@@ -77,9 +77,6 @@ class Faker(object):
 
     def __init__(self,
         model_config:dict = None,
-        k:int = 10,
-        top_k:int = 4,
-        n_features:int = None,
         n_sample:int = 10,
         n_class:int = 2,
         batch_size:int = 4,
@@ -94,13 +91,11 @@ class Faker(object):
             self.config = JSON.decode(resource_filename(__name__, path))
         else:
             self.config = model_config
-        self.k = k
-        self.top_k = top_k
-        if n_features is not None:
-            self.n_features = n_features
-            assert self.n_features == self.config['gat']['params']['d_model']
-        else:
-            self.n_features = self.config['gat']['params']['d_model']
+        self.k = self.config['input_sizes'][1][-1]
+        self.top_k = self.config['input_sizes'][1][-2]
+        self.n_features = self.config['input_sizes'][0][-1]
+        assert self.n_features == self.config['gat']['params']['d_model']
+
         self.n_sample = n_sample
         self.n_class = n_class
         self.batch_size = batch_size

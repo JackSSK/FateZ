@@ -14,7 +14,7 @@ import fatez.model as model
 
 
 
-def Set(config:dict = None, factory_kwargs:dict = None):
+def Set(config:dict=None, input_sizes:list=None, factory_kwargs:dict=None):
     """
     Set up GAT model based on given config.
     """

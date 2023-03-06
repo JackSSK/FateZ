@@ -24,10 +24,14 @@ def Set(config:dict = None, factory_kwargs:dict = None, prev_model = None,):
     """
     if prev_model is None:
         return Tuner(
-            gat = gat.Set(config['gat'], factory_kwargs),
+            gat = gat.Set(config['gat'], config['input_sizes'], factory_kwargs),
             encoder = transformer.Encoder(**config['encoder'],**factory_kwargs),
-            graph_embedder = pe.Set(config['graph_embedder'], factory_kwargs),
-            rep_embedder = pe.Set(config['rep_embedder'], factory_kwargs),
+            graph_embedder = pe.Set(
+                config['graph_embedder'], config['input_sizes'], factory_kwargs
+            ),
+            rep_embedder = pe.Set(
+                config['rep_embedder'], config['input_sizes'], factory_kwargs
+            ),
             **config['fine_tuner'],
             **factory_kwargs,
         )
