@@ -1,29 +1,48 @@
 import torch
 from torch.nn import L1Loss
+from torchmetrics import AUROC
 
-def testing(dataloader, model, loss_fn,device):
+def testing(dataloader, model, loss_fn,device,write_result = False,
+            dir1 = './'):
     size = len(dataloader.dataset)
     num_batches = len(dataloader)
     model.eval()
-    test_loss, correct = 0, 0
+    test_loss, correct,roc_all = 0, 0,0
     with torch.no_grad():
         for x, y in dataloader:
             #X, y = X.to(device), y.to(device)
             pred = model(x[0].to(device), x[1].to(device))
-            test_loss += loss_fn(pred, y).item()
-            correct += (pred.argmax(1) == y).type(torch.float).sum().item()
+            loss = loss_fn(pred, y).item()
+            test_loss +=loss
+            correct_batch = (pred.argmax(1) == y).type(torch.float).sum().item()
+            correct +=correct_batch
+            auroc = AUROC(task="binary")
+            roc = auroc(pred, x[1].to(device))
+            roc_all +=roc
+            if  write_result:
+                with open(dir1+'report.txt','w+') as f1:
+                    f1.write('loss'+'\t'+'acc'+'\t'+'auroc'+'\n')
+                    f1.write(
+                        str(loss)+'\t'+str(correct_batch)+'\t'+str(roc)+'\n')
 
     test_loss /= num_batches
     correct /= size
-    return test_loss,correct
+    roc_all /=size
+    if write_result:
+        with open(dir1 + 'report.txt', 'w+') as f1:
+            f1.write(
+                str(test_loss) + '\t' + str(correct) + '\t' + str(roc_all) + '\n')
+    return test_loss,correct,roc_all
 
 
-def training(dataloader, model_gat, model, loss_fn, optimizer, device):
+def training(dataloader, model_gat, model, loss_fn, optimizer, device,
+             return_batch_loss=False):
     size = len(dataloader.dataset)
     num_batches = len(dataloader)
     batch_num = 1
     model.train()
     train_loss, correct = 0, 0
+    batch_loss = []
     out_gat_data = list()
     for x,y in dataloader:
         optimizer.zero_grad()
@@ -38,8 +57,11 @@ def training(dataloader, model_gat, model, loss_fn, optimizer, device):
         batch_num += 1
         train_loss += loss
         correct += acc
+        batch_loss.append(loss.tolist())
     train_loss /= num_batches
     correct /= size
+    if return_batch_loss:
+        return out_gat_data, train_loss, correct, batch_loss
     return out_gat_data,train_loss,correct
 
 def pre_training(dataloader, model, optimizer, device):
