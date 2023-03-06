@@ -15,7 +15,7 @@ import fatez.model.rnn as rnn
 import fatez.model.bert as bert
 import fatez.model.transformer as transformer
 import fatez.process.position_embedder as pe
-
+from torchmetrics import AUROC
 
 
 def Set(config:dict = None, factory_kwargs:dict = None, prev_model = None,):
@@ -218,21 +218,37 @@ class Tuner(object):
         # return best_loss
         return train_loss/num_batches, correct/len(data_loader.dataset)
 
-    def test(self, data_loader):
+    def test(self, data_loader,write_result = False,out_dir = './'):
         self.model.eval()
-        test_loss, correct = 0, 0
+        test_loss, acc_all,auroc_all = 0, 0, 0
         with torch.no_grad():
             for x, y in data_loader:
                 output = self.model(
                     x[0].to(self.factory_kwargs['device']),
                     x[1].to(self.factory_kwargs['device'])
                 )
-                test_loss += self.criterion(output, y).item()
-                correct += (output.argmax(1)==y).type(torch.float).sum().item()
-
+                loss = self.criterion(output, y).item()
+                test_loss += loss
+                correct = (output.argmax(1)==y).type(torch.float).sum().item()
+                acc_all += correct
+                auroc = AUROC(task="binary")
+                roc = auroc(output, x[1].to(self.factory_kwargs['device']))
+                auroc_all += roc
+                if write_result:
+                    with open(out_dir + 'report.txt', 'w+') as f1:
+                        f1.write('loss' + '\t' + 'acc' + '\t' + 'auroc' + '\n')
+                        f1.write(
+                            str(loss) + '\t' + str(correct) + '\t' + str(
+                                roc) + '\n')
         test_loss /= len(data_loader)
-        correct /= len(data_loader.dataset)
-        return test_loss, correct
+        acc_all /= len(data_loader.dataset)
+        auroc_all /= len(data_loader.dataset)
+        if write_result:
+            with open(out_dir + 'report.txt', 'w+') as f1:
+                f1.write(
+                    str(test_loss) + '\t' + str(correct) + '\t' + str(
+                        auroc_all) + '\n')
+        return test_loss, correct, auroc_all
 
     def __set_classifier(self,
         n_dim:int = 4,
