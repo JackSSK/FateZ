@@ -22,8 +22,8 @@ class Model(nn.Module):
         n_layer_set:int = 2,
         n_hidden:int = 2,
         n_class:int = 100,
-        device:str = 'cpu',
         dtype:str = None,
+        **kwargs
         ):
         """
         :param d_model:int = None
@@ -37,13 +37,6 @@ class Model(nn.Module):
 
         :param n_class:int = None
             Number of classes.
-
-        :param device:str = 'cpu'
-            The device to load model.
-
-        :param dtype:str = None
-            Data type of input values.
-            Note: torch default using float32, numpy default using float64
         """
         super(Model, self).__init__()
         if n_layer_set == 1:

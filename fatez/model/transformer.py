@@ -28,8 +28,7 @@ class Encoder(nn.Module):
         activation:str = 'gelu',
         layer_norm_eps:float = 1e-05,
         batch_first:bool = True,
-        device:str = 'cpu',
-        dtype:str = None,
+        **kwargs
         ):
         """
         :param d_model <int = 512>
@@ -56,16 +55,9 @@ class Encoder(nn.Module):
 
         :param batch_first <bool = True>
             Whether batch size expected as first ele in dim or not.
-
-        :param device <str = 'cpu'>
-            The device to load model.
-
-        :param dtype <str = None>
-            Data type of input tensor.
         """
         super(Encoder, self).__init__()
         self.d_model = d_model
-        self.factory_kwargs = {'device':device, 'dtype':dtype}
         layer = TransformerEncoderLayer(
             d_model = d_model,
             nhead = nhead,
@@ -74,13 +66,8 @@ class Encoder(nn.Module):
             activation = activation,
             layer_norm_eps = layer_norm_eps,
             batch_first = batch_first,
-            **self.factory_kwargs
         )
-        encoder_norm = LayerNorm(
-            d_model,
-            eps = layer_norm_eps,
-            **self.factory_kwargs
-        )
+        encoder_norm = LayerNorm(d_model, eps = layer_norm_eps,)
         self.encoder = TransformerEncoder(layer, n_layer, encoder_norm)
 
     def forward(self, input, mask = None):
@@ -103,7 +90,6 @@ class Decoder(nn.Module):
             activation = activation,
             layer_norm_eps = layer_norm_eps,
             batch_first = batch_first,
-            **self.factory_kwargs
         )
         self.decoder = TransformerDecoder(decoder_layer, n_layer)
         self.decision = nn.Linear(d_model, n_class)

@@ -25,8 +25,7 @@ class RNN(nn.Module):
         dropout:float = 0.0,
         bidirectional:bool = False,
         n_class:int = 2,
-        device:str = 'cpu',
-        dtype:str = None,
+        **kwargs
         ):
         super(RNN, self).__init__()
         self.num_layers = num_layers
@@ -70,8 +69,7 @@ class GRU(nn.Module):
         dropout:float = 0.0,
         bidirectional:bool = False,
         n_class:int = 2,
-        device:str = 'cpu',
-        dtype:str = None,
+        **kwargs
         ):
         super(GRU, self).__init__()
         self.num_layers = num_layers
@@ -115,8 +113,7 @@ class LSTM(nn.Module):
         bidirectional:bool = False,
         proj_size:int = 0,
         n_class:int = 2,
-        device:str = 'cpu',
-        dtype:str = None,
+        **kwargs
         ):
         super(LSTM, self).__init__()
         self.num_layers = num_layers

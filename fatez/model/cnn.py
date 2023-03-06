@@ -36,8 +36,8 @@ class Model_1D(nn.Module):
         maxpool_kernel_size:int = 2,
         densed_size:int = 32,
         data_shape = None,
-        device:str = 'cpu',
         dtype:str = None,
+        **kwargs
         ):
         # Initialization
         super().__init__()
@@ -45,7 +45,6 @@ class Model_1D(nn.Module):
         self.conv_kernel_num = conv_kernel_num
         self.conv_kernel_size = conv_kernel_size
         self.maxpool_kernel_size = maxpool_kernel_size
-        self.factory_kwargs = {'device': device, 'dtype': dtype,}
         self.applicable = self._check_applicability(data_shape)
 
         model_dict = OrderedDict([
@@ -132,8 +131,8 @@ class Model_2D(nn.Module):
         maxpool_kernel_size:set = (2, 2),
         densed_size:int = 32,
         data_shape = None,
-        device:str = 'cpu',
         dtype:str = None,
+        **kwargs
         ):
         super().__init__()
         # Initialization
@@ -141,7 +140,6 @@ class Model_2D(nn.Module):
         self.conv_kernel_num = conv_kernel_num
         self.conv_kernel_size = conv_kernel_size
         self.maxpool_kernel_size = maxpool_kernel_size
-        self.factory_kwargs = {'device': device, 'dtype': dtype,}
         self.applicable = self._check_applicability(data_shape)
 
         model_dict = OrderedDict([
@@ -238,8 +236,8 @@ class Model_Hybrid(nn.Module):
         maxpool_kernel_size:int = 2,
         densed_size:int = 32,
         data_shape = None,
-        device:str = 'cpu',
         dtype:str = None,
+        **kwargs
         ):
         super().__init__()
         # Initialization
@@ -248,7 +246,6 @@ class Model_Hybrid(nn.Module):
         self.horiz_kernel_size = horiz_kernel_size
         self.verti_kernel_size = verti_kernel_size
         self.maxpool_kernel_size = maxpool_kernel_size
-        self.factory_kwargs = {'device': device, 'dtype': dtype,}
         self.applicable = self._check_applicability(data_shape)
 
         model_horiz = OrderedDict([

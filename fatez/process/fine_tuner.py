@@ -56,14 +56,12 @@ class Model(nn.Module):
         graph_embedder = None,
         gat = None,
         bert_model:bert.Fine_Tune_Model = None,
-        device:str = 'cpu',
-        dtype:str = None,
+        **kwargs
         ):
         super(Model, self).__init__()
-        self.factory_kwargs = {'device': device, 'dtype': dtype}
-        self.graph_embedder = graph_embedder.to(self.factory_kwargs['device'])
-        self.gat = gat.to(self.factory_kwargs['device'])
-        self.bert_model = bert_model.to(self.factory_kwargs['device'])
+        self.graph_embedder = graph_embedder
+        self.gat = gat
+        self.bert_model = bert_model
 
     def forward(self, fea_mats, adj_mats):
         output = self.graph_embedder(fea_mats, adj = adj_mats)
@@ -139,7 +137,6 @@ class Tuner(object):
                 ),
                 **self.factory_kwargs
             ),
-            **self.factory_kwargs,
         )
 
         # Setting the Adam optimizer with hyper-param

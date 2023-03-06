@@ -55,7 +55,7 @@ class Masker(object):
         self.seed = seed
         self.choices = None
 
-    def make_2d_mask(self, size, ):
+    def make_2d_mask(self, size, dtype:str = None):
         # Set random seed
         if self.seed is not None:
             random.seed(self.seed)
@@ -72,14 +72,9 @@ class Masker(object):
             answer[ind] = mask
         return answer
 
-    def mask(self, input, factory_kwargs = None):
-        mask = self.make_2d_mask(input[0].size())
-        if factory_kwargs is not None:
-            mask = mask.to(factory_kwargs['device'])
-        try:
-            return torch.multiply(input, mask)
-        except:
-            raise Error('Something else is wrong')
+    def mask(self, input,):
+        mask = self.make_2d_mask(input[0].size(), input.dtype).to(input.device)
+        return torch.multiply(input, mask)
 
 
 
@@ -92,21 +87,18 @@ class Model(nn.Module):
         gat = None,
         masker:Masker = Masker(ratio = 0.0),
         bert_model:bert.Pre_Train_Model = None,
-        device:str = 'cpu',
-        dtype:str = None,
         ):
         super(Model, self).__init__()
-        self.factory_kwargs = {'device': device, 'dtype': dtype,}
-        self.graph_embedder = graph_embedder.to(self.factory_kwargs['device'])
-        self.gat = gat.to(self.factory_kwargs['device'])
-        self.bert_model = bert_model.to(self.factory_kwargs['device'])
+        self.graph_embedder = graph_embedder
+        self.gat = gat
+        self.bert_model = bert_model
         self.masker = masker
 
 
     def forward(self, fea_mats, adj_mats,):
         output = self.graph_embedder(fea_mats, adj = adj_mats)
         output = self.gat(output, adj_mats)
-        output = self.masker.mask(output, factory_kwargs = self.factory_kwargs)
+        output = self.masker.mask(output,)
         output = self.bert_model(output,)
         return output
 
@@ -173,7 +165,6 @@ class Trainer(object):
                 n_dim_adj = n_dim_adj,
                 **self.factory_kwargs,
             ),
-            **self.factory_kwargs,
         )
 
         # Setting the Adam optimizer with hyper-param
@@ -219,8 +210,6 @@ class Trainer(object):
             self.optimizer.zero_grad()
             node_fea_mat = x[0].to(self.factory_kwargs['device'])
             adj_mat = x[1].to(self.factory_kwargs['device'])
-            node_fea_mat = node_fea_mat.cuda()
-            adj_mat = adj_mat.cuda()
             output_node, output_adj = self.model(node_fea_mat, adj_mat)
 
             # Get total loss

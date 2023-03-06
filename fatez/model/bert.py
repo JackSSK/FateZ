@@ -22,8 +22,8 @@ class Pre_Train_Model(nn.Module):
         encoder:transformer.Encoder = None,
         n_dim_node:int = 2,
         n_dim_adj:int = None,
-        device:str = 'cpu',
         dtype:str = None,
+        **kwargs
         ):
         """
         :param encoder:transformer.Encoder = None
@@ -36,15 +36,14 @@ class Pre_Train_Model(nn.Module):
             The output dimension for reconstructing adj mat.
         """
         super(Pre_Train_Model, self).__init__()
-        self.factory_kwargs = {'device': device, 'dtype': dtype,}
-        self.encoder = encoder.to(self.factory_kwargs['device'])
+        self.encoder = encoder
         self.recon_node = mlp.Model(
             type = 'RECON',
             d_model = self.encoder.d_model,
             n_layer_set = 1,
             n_class = n_dim_node,
-            **self.factory_kwargs
-        ).to(self.factory_kwargs['device'])
+            dtype = dtype
+        )
         self.recon_adj = None
 
         if n_dim_adj is not None:
@@ -53,10 +52,10 @@ class Pre_Train_Model(nn.Module):
                 d_model = self.encoder.d_model,
                 n_layer_set = 1,
                 n_class = n_dim_adj,
-                **self.factory_kwargs
-            ).to(self.factory_kwargs['device'])
+                dtype = dtype
+            )
 
-        self.rep_embedder = rep_embedder.to(self.factory_kwargs['device'])
+        self.rep_embedder = rep_embedder
 
     def forward(self, input, mask = None):
         output = self.rep_embedder(input)
@@ -80,8 +79,7 @@ class Fine_Tune_Model(nn.Module):
         rep_embedder = pe.Skip(),
         encoder:transformer.Encoder = None,
         classifier = None,
-        device:str = 'cpu',
-        dtype:str = None,
+        **kwargs
         ):
         """
         :param encoder:transformer.Encoder = None
@@ -91,10 +89,9 @@ class Fine_Tune_Model(nn.Module):
             The classification model for making predictions.
         """
         super(Fine_Tune_Model, self).__init__()
-        self.factory_kwargs = {'device': device, 'dtype': dtype,}
-        self.encoder = encoder.to(self.factory_kwargs['device'])
-        self.classifier = classifier.to(self.factory_kwargs['device'])
-        self.rep_embedder = rep_embedder.to(self.factory_kwargs['device'])
+        self.encoder = encoder
+        self.classifier = classifier
+        self.rep_embedder = rep_embedder
 
     def forward(self, input, mask = None):
         output = self.rep_embedder(input)
