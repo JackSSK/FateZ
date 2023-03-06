@@ -24,7 +24,7 @@ class Monitor:
     def __call__(self, train_loss, validation_loss):
         # Probably we should add counter when change lower than minimum delta
         # if (validation_loss - train_loss) > self.min_delta:
-        if (validation_loss - train_loss) <= self.min_delta:
+        if abs(validation_loss - train_loss) <= self.min_delta:
             self.counter +=1
         else:
             # Reset counter if not meeting criteria continuously.

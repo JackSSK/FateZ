@@ -47,6 +47,11 @@
     },
     "fine_tuner": {
         "n_class": 2,
+        "lr": 1e-4,
+        "weight_decay": 1e-3,
+        "sch_T_0": 2,
+        "sch_T_mult": 2,
+        "sch_eta_min": 1e-4 / 50,
         "clf_type": "MLP",
         "clf_params":{
           "n_hidden": 2,
