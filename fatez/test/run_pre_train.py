@@ -126,9 +126,9 @@ pre_train_model = pre_trainer.Set(config, factory_kwargs)
 all_loss = list()
 for epoch in range(num_epoch):
     print(f"Epoch {epoch + 1}\n-------------------------------")
-    train_loss = pre_train_model.train(pretrain_dataloader, print_log = True)
-    print(f"epoch: {epoch+1}, train_loss: {train_loss}")
-    all_loss.append(train_loss.tolist())
+    report = pre_train_model.train(pretrain_dataloader,)
+    print(report[-1:])
+    all_loss.append(report[-1:].tolist())
 
 if data_save:
     # model.Save(

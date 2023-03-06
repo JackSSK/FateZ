@@ -8,6 +8,7 @@ import random
 import torch
 import torch.nn as nn
 import torch.optim as optim
+import pandas as pd
 import fatez.model as model
 import fatez.model.gat as gat
 import fatez.model.bert as bert
@@ -200,11 +201,11 @@ class Trainer(object):
         # if with_cuda and torch.cuda.device_count() > 1:
         #     self.model = nn.DataParallel(self.model, device_ids = cuda_devices)
 
-    def train(self, data_loader, print_log:bool = False):
+    def train(self, data_loader, report_batch:bool = False):
         self.model.train()
-        cur_batch = 1
         best_loss = 99
-        train_loss = 0
+        loss_all = 0
+        report = list()
 
         for x, _ in data_loader:
             self.optimizer.zero_grad()
@@ -227,14 +228,16 @@ class Trainer(object):
             nn.utils.clip_grad_norm_(self.model.parameters(), self.max_norm)
             self.optimizer.step()
 
-            best_loss = min(best_loss, loss)
-            train_loss += loss
+            # Accumulate
+            best_loss = min(best_loss, loss.item())
+            loss_all += loss.item()
 
             # Some logs
-            if print_log:
-                print(f"Batch: {cur_batch} Loss: {loss}")
-                cur_batch += 1
+            if report_batch: report.append([loss.item()])
+
 
         self.scheduler.step()
-        # return best_loss
-        return train_loss / len(data_loader)
+        report.append([loss_all / len(data_loader)])
+        report = pd.DataFrame(report)
+        report.columns = ['Loss', ]
+        return report

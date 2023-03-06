@@ -31,6 +31,6 @@ class Monitor:
             if type == 'CONTI':
                 self.counter = 0
             elif type == 'ACCUM':
-                continue
+                self.counter = self.counter
 
         return self.counter >= self.tolerance

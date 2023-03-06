@@ -86,6 +86,14 @@ test_dataloader = DataLoader(
 model define
 """
 config = JSON.decode('test_config.json')
+
+
+"""
+Debug area
+"""
+print(config['input_sizes'])
+
+
 factory_kwargs = {'device': device, 'dtype': torch.float32,}
 fine_tuner_model = fine_tuner.Set(config, factory_kwargs)
 early_stop = es.Monitor(tolerance = 10, min_delta = 0.01)
@@ -96,11 +104,11 @@ all_loss = list()
 for epoch in range(num_epoch):
     print(f"Epoch {epoch+1}\n-------------------------------")
 
-    train_loss, acc = fine_tuner_model.train(train_dataloader, print_log=True)
-    print(f"epoch: {epoch+1}, train_loss: {train_loss}, ACC: {acc}")
+    report = fine_tuner_model.train(train_dataloader,)
+    print(report[-1:])
 
-    test_loss, acc = fine_tuner_model.test(train_dataloader)
-    print(f"epoch: {epoch+1}, test_loss: {test_loss}, ACC: {acc}")
+    report = fine_tuner_model.test(train_dataloader,)
+    print(report[-1:])
 
     all_loss.append(train_loss.tolist())
     if early_stop(train_loss, test_loss):
