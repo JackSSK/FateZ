@@ -67,82 +67,20 @@ labels = np.array(labels)
 labels = torch.from_numpy(labels)
 labels = labels.long()
 labels = labels.to(device)
+
+
 ###
 """
 hyperparameters
 """
 ###############################
-# Not tune-able
-n_features = 2
-n_class = 2
-###############################
 # General params
-batch_size = 10
 num_epoch = 100
-lr = 1e-4
 test_size = 0.3
-early_stop_tolerance = 15
 pre_train_adj = True
 ##############################
 # config file
-
-config = {
-    "batch_size": batch_size,
-    "epoch": num_epoch,
-    "gat": {
-        "type": "GAT",
-        "params": {
-            "d_model": n_features,  # Feature dim
-            "en_dim": 4,            # Embed dimension output by GAT
-            "n_hidden": 2,          # Number of hidden units in GAT
-            "nhead": 0              # Number of attention heads in GAT
-        }
-    },
-    "encoder": {
-        "d_model": 4,               # == gat params en_dim
-        "n_layer": 6,               # Number of Encoder Layers
-        "nhead": 4,                 # Attention heads
-        "dim_feedforward": 4        # Dimension of the feedforward network model.
-    },
-    "rep_embedder": {
-        "type": "Skip",             # Not using any positional embedding method
-        # "type": "ABS",              # Absolute positional embedding
-        "params": {
-            "n_embed": 100,         # Number of TFs
-            "n_dim": n_features,
-        }
-    },
-    "graph_embedder": {
-        "type": "Skip",             # Not using any positional embedding method
-        "params": {
-            "n_embed": 100,         # Number of TFs
-            "n_dim": n_features,
-        }
-    },
-    "masker": {
-        "ratio": 0.15
-    },
-    "pre_trainer": {
-        "n_dim_adj": None,
-        "lr": lr,
-        "weight_decay": 1e-3,
-        "sch_T_0": 2,
-        "sch_T_mult": 2,
-        "sch_eta_min": lr / 50,
-    },
-    "fine_tuner": {
-        "n_class": n_class,
-        "clf_type": 'MLP',
-        "clf_params": {
-            "n_hidden": 2,
-        },
-        "lr": lr,
-        "weight_decay": 1e-3,
-        "sch_T_0": 2,
-        "sch_T_mult": 2,
-        "sch_eta_min": lr / 50,
-    }
-}
+config = JSON.decode('test_config.json')
 
 # factory_kwargs should be adjusted upon useage
 factory_kwargs = {'device': device, 'dtype': torch.float32,}
