@@ -9,7 +9,6 @@ from torch.optim.lr_scheduler import CosineAnnealingWarmRestarts
 import fatez.lib as lib
 import fatez.tool.JSON as JSON
 from fatez.tool import PreprocessIO
-from fatez.process import early_stopper
 from fatez.tool import model_training
 import fatez.model as model
 import fatez.model.gat as gat
@@ -23,16 +22,17 @@ preprocess
 """
 device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
 ## preprocess parameters
-pseudo_cell_num_per_cell_type = 5000
+pseudo_cell_num_per_cell_type = 250
 cluster_use =[1,4]
 
 
 matrix1 = PreprocessIO.input_csv_dict_df(
-    'D:\\Westlake\\pwk lab\\fatez\\hsc_unpaired_data_new_10000_02_5000_2500/node/')
+    'D:\\Westlake\\pwk lab\\fatez\\para_test/node/')
 matrix2 = pd.read_csv(
-    'D:\\Westlake\\pwk lab\\fatez\\hsc_unpaired_data_new_10000_02_5000_2500/edge_matrix.csv'
+    'D:\\Westlake\\pwk lab\\fatez\\para_test/edge_matrix.csv'
     ,index_col=0)
 m2 = torch.from_numpy(matrix2.to_numpy())
+matrix2 = matrix2.replace(np.nan,0)
 m2 = m2.to(torch.float32)
 ### samples and labels
 samples = []
@@ -44,7 +44,8 @@ for i in range(len(matrix1)):
 labels = torch.from_numpy(np.repeat(range(len(cluster_use))
                                     ,len(matrix1)/len(cluster_use)))
 labels = labels.long()
-labels = labels.to(device)
+labels = labels.cuda()
+print(labels.device)
 ###
 """
 hyperparameters
@@ -73,7 +74,7 @@ dim_ff = 2                  # Dimension of the feedforward network model.
 bert_n_hidden = 2           # Number of hidden units in classification model.
 ##############################
 data_save = True
-data_save_dir = 'D:\\Westlake\\pwk lab\\fatez\\hsc_unpaired_data_new_10000_02_5000_2500\\model/nhead0_endim3_nhidden2_lr-3_epoch100_batch_size_20_lr-3_epoch100/'
+data_save_dir = 'D:\\Westlake\\pwk lab\\fatez\\tune_para\\test1/'
 outgat_dir = data_save_dir+'out_gat/'
 #os.makedirs(outgat_dir )
 """
@@ -132,10 +133,7 @@ scheduler = CosineAnnealingWarmRestarts(
     eta_min = lr / 50
 )
 
-early_stopping = early_stopper.Monitor(
-    tolerance = early_stop_tolerance,
-    min_delta = 10
-)
+
 model_gat.to(device)
 bert_encoder.to(device)
 test_model.to(device)
@@ -157,7 +155,9 @@ for epoch in range(num_epoch):
     scheduler.step()
     test_loss,test_acc = model_training.testing(test_dataloader,
                                                test_model, nn.CrossEntropyLoss()
-                                               , device=device)
+                                               , device=device,
+                                                write_result=True,
+                                                dir1=data_save_dir)
     print(
         f"epoch: {epoch+1}, test_loss: {test_loss}, test accuracy: {test_acc}")
     if early_stopping(train_loss, test_loss):

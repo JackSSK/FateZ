@@ -676,7 +676,7 @@ class Preprocessor():
         motif_score_mt = np.matrix(all_score).T.astype(float)
         ### scale to range 0 1
         scaler = MinMaxScaler(feature_range=(0, 1))
-        motif_score_mt = scaler.fit_transform(motif_score_mt)
+        motif_score_mt = scaler.fit_transform(np.asarray(motif_score_mt))
         motif_score_mt = np.array(motif_score_mt)
         self.motif_enrich_score = motif_score_mt
 

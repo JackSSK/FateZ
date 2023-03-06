@@ -207,6 +207,8 @@ class Trainer(object):
             self.optimizer.zero_grad()
             node_fea_mat = x[0].to(self.factory_kwargs['device'])
             adj_mat = x[1].to(self.factory_kwargs['device'])
+            node_fea_mat = node_fea_mat.cuda()
+            adj_mat = adj_mat.cuda()
             output_node, output_adj = self.model(node_fea_mat, adj_mat)
 
             # Get total loss

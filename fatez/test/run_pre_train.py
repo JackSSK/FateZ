@@ -16,6 +16,8 @@ import fatez.model.bert as bert
 import fatez.process.fine_tuner as fine_tuner
 import fatez.process.pre_trainer as pre_trainer
 from sklearn.model_selection import train_test_split
+import time
+t1 = time.time()
 
 """
 preprocess
@@ -26,20 +28,19 @@ print(device)
 cluster_use =[1,4]
 ###
 file_list = os.listdir('/storage/peiweikeLab/jiangjunyao/fatez/sample1000/')
-file_list = file_list[0:50]
+file_list = file_list[0:10000]
 matrix1 = {}
 for i in file_list:
     sample_name = i.split('#')[0]
-    print(sample_name)
     sample = pd.read_csv('/storage/peiweikeLab/jiangjunyao/fatez/sample1000/' + i
                          , header=0, index_col=0)
-    matrix1[sample_name] = sample
+    matrix1[i] = sample
 
 ###
 edge=os.listdir('/storage/peiweikeLab/jiangjunyao/fatez/sample1000/edge')
 edge_dict = {}
 for i in edge:
-    matrix2 = pd.read_csv('sample1000/edge/'+i,index_col=0)
+    matrix2 = pd.read_csv('/storage/peiweikeLab/jiangjunyao/fatez/sample1000/edge/'+i,index_col=0)
     matrix2 = matrix2.replace(np.nan,0)
     m2 = torch.from_numpy(matrix2.to_numpy())
     m2 = m2.to(torch.float32)
@@ -47,6 +48,7 @@ for i in edge:
     print(edge_name)
     edge_dict[i.split('#')[0]] = m2
 
+print('----')
 ### samples and labels
 samples = []
 for i in range(len(matrix1)):
@@ -54,10 +56,11 @@ for i in range(len(matrix1)):
     m1 = torch.from_numpy(m1.to_numpy())
     m1 = m1.to(torch.float32)
     sample_name=list(matrix1.keys())[i]
-    if sample_name not in edge_dict.keys():
-        continue
-    m2 = edge_dict[sample_name]
-    samples.append([m1, m2])
+    sample_name = sample_name.split('#')[0]
+    if sample_name in edge_dict.keys():
+
+        m2 = edge_dict[sample_name]
+        samples.append([m1, m2])
 print(len(samples))
 labels = [0]*len(samples)
 labels = np.array(labels)
@@ -75,7 +78,7 @@ n_class = 2
 ###############################
 # General params
 batch_size = 10
-num_epoch = 1
+num_epoch = 100
 lr = 1e-4
 test_size = 0.3
 early_stop_tolerance = 15
@@ -147,7 +150,7 @@ factory_kwargs = {'device': device, 'dtype': torch.float32,}
 
 
 ##############################
-data_save = True
+data_save = False
 data_save_dir = '/storage/peiweikeLab/jiangjunyao/fatez/model/pre_train/'
 outgat_dir = data_save_dir+'out_gat/'
 if  pre_train_adj:
@@ -220,10 +223,7 @@ JSON.encode(config, data_save_dir + 'config.txt')
 """
 fine-tune traning
 """
-early_stopping = early_stopper.Monitor(
-    tolerance = early_stop_tolerance,
-    min_delta = 10
-)
+
 # test_model = fine_tuner.Tuner(
 #     gat = pre_train_model.model.gat,
 #     encoder = pre_train_model.model.bert_model.encoder ,
@@ -281,6 +281,8 @@ early_stopping = early_stopper.Monitor(
 #     out_gat_data,
 #     outgat_dir + str(epoch) + '.js'
 # )
+t2 = time.time()
+print(t2-t1)
 # """
 # testing
 # """
