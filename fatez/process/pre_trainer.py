@@ -22,11 +22,14 @@ def Set(config:dict = None, factory_kwargs:dict = None, prev_model = None,):
     """
     if prev_model is None:
         return Trainer(
-            gat = gat.Set(config['gat'], factory_kwargs),
+            gat = gat.Set(config['gat'], config['input_sizes'], factory_kwargs),
             encoder = transformer.Encoder(**config['encoder'],**factory_kwargs),
-            masker = Masker(**config['masker']),
-            graph_embedder = pe.Set(config['graph_embedder'], factory_kwargs),
-            rep_embedder = pe.Set(config['rep_embedder'], factory_kwargs),
+            graph_embedder = pe.Set(
+                config['graph_embedder'], config['input_sizes'], factory_kwargs
+            ),
+            rep_embedder = pe.Set(
+                config['rep_embedder'], config['input_sizes'], factory_kwargs
+            ),
             **config['pre_trainer'],
             **factory_kwargs,
         )
@@ -34,7 +37,6 @@ def Set(config:dict = None, factory_kwargs:dict = None, prev_model = None,):
         return Trainer(
             gat = prev_model.gat,
             encoder = prev_model.bert_model.encoder,
-            masker = Masker(**config['masker']),
             graph_embedder = prev_model.graph_embedder,
             rep_embedder = prev_model.bert_model.rep_embedder,
             **config['pre_trainer'],
@@ -88,7 +90,7 @@ class Model(nn.Module):
     def __init__(self,
         graph_embedder = None,
         gat = None,
-        masker:Masker = None,
+        masker:Masker = Masker(ratio = 0.0),
         bert_model:bert.Pre_Train_Model = None,
         device:str = 'cpu',
         dtype:str = None,
@@ -129,9 +131,10 @@ class Trainer(object):
     """
     def __init__(self,
         # Models to take
+        input_sizes:list = None,
         gat = None,
         encoder:transformer.Encoder = None,
-        masker:Masker = Masker(ratio = 0.15),
+        masker_params:dict = {'ratio': 0.15},
         graph_embedder = pe.Skip(),
         rep_embedder = pe.Skip(),
         n_dim_adj:int = None,
@@ -160,7 +163,7 @@ class Trainer(object):
         self.factory_kwargs = {'device': device, 'dtype': dtype}
         self.model = Model(
             gat = gat,
-            masker = masker,
+            masker = Masker(**masker_params),
             graph_embedder = graph_embedder,
             bert_model = bert.Pre_Train_Model(
                 encoder = encoder,

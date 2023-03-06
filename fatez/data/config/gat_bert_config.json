@@ -1,4 +1,15 @@
 {
+    "input_sizes": [
+        [1, 10, 2],
+        [1, 4, 10]
+    ],
+    "graph_embedder": {
+        "type": "abs",
+        "params": {
+            "n_embed": 10,
+            "n_dim": 2
+        }
+    },
     "gat": {
         "type": "GAT",
         "params": {
@@ -8,19 +19,6 @@
             "nhead": 3
         }
     },
-    "encoder": {
-        "d_model": 3,
-        "n_layer": 6,
-        "nhead": 3,
-        "dim_feedforward": 3
-    },
-    "graph_embedder": {
-        "type": "abs",
-        "params": {
-            "n_embed": 10,
-            "n_dim": 2
-        }
-    },
     "rep_embedder": {
         "type": "ABS",
         "params": {
@@ -28,11 +26,17 @@
             "n_dim": 3
         }
     },
-    "masker": {
-        "ratio": 0.5
+    "encoder": {
+        "d_model": 3,
+        "n_layer": 6,
+        "nhead": 3,
+        "dim_feedforward": 3
     },
     "pre_trainer": {
-        "n_dim_adj": null
+        "n_dim_adj": null,
+        "masker_params": {
+            "ratio": 0.5
+        }
     },
     "fine_tuner": {
         "n_class": 4,
