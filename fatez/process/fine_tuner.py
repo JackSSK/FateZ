@@ -188,16 +188,15 @@ class Tuner(object):
 
         for x,y in data_loader:
             self.optimizer.zero_grad()
+
             node_fea_mat = x[0].to(self.factory_kwargs['device'])
             adj_mat = x[1].to(self.factory_kwargs['device'])
-
+            self.model.to(self.factory_kwargs['device'])
             output = self.model(node_fea_mat, adj_mat)
-
             # if save_gat_out:
             #     out_gat = self.model.get_gat_output(node_fea_mat, adj_mat)
             #     for ele in out_gat.detach().tolist():
             #         out_gat_data.append(ele)
-
             loss = self.criterion(output, y)
             loss.backward()
             nn.utils.clip_grad_norm_(self.model.parameters(), self.max_norm)
@@ -221,19 +220,18 @@ class Tuner(object):
         num_batches = len(data_loader)
         report = list()
         loss_all, acc_all, auroc_all = 0, 0, 0
-        auroc = AUROC(task = "binary")
+        auroc = AUROC("multiclass", num_classes=2)
         with torch.no_grad():
             for x, y in data_loader:
                 output = self.model(
                     x[0].to(self.factory_kwargs['device']),
                     x[1].to(self.factory_kwargs['device'])
                 )
-
                 # Batch specific
                 loss = self.criterion(output, y).item()
                 acc = (output.argmax(1)==y).type(torch.float).sum().item()
                 acc = acc / len(y)
-                auc_score = auroc(output,x[1].to(self.factory_kwargs['device']))
+                auc_score = auroc(output, y)
                 auc_score = auc_score.item()
                 if report_batch: report.append([loss, acc, auc_score])
 
