@@ -203,6 +203,7 @@ class Trainer(object):
 
     def train(self, data_loader, report_batch:bool = False):
         self.model.train()
+        self.model.to(self.factory_kwargs['device'])
         best_loss = 99
         loss_all = 0
         report = list()

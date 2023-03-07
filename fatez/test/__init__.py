@@ -78,7 +78,6 @@ class Faker(object):
     def __init__(self,
         model_config:dict = None,
         n_sample:int = 10,
-        n_class:int = 2,
         batch_size:int = 4,
         device:str = 'cpu',
         dtype:type = torch.float32,
@@ -93,11 +92,11 @@ class Faker(object):
             self.config = model_config
         self.k = self.config['input_sizes'][1][-1]
         self.top_k = self.config['input_sizes'][1][-2]
+        self.n_class = self.config['fine_tuner']['n_class']
         self.n_features = self.config['input_sizes'][0][-1]
         assert self.n_features == self.config['gat']['params']['d_model']
 
         self.n_sample = n_sample
-        self.n_class = n_class
         self.batch_size = batch_size
         self.factory_kwargs = {'device': device, 'dtype': dtype,}
 
@@ -209,7 +208,7 @@ class Faker(object):
         print(f'\tExplainer Green.\n')
         return gat_model
 
-    def test_full_model(self, config:dict = None):
+    def test_full_model(self, config:dict = None,):
         """
         Function to test whether FateZ is performing properly or not.
 

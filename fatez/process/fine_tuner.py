@@ -124,6 +124,7 @@ class Tuner(object):
         ):
         super(Tuner, self).__init__()
         self.factory_kwargs = {'device': device, 'dtype': dtype}
+        self.n_class = n_class
         self.model = Model(
             gat = gat,
             graph_embedder = graph_embedder,
@@ -180,6 +181,7 @@ class Tuner(object):
     def train(self, data_loader, report_batch:bool = False,):
         # save_gat_out:bool = False
         self.model.train()
+        self.model.to(self.factory_kwargs['device'])
         num_batches = len(data_loader)
         best_loss = 99
         loss_all, acc_all = 0, 0
@@ -191,7 +193,7 @@ class Tuner(object):
 
             node_fea_mat = x[0].to(self.factory_kwargs['device'])
             adj_mat = x[1].to(self.factory_kwargs['device'])
-            self.model.to(self.factory_kwargs['device'])
+            y = y.to(self.factory_kwargs['device'])
             output = self.model(node_fea_mat, adj_mat)
             # if save_gat_out:
             #     out_gat = self.model.get_gat_output(node_fea_mat, adj_mat)
@@ -220,13 +222,15 @@ class Tuner(object):
         num_batches = len(data_loader)
         report = list()
         loss_all, acc_all, auroc_all = 0, 0, 0
-        auroc = AUROC("multiclass", num_classes=2)
+        auroc = AUROC("multiclass", num_classes = self.n_class)
         with torch.no_grad():
             for x, y in data_loader:
+                y = y.to(self.factory_kwargs['device'])
                 output = self.model(
                     x[0].to(self.factory_kwargs['device']),
                     x[1].to(self.factory_kwargs['device'])
                 )
+
                 # Batch specific
                 loss = self.criterion(output, y).item()
                 acc = (output.argmax(1)==y).type(torch.float).sum().item()
