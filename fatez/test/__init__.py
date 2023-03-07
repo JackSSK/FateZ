@@ -114,13 +114,15 @@ class Faker(object):
                 torch.randn(
                     self.k,
                     self.n_features,
-                    dtype = self.factory_kwargs['dtype']
+                    dtype = self.factory_kwargs['dtype'],
+                    device = self.factory_kwargs['device']
                 ),
                 # Fake adjacency matrices
                 torch.randn(
                     self.top_k,
                     self.k,
-                    dtype = self.factory_kwargs['dtype']
+                    dtype = self.factory_kwargs['dtype'],
+                    device = self.factory_kwargs['device']
                 )
             ] for i in range(self.n_sample)
         ]
@@ -133,10 +135,14 @@ class Faker(object):
                     torch.ones(
                         self.k,
                         self.n_features,
-                        dtype = self.factory_kwargs['dtype']
+                        dtype = self.factory_kwargs['dtype'],
+                        device = self.factory_kwargs['device']
                     ),
                     torch.ones(
-                        self.top_k, self.k, dtype = self.factory_kwargs['dtype']
+                        self.top_k,
+                        self.k,
+                        dtype = self.factory_kwargs['dtype'],
+                        device = self.factory_kwargs['device']
                     )
                 ]
             )
@@ -145,7 +151,9 @@ class Faker(object):
             lib.FateZ_Dataset(
                 samples = samples,
                 labels = torch.empty(
-                    self.n_sample, dtype = torch.long
+                    self.n_sample,
+                    dtype = torch.long,
+                    device = self.factory_kwargs['device']
                 ).random_(self.n_class)
             ),
             batch_size = self.batch_size,

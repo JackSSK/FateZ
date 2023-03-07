@@ -9,6 +9,7 @@ import torch.nn as nn
 import torch.optim as optim
 import pandas as pd
 from torchmetrics import AUROC
+from sklearn.metrics import roc_auc_score
 import fatez.model as model
 import fatez.model.mlp as mlp
 import fatez.model.gat as gat
@@ -235,6 +236,7 @@ class Tuner(object):
                 loss = self.criterion(output, y).item()
                 acc = (output.argmax(1)==y).type(torch.float).sum().item()
                 acc = acc / len(y)
+                # auc_score = roc_auc_score(y, output[:, 1], average = None)
                 auc_score = auroc(output, y)
                 auc_score = auc_score.item()
                 if report_batch: report.append([loss, acc, auc_score])

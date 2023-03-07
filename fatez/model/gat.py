@@ -479,7 +479,9 @@ class Model(nn.Module):
         fake_fea_mat = torch.ones_like(fea_mat)
         fake_adj_mat = torch.ones_like(adj_mat)
         """
-
+        fea_mat = fea_mat.to(self.factory_kwargs['device'])
+        adj_mat = adj_mat.to(self.factory_kwargs['device'])
+        
         att_explain = None
         last_explain = None
 
@@ -653,7 +655,8 @@ class Sparse_Model(nn.Module):
         fake_fea_mat = torch.ones_like(fea_mat)
         fake_adj_mat = torch.ones_like(adj_mat)
         """
-
+        fea_mat = fea_mat.to(self.factory_kwargs['device'])
+        adj_mat = adj_mat.to(self.factory_kwargs['device'])
         att_explain = None
         last_explain = None
 
