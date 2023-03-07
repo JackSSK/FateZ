@@ -40,7 +40,7 @@
         "weight_decay": 1e-3,
         "sch_T_0": 2,
         "sch_T_mult": 2,
-        "sch_eta_min": 1e-4 / 50,
+        "sch_eta_min": 2e-6,
         "masker_params": {
             "ratio": 0.15
         }
@@ -51,7 +51,7 @@
         "weight_decay": 1e-3,
         "sch_T_0": 2,
         "sch_T_mult": 2,
-        "sch_eta_min": 1e-4 / 50,
+        "sch_eta_min": 2e-6,
         "clf_type": "MLP",
         "clf_params":{
           "n_hidden": 2,
