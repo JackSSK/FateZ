@@ -17,12 +17,13 @@ import fatez.model.bert as bert
 import fatez.process.fine_tuner as fine_tuner
 import fatez.process.position_embedder as pe
 from sklearn.model_selection import train_test_split
-import fatez.procee.early_stopping as es
+import fatez.process.early_stopper as es
 
 """
 preprocess
 """
-device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
+#device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
+device = 'cpu'
 ## preprocess parameters
 pseudo_cell_num_per_cell_type = 250
 cluster_use =[1,4]
@@ -33,8 +34,8 @@ matrix1 = PreprocessIO.input_csv_dict_df(
 matrix2 = pd.read_csv(
     'D:\\Westlake\\pwk lab\\fatez\\para_test/edge_matrix.csv'
     ,index_col=0)
-m2 = torch.from_numpy(matrix2.to_numpy())
 matrix2 = matrix2.replace(np.nan,0)
+m2 = torch.from_numpy(matrix2.to_numpy())
 m2 = m2.to(torch.float32)
 ### samples and labels
 samples = []
@@ -46,7 +47,7 @@ for i in range(len(matrix1)):
 labels = torch.from_numpy(np.repeat(range(len(cluster_use))
                                     ,len(matrix1)/len(cluster_use)))
 labels = labels.long()
-labels = labels.cuda()
+labels = labels.to(device)
 print(labels.device)
 ###
 """
@@ -54,8 +55,8 @@ hyperparameters
 """
 ###############################
 # General params
-batch_size = 20
-num_epoch = 100
+batch_size = 10
+num_epoch = 1
 test_size = 0.3
 
 ##############################
@@ -100,18 +101,21 @@ early_stop = es.Monitor(tolerance = 10, min_delta = 0.01)
 """
 traning
 """
-all_loss = list()
+
 for epoch in range(num_epoch):
     print(f"Epoch {epoch+1}\n-------------------------------")
 
-    report = fine_tuner_model.train(train_dataloader,)
-    print(report[-1:])
+    report_train = fine_tuner_model.train(train_dataloader,)
+    print(report_train[-1:])
 
-    report = fine_tuner_model.test(train_dataloader,)
-    print(report[-1:])
+    report_test = fine_tuner_model.test(test_dataloader,)
+    print(report_test[-1:])
 
-    all_loss.append(train_loss.tolist())
-    if early_stop(train_loss, test_loss):
+    report_train.to_csv(data_save_dir + 'train_report.csv', mode='a',header=False)
+    report_test.to_csv(data_save_dir + 'test_report.csv', mode='a',header=False)
+
+    if early_stop(float(report_train[-1:]['Loss']),
+                  float(report_test[-1:]['Loss'])):
         print("We are at epoch:", i)
         break
 
@@ -120,4 +124,3 @@ if data_save:
         fine_tuner_model.model,
         data_save_dir + 'fine_tune.model'
     )
-print(all_loss)
