@@ -52,7 +52,7 @@ class RNN(nn.Module):
             h0 = torch.zeros(self.num_layers, input.size(0), self.hidden_size)
         else:
             h0 = torch.zeros(2*self.num_layers, input.size(0), self.hidden_size)
-        out, _ = self.rnn(input, h0)
+        out, _ = self.rnn(input, h0.to(input.device))
         # out: tensor of shape (batch_size, seq_length, hidden_size)
         # Decode the hidden state of the last time step
         out = func.softmax(self.fc(out[:, -1, :]), dim = 1)
@@ -99,7 +99,7 @@ class GRU(nn.Module):
             h0 = torch.zeros(self.num_layers, input.size(0), self.hidden_size)
         else:
             h0 = torch.zeros(2*self.num_layers, input.size(0), self.hidden_size)
-        out, _ = self.gru(input, h0)
+        out, _ = self.gru(input, h0.to(input.device))
         # out: tensor of shape (batch_size, seq_length, hidden_size)
         # Decode the hidden state of the last time step
         out = func.softmax(self.fc(out[:, -1, :]), dim = 1)
@@ -150,7 +150,7 @@ class LSTM(nn.Module):
         else:
             h0 = torch.zeros(2*self.num_layers, input.size(0), self.hidden_size)
             c0 = torch.zeros(2*self.num_layers, input.size(0), self.hidden_size)
-        out, _ = self.lstm(input, (h0, c0))
+        out, _ = self.lstm(input, (h0.to(input.device), c0.to(input.device)))
         # out: tensor of shape (batch_size, seq_length, hidden_size)
         # Decode the hidden state of the last time step
         out = func.softmax(self.fc(out[:, -1, :]), dim = 1)
