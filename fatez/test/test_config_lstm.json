@@ -59,7 +59,7 @@
           "bias": true,
           "dropout": 0.05,
           "bidirectional": false,
-          "proj_size": 0,
+          "proj_size": 0
         }
     }
 }
