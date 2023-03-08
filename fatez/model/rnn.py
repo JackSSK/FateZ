@@ -30,6 +30,7 @@ class RNN(nn.Module):
         super(RNN, self).__init__()
         self.num_layers = num_layers
         self.hidden_size = hidden_size
+        self.bidirectional = bidirectional
         self.dropout = nn.Dropout(p = dropout)
         self.rnn = nn.RNN(
             input_size = input_size,
@@ -47,7 +48,10 @@ class RNN(nn.Module):
         # input needs to be: (batch_size, seq, input_size)
         input = self.dropout(input)
         # Set initial hidden states
-        h0 = torch.zeros(self.num_layers, input.size(0), self.hidden_size)
+        if not self.bidirectional:
+            h0 = torch.zeros(self.num_layers, input.size(0), self.hidden_size)
+        else:
+            h0 = torch.zeros(2*self.num_layers, input.size(0), self.hidden_size)
         out, _ = self.rnn(input, h0)
         # out: tensor of shape (batch_size, seq_length, hidden_size)
         # Decode the hidden state of the last time step
@@ -74,6 +78,7 @@ class GRU(nn.Module):
         super(GRU, self).__init__()
         self.num_layers = num_layers
         self.hidden_size = hidden_size
+        self.bidirectional = bidirectional
         self.dropout = nn.Dropout(p = dropout)
         self.gru = nn.GRU(
             input_size = input_size,
@@ -90,7 +95,10 @@ class GRU(nn.Module):
         # input needs to be: (batch_size, seq, input_size)
         input = self.dropout(input)
         # Set initial hidden states
-        h0 = torch.zeros(self.num_layers, input.size(0), self.hidden_size)
+        if not self.bidirectional:
+            h0 = torch.zeros(self.num_layers, input.size(0), self.hidden_size)
+        else:
+            h0 = torch.zeros(2*self.num_layers, input.size(0), self.hidden_size)
         out, _ = self.gru(input, h0)
         # out: tensor of shape (batch_size, seq_length, hidden_size)
         # Decode the hidden state of the last time step
@@ -118,6 +126,7 @@ class LSTM(nn.Module):
         super(LSTM, self).__init__()
         self.num_layers = num_layers
         self.hidden_size = hidden_size
+        self.bidirectional = bidirectional
         self.dropout = nn.Dropout(p = dropout)
         self.lstm = nn.LSTM(
             input_size = input_size,
@@ -135,8 +144,12 @@ class LSTM(nn.Module):
         # input needs to be: (batch_size, seq, input_size)
         input = self.dropout(input)
         # Set initial hidden and cell states
-        h0 = torch.zeros(self.num_layers, input.size(0), self.hidden_size)
-        c0 = torch.zeros(self.num_layers, input.size(0), self.hidden_size)
+        if not self.bidirectional:
+            h0 = torch.zeros(self.num_layers, input.size(0), self.hidden_size)
+            c0 = torch.zeros(self.num_layers, input.size(0), self.hidden_size)
+        else:
+            h0 = torch.zeros(2*self.num_layers, input.size(0), self.hidden_size)
+            c0 = torch.zeros(2*self.num_layers, input.size(0), self.hidden_size)
         out, _ = self.lstm(input, (h0, c0))
         # out: tensor of shape (batch_size, seq_length, hidden_size)
         # Decode the hidden state of the last time step
