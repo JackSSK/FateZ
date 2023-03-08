@@ -280,14 +280,14 @@ class Tuner(object):
             )
         elif clf_type.upper() == 'CNN_2D':
             return cnn.Model_2D(
-                in_channels = n_dim,
+                in_channels = 1,
                 n_class = n_class,
                 **clf_params,
                 **self.factory_kwargs,
             )
         elif clf_type.upper() == 'CNN_HYB':
             return cnn.Model_Hybrid(
-                in_channels = n_dim,
+                in_channels = 1,
                 n_class = n_class,
                 **clf_params,
                 **self.factory_kwargs,

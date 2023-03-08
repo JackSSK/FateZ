@@ -355,32 +355,32 @@ class Model_Hybrid(nn.Module):
                 (input.shape[0], 1, input.shape[1], input.shape[2])
             )
 
-if __name__ == '__main__':
-    n_fea = 100
-    en_dim = 4
-    data = torch.randn(2, n_fea, en_dim)
-    param_1d = {
-        'n_layer_set': 3,
-        'conv_kernel_num': 32,
-        'conv_kernel_size': 8,
-        'maxpool_kernel_size':2,
-        'densed_size': 32
-    }
-    param_2d = {
-        'n_layer_set': 1,
-        'conv_kernel_num': 32,
-        'conv_kernel_size': (8, 3),
-        'maxpool_kernel_size': (2, 2),
-        'densed_size': 32
-    }
-    param_hyb = {
-        'n_layer_set': 1,
-        'conv_kernel_num': 32,
-        'verti_kernel_size': 8,
-        'horiz_kernel_size': 3,
-        'maxpool_kernel_size': 2,
-        'densed_size': 32
-    }
+# if __name__ == '__main__':
+#     n_fea = 1100
+#     en_dim = 4
+#     data = torch.randn(2, n_fea, en_dim)
+#     param_1d = {
+#         'n_layer_set': 3,
+#         'conv_kernel_num': 32,
+#         'conv_kernel_size': 8,
+#         'maxpool_kernel_size':2,
+#         'densed_size': 32
+#     }
+#     param_2d = {
+#         'n_layer_set': 1,
+#         'conv_kernel_num': 32,
+#         'conv_kernel_size': (8, 3),
+#         'maxpool_kernel_size': (2, 2),
+#         'densed_size': 32
+#     }
+#     param_hyb = {
+#         'n_layer_set': 1,
+#         'conv_kernel_num': 8,
+#         'verti_kernel_size': 8,
+#         'horiz_kernel_size': 3,
+#         'maxpool_kernel_size': 2,
+#         'densed_size': 32
+#     }
 
     # a = Model_1D(in_channels = en_dim, **param_1d, data_shape = data.shape)
     # print(a.applicable)
@@ -390,6 +390,6 @@ if __name__ == '__main__':
     # print(a.applicable)
     # print(a(data))
 
-    a = Model_Hybrid(in_channels = 1, **param_hyb, data_shape = data.shape)
-    print(a.applicable)
-    print(a(data))
+    # a = Model_Hybrid(in_channels = 1, **param_hyb, data_shape = data.shape)
+    # print(a.applicable)
+    # print(a(data))
