@@ -58,7 +58,7 @@
           "num_layers": 1,
           "bias": true,
           "dropout": 0.05,
-          "bidirectional": false,
+          "bidirectional": false
         }
     }
 }
