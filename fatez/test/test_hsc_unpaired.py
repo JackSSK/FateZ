@@ -15,7 +15,7 @@ import fatez.model.transformer as transformer
 import fatez.model.gat as gat
 import fatez.model.bert as bert
 import fatez.process.fine_tuner as fine_tuner
-import fatez.process.position_embedder as pe
+import fatez.model.position_embedder as pe
 from sklearn.model_selection import train_test_split
 import fatez.process.early_stopper as es
 

@@ -15,7 +15,7 @@ from fatez.tool import PreprocessIO
 import pandas as pd
 import numpy as np
 import torch.nn as nn
-import fatez.process.position_embedder as pe
+import fatez.model.position_embedder as pe
 device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
 mlp_param = {
     'd_model': 8,

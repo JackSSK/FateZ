@@ -17,7 +17,7 @@ import fatez.model.cnn as cnn
 import fatez.model.rnn as rnn
 import fatez.model.bert as bert
 import fatez.model.transformer as transformer
-import fatez.process.position_embedder as pe
+import fatez.model.position_embedder as pe
 
 
 

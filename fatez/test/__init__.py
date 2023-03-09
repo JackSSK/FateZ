@@ -22,7 +22,7 @@ import fatez.model.gat as gat
 import fatez.process.explainer as explainer
 import fatez.process.fine_tuner as fine_tuner
 import fatez.process.pre_trainer as pre_trainer
-import fatez.process.position_embedder as pe
+import fatez.model.position_embedder as pe
 from pkg_resources import resource_filename
 from collections import OrderedDict
 

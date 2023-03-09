@@ -13,7 +13,7 @@ import fatez.model as model
 import fatez.model.gat as gat
 import fatez.model.bert as bert
 import fatez.model.transformer as transformer
-import fatez.process.position_embedder as pe
+import fatez.model.position_embedder as pe
 
 
 
