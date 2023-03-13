@@ -22,6 +22,7 @@ import fatez.model.gat as gat
 import fatez.process.explainer as explainer
 import fatez.process.fine_tuner as fine_tuner
 import fatez.process.pre_trainer as pre_trainer
+import fatez.model.criterion as crit
 import fatez.model.position_embedder as pe
 from pkg_resources import resource_filename
 from collections import OrderedDict
@@ -183,14 +184,16 @@ class Faker(object):
         data_loader = self.make_data_loader()
         if config is None: config = self.config
         graph_embedder = pe.Skip()
-        gat_model = gat.Set(config['gat'], self.factory_kwargs)
+        gat_model = gat.Set(config['gat'], None, self.factory_kwargs)
         if decision is None:
             mlp_param = {
                 'd_model': self.config['gat']['params']['en_dim'],
                 'n_hidden': 4,
                 'n_class': self.n_class,
             }
-            decision = mlp.Model(**mlp_param, **self.factory_kwargs)
+            decision = mlp.Model(**mlp_param, **self.factory_kwargs).to(
+                self.factory_kwargs['device']
+            )
 
         # Using data loader to train
         for input, label in data_loader:
