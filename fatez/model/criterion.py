@@ -79,7 +79,7 @@ class F1_Score(nn.Module):
 
     def forward(self, inputs, labels, ):
         top_probs, preds = torch.max(inputs, dim = -1)
-        f1 = metrics.f1_score(labels, preds, **self.kwargs)
+        f1 = metrics.f1_score(labels.cpu(), preds.cpu(), **self.kwargs)
 
         if not self.requires_grad:
             return f1
@@ -106,7 +106,7 @@ class AUROC(nn.Module):
 
     def forward(self, inputs, labels, ):
         top_probs, preds = torch.max(inputs, dim = -1)
-        score = metrics.roc_auc_score(labels, preds, **self.kwargs)
+        score = metrics.roc_auc_score(labels.cpu(), preds.cpu(), **self.kwargs)
 
         if not self.requires_grad:
             return score
@@ -132,7 +132,7 @@ class Silhouette(nn.Module):
 
     def forward(self, inputs, labels, ):
         top_probs, preds = torch.max(inputs, dim = -1)
-        score = metrics.silhouette_score(inputs, labels, **self.kwargs)
+        score = metrics.silhouette_score(inputs.cpu(), labels.cpu(), **self.kwargs)
 
         if not self.requires_grad:
             return score
@@ -155,9 +155,9 @@ if __name__ == '__main__':
     print(f'Preds:{preds}',  f'Labels:{labels}', f'Correct:{correct}',)
 
 
-    # test = Accuracy(requires_grad = True)(input, labels)
-    # test = F1_Score(requires_grad = True,)(input, labels)
-    # test = AUROC(requires_grad = True,)(input, labels)
+    test = Accuracy(requires_grad = True)(input, labels)
+    test = F1_Score(requires_grad = True,)(input, labels)
+    test = AUROC(requires_grad = True,)(input, labels)
     # test = F1_Score(requires_grad = True, average = 'micro')(input, labels)
     # test = F1_Score(requires_grad = True, average = 'macro')(input, labels)
     test.backward()

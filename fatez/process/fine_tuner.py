@@ -9,7 +9,6 @@ import torch.nn as nn
 import torch.optim as optim
 import pandas as pd
 from torchmetrics import AUROC
-from sklearn.metrics import roc_auc_score
 import fatez.model as model
 import fatez.model.mlp as mlp
 import fatez.model.gat as gat
@@ -18,6 +17,7 @@ import fatez.model.rnn as rnn
 import fatez.model.bert as bert
 import fatez.model.transformer as transformer
 import fatez.model.position_embedder as pe
+import fatez.model.criterion as crit
 
 
 
@@ -183,11 +183,13 @@ class Tuner(object):
         # save_gat_out:bool = False
         self.model.train()
         self.model.to(self.factory_kwargs['device'])
-        num_batches = len(data_loader)
+        nbatch = len(data_loader)
         best_loss = 99
         loss_all, acc_all = 0, 0
         out_gat_data = list()
         report = list()
+
+        acc_crit = crit.Accuracy(requires_grad = False)
 
         for x,y in data_loader:
             self.optimizer.zero_grad()
@@ -206,23 +208,26 @@ class Tuner(object):
             self.optimizer.step()
 
             # Accumulate
-            acc = (output.argmax(1)==y).type(torch.float).sum().item() / len(y)
+            acc = acc_crit(output, y)
             best_loss = min(best_loss, loss.item())
             loss_all += loss
             acc_all += acc
             if report_batch: report.append([loss.item(), acc])
 
         self.scheduler.step()
-        report.append([loss_all.item() / num_batches, acc_all / num_batches])
+        report.append([loss_all.item() / nbatch, acc_all / nbatch])
         report = pd.DataFrame(report)
         report.columns = ['Loss', 'ACC',]
         return report
 
     def test(self, data_loader, report_batch = False):
         self.model.eval()
-        num_batches = len(data_loader)
+        nbatch = len(data_loader)
         report = list()
         loss_all, acc_all, auroc_all = 0, 0, 0
+
+        acc_crit = crit.Accuracy(requires_grad = False)
+        # auroc_crit = crit.AUROC(requires_grad = False)
         auroc = AUROC("multiclass", num_classes = self.n_class)
         with torch.no_grad():
             for x, y in data_loader:
@@ -234,11 +239,10 @@ class Tuner(object):
 
                 # Batch specific
                 loss = self.criterion(output, y).item()
-                acc = (output.argmax(1)==y).type(torch.float).sum().item()
-                acc = acc / len(y)
-                # auc_score = roc_auc_score(y, output[:, 1], average = None)
-                auc_score = auroc(output, y)
-                auc_score = auc_score.item()
+                acc = acc_crit(output, y)
+                # auc_score = auroc_crit(output, y)
+                auc_score = auroc(output, y).item()
+
                 if report_batch: report.append([loss, acc, auc_score])
 
                 # Accumulate
@@ -246,11 +250,7 @@ class Tuner(object):
                 acc_all += acc
                 auroc_all += auc_score
 
-        report.append([
-            loss_all / num_batches,
-            acc_all / num_batches,
-            auroc_all / num_batches
-        ])
+        report.append([loss_all / nbatch, acc_all / nbatch, auroc_all / nbatch])
         report = pd.DataFrame(report)
         report.columns = ['Loss', 'ACC', 'AUROC']
         return report
