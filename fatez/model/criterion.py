@@ -48,15 +48,15 @@ class Accuracy(nn.Module):
         self.requires_grad = requires_grad
         self.kwargs = kwargs
 
-    def forward(self, inputs, labels, ):
-        top_probs, preds = torch.max(inputs, dim = -1)
-        acc = (preds == labels).type(torch.float).sum().item() / len(labels)
+    def forward(self, input, label, ):
+        top_probs, preds = torch.max(input, dim = -1)
+        acc = (preds == label).type(torch.float).sum().item() / len(label)
 
         if not self.requires_grad:
             return acc
         else:
             # Make predictions by solving least square problem
-            preds = probs_to_preds(inputs, preds)
+            preds = probs_to_preds(input, preds)
             return preds_to_scores(preds, acc)
 
 
@@ -77,15 +77,15 @@ class F1_Score(nn.Module):
         if 'average' not in self.kwargs:
             self.kwargs['average'] = 'weighted'
 
-    def forward(self, inputs, labels, ):
-        top_probs, preds = torch.max(inputs, dim = -1)
-        f1 = metrics.f1_score(labels.cpu(), preds.cpu(), **self.kwargs)
+    def forward(self, input, label, ):
+        top_probs, preds = torch.max(input, dim = -1)
+        f1 = metrics.f1_score(label.cpu(), preds.cpu(), **self.kwargs)
 
         if not self.requires_grad:
             return f1
         else:
             # Make predictions by solving least square problem
-            preds = probs_to_preds(inputs, preds)
+            preds = probs_to_preds(input, preds)
             return preds_to_scores(preds, f1)
 
 
@@ -104,15 +104,15 @@ class AUROC(nn.Module):
             self.kwargs['multi_class'] = 'ovr'
 
 
-    def forward(self, inputs, labels, ):
-        top_probs, preds = torch.max(inputs, dim = -1)
-        score = metrics.roc_auc_score(labels.cpu(), preds.cpu(), **self.kwargs)
+    def forward(self, input, label, ):
+        top_probs, preds = torch.max(input, dim = -1)
+        score = metrics.roc_auc_score(label.cpu(), preds.cpu(), **self.kwargs)
 
         if not self.requires_grad:
             return score
         else:
             # Make predictions by solving least square problem
-            preds = probs_to_preds(inputs, preds)
+            preds = probs_to_preds(input, preds)
             return preds_to_scores(preds, score)
 
 
@@ -130,15 +130,15 @@ class Silhouette(nn.Module):
         self.requires_grad = requires_grad
         self.kwargs = kwargs
 
-    def forward(self, inputs, labels, ):
-        top_probs, preds = torch.max(inputs, dim = -1)
-        score = metrics.silhouette_score(inputs.cpu(), labels.cpu(), **self.kwargs)
+    def forward(self, input, label, ):
+        top_probs, preds = torch.max(input, dim = -1)
+        score = metrics.silhouette_score(input.cpu(), label.cpu(), **self.kwargs)
 
         if not self.requires_grad:
             return score
         else:
             # Make predictions by solving least square problem
-            preds = probs_to_preds(inputs, preds)
+            preds = probs_to_preds(input, preds)
             return preds_to_scores(preds, score)
 
 
@@ -149,17 +149,17 @@ if __name__ == '__main__':
     n_dim = 8
     layer = nn.Linear(n_dim, n_dim)
     input = layer(torch.randn(n_sample, n_dim,))
-    labels = torch.empty(n_sample).random_(n_sample)
+    label = torch.empty(n_sample).random_(n_sample)
     probs, preds = torch.max(input, dim = -1)
-    correct = (preds == labels).type(torch.float)
-    print(f'Preds:{preds}',  f'Labels:{labels}', f'Correct:{correct}',)
+    correct = (preds == label).type(torch.float)
+    print(f'Preds:{preds}',  f'Labels:{label}', f'Correct:{correct}',)
 
 
-    test = Accuracy(requires_grad = True)(input, labels)
-    test = F1_Score(requires_grad = True,)(input, labels)
-    test = AUROC(requires_grad = True,)(input, labels)
-    # test = F1_Score(requires_grad = True, average = 'micro')(input, labels)
-    # test = F1_Score(requires_grad = True, average = 'macro')(input, labels)
+    test = Accuracy(requires_grad = True)(input, label)
+    test = F1_Score(requires_grad = True,)(input, label)
+    test = AUROC(requires_grad = True,)(input, label)
+    # test = F1_Score(requires_grad = True, average = 'micro')(input, label)
+    # test = F1_Score(requires_grad = True, average = 'macro')(input, label)
     test.backward()
 
     # # We can confrim the backward is working here
