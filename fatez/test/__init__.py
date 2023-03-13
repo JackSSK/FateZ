@@ -194,13 +194,15 @@ class Faker(object):
             decision = mlp.Model(**mlp_param, **self.factory_kwargs).to(
                 self.factory_kwargs['device']
             )
+        criterion = nn.CrossEntropyLoss()
+        # criterion = crit.Accuracy(requires_grad = True)
 
         # Using data loader to train
         for input, label in data_loader:
             output = graph_embedder(input[0], adj = input[1])
             out_gat = gat_model(output, input[1])
             output = decision(out_gat)
-            loss = nn.CrossEntropyLoss()(output, label)
+            loss = criterion(output, label)
             loss.backward()
         print(f'\tGAT Green.\n')
 
