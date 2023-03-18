@@ -1,0 +1,667 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>FateZ Explain &mdash; FateZ  documentation</title>
+      <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+      <link rel="stylesheet" href="../_static/css/theme.css" type="text/css" />
+  <!--[if lt IE 9]>
+    <script src="../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script data-url_root="../" id="documentation_options" src="../_static/documentation_options.js"></script>
+        <script src="../_static/jquery.js"></script>
+        <script src="../_static/underscore.js"></script>
+        <script src="../_static/_sphinx_javascript_frameworks_compat.js"></script>
+        <script src="../_static/doctools.js"></script>
+        <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
+        <script>window.MathJax = {"tex": {"inlineMath": [["$", "$"], ["\\(", "\\)"]], "processEscapes": true}, "options": {"ignoreHtmlClass": "tex2jax_ignore|mathjax_ignore|document", "processHtmlClass": "tex2jax_process|mathjax_process|math|output_area"}}</script>
+        <script defer="defer" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+    <script src="../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="prev" title="FateZ Clustering" href="clustering.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+            <a href="../index.html" class="icon icon-home"> FateZ
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../api.html">API reference</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="../examples.html">Examples</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="clustering.html">FateZ Clustering</a></li>
+<li class="toctree-l2 current"><a class="current reference internal" href="#">FateZ Explain</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#Build-model-and-make-some-fake-data-first.">Build model and make some fake data first.</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#Now-we-perform-pre-training-with-no-label.">Now we perform pre-training with no label.</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#Then,-we-can-go-for-fine-tuning-part-with-class-labels.">Then, we can go for fine tuning part with class labels.</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#To-explain-Fine-Tuning-model-in-general.">To explain Fine Tuning model in general.</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#To-explain-the-BERT-part-for-analyzing-importances-of-TFs-only.">To explain the BERT part for analyzing importances of TFs only.</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#To-explain-the-GAT-for-analyzing-GRP-importances.">To explain the GAT for analyzing GRP importances.</a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">FateZ</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../index.html" class="icon icon-home"></a> &raquo;</li>
+          <li><a href="../examples.html">Examples</a> &raquo;</li>
+      <li>FateZ Explain</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="../_sources/notebooks/explain.ipynb.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  
+<style>
+/* CSS for nbsphinx extension */
+
+/* remove conflicting styling from Sphinx themes */
+div.nbinput.container div.prompt *,
+div.nboutput.container div.prompt *,
+div.nbinput.container div.input_area pre,
+div.nboutput.container div.output_area pre,
+div.nbinput.container div.input_area .highlight,
+div.nboutput.container div.output_area .highlight {
+    border: none;
+    padding: 0;
+    margin: 0;
+    box-shadow: none;
+}
+
+div.nbinput.container > div[class*=highlight],
+div.nboutput.container > div[class*=highlight] {
+    margin: 0;
+}
+
+div.nbinput.container div.prompt *,
+div.nboutput.container div.prompt * {
+    background: none;
+}
+
+div.nboutput.container div.output_area .highlight,
+div.nboutput.container div.output_area pre {
+    background: unset;
+}
+
+div.nboutput.container div.output_area div.highlight {
+    color: unset;  /* override Pygments text color */
+}
+
+/* avoid gaps between output lines */
+div.nboutput.container div[class*=highlight] pre {
+    line-height: normal;
+}
+
+/* input/output containers */
+div.nbinput.container,
+div.nboutput.container {
+    display: -webkit-flex;
+    display: flex;
+    align-items: flex-start;
+    margin: 0;
+    width: 100%;
+}
+@media (max-width: 540px) {
+    div.nbinput.container,
+    div.nboutput.container {
+        flex-direction: column;
+    }
+}
+
+/* input container */
+div.nbinput.container {
+    padding-top: 5px;
+}
+
+/* last container */
+div.nblast.container {
+    padding-bottom: 5px;
+}
+
+/* input prompt */
+div.nbinput.container div.prompt pre {
+    color: #307FC1;
+}
+
+/* output prompt */
+div.nboutput.container div.prompt pre {
+    color: #BF5B3D;
+}
+
+/* all prompts */
+div.nbinput.container div.prompt,
+div.nboutput.container div.prompt {
+    width: 4.5ex;
+    padding-top: 5px;
+    position: relative;
+    user-select: none;
+}
+
+div.nbinput.container div.prompt > div,
+div.nboutput.container div.prompt > div {
+    position: absolute;
+    right: 0;
+    margin-right: 0.3ex;
+}
+
+@media (max-width: 540px) {
+    div.nbinput.container div.prompt,
+    div.nboutput.container div.prompt {
+        width: unset;
+        text-align: left;
+        padding: 0.4em;
+    }
+    div.nboutput.container div.prompt.empty {
+        padding: 0;
+    }
+
+    div.nbinput.container div.prompt > div,
+    div.nboutput.container div.prompt > div {
+        position: unset;
+    }
+}
+
+/* disable scrollbars on prompts */
+div.nbinput.container div.prompt pre,
+div.nboutput.container div.prompt pre {
+    overflow: hidden;
+}
+
+/* input/output area */
+div.nbinput.container div.input_area,
+div.nboutput.container div.output_area {
+    -webkit-flex: 1;
+    flex: 1;
+    overflow: auto;
+}
+@media (max-width: 540px) {
+    div.nbinput.container div.input_area,
+    div.nboutput.container div.output_area {
+        width: 100%;
+    }
+}
+
+/* input area */
+div.nbinput.container div.input_area {
+    border: 1px solid #e0e0e0;
+    border-radius: 2px;
+    /*background: #f5f5f5;*/
+}
+
+/* override MathJax center alignment in output cells */
+div.nboutput.container div[class*=MathJax] {
+    text-align: left !important;
+}
+
+/* override sphinx.ext.imgmath center alignment in output cells */
+div.nboutput.container div.math p {
+    text-align: left;
+}
+
+/* standard error */
+div.nboutput.container div.output_area.stderr {
+    background: #fdd;
+}
+
+/* ANSI colors */
+.ansi-black-fg { color: #3E424D; }
+.ansi-black-bg { background-color: #3E424D; }
+.ansi-black-intense-fg { color: #282C36; }
+.ansi-black-intense-bg { background-color: #282C36; }
+.ansi-red-fg { color: #E75C58; }
+.ansi-red-bg { background-color: #E75C58; }
+.ansi-red-intense-fg { color: #B22B31; }
+.ansi-red-intense-bg { background-color: #B22B31; }
+.ansi-green-fg { color: #00A250; }
+.ansi-green-bg { background-color: #00A250; }
+.ansi-green-intense-fg { color: #007427; }
+.ansi-green-intense-bg { background-color: #007427; }
+.ansi-yellow-fg { color: #DDB62B; }
+.ansi-yellow-bg { background-color: #DDB62B; }
+.ansi-yellow-intense-fg { color: #B27D12; }
+.ansi-yellow-intense-bg { background-color: #B27D12; }
+.ansi-blue-fg { color: #208FFB; }
+.ansi-blue-bg { background-color: #208FFB; }
+.ansi-blue-intense-fg { color: #0065CA; }
+.ansi-blue-intense-bg { background-color: #0065CA; }
+.ansi-magenta-fg { color: #D160C4; }
+.ansi-magenta-bg { background-color: #D160C4; }
+.ansi-magenta-intense-fg { color: #A03196; }
+.ansi-magenta-intense-bg { background-color: #A03196; }
+.ansi-cyan-fg { color: #60C6C8; }
+.ansi-cyan-bg { background-color: #60C6C8; }
+.ansi-cyan-intense-fg { color: #258F8F; }
+.ansi-cyan-intense-bg { background-color: #258F8F; }
+.ansi-white-fg { color: #C5C1B4; }
+.ansi-white-bg { background-color: #C5C1B4; }
+.ansi-white-intense-fg { color: #A1A6B2; }
+.ansi-white-intense-bg { background-color: #A1A6B2; }
+
+.ansi-default-inverse-fg { color: #FFFFFF; }
+.ansi-default-inverse-bg { background-color: #000000; }
+
+.ansi-bold { font-weight: bold; }
+.ansi-underline { text-decoration: underline; }
+
+
+div.nbinput.container div.input_area div[class*=highlight] > pre,
+div.nboutput.container div.output_area div[class*=highlight] > pre,
+div.nboutput.container div.output_area div[class*=highlight].math,
+div.nboutput.container div.output_area.rendered_html,
+div.nboutput.container div.output_area > div.output_javascript,
+div.nboutput.container div.output_area:not(.rendered_html) > img{
+    padding: 5px;
+    margin: 0;
+}
+
+/* fix copybtn overflow problem in chromium (needed for 'sphinx_copybutton') */
+div.nbinput.container div.input_area > div[class^='highlight'],
+div.nboutput.container div.output_area > div[class^='highlight']{
+    overflow-y: hidden;
+}
+
+/* hide copybtn icon on prompts (needed for 'sphinx_copybutton') */
+.prompt .copybtn {
+    display: none;
+}
+
+/* Some additional styling taken form the Jupyter notebook CSS */
+.jp-RenderedHTMLCommon table,
+div.rendered_html table {
+  border: none;
+  border-collapse: collapse;
+  border-spacing: 0;
+  color: black;
+  font-size: 12px;
+  table-layout: fixed;
+}
+.jp-RenderedHTMLCommon thead,
+div.rendered_html thead {
+  border-bottom: 1px solid black;
+  vertical-align: bottom;
+}
+.jp-RenderedHTMLCommon tr,
+.jp-RenderedHTMLCommon th,
+.jp-RenderedHTMLCommon td,
+div.rendered_html tr,
+div.rendered_html th,
+div.rendered_html td {
+  text-align: right;
+  vertical-align: middle;
+  padding: 0.5em 0.5em;
+  line-height: normal;
+  white-space: normal;
+  max-width: none;
+  border: none;
+}
+.jp-RenderedHTMLCommon th,
+div.rendered_html th {
+  font-weight: bold;
+}
+.jp-RenderedHTMLCommon tbody tr:nth-child(odd),
+div.rendered_html tbody tr:nth-child(odd) {
+  background: #f5f5f5;
+}
+.jp-RenderedHTMLCommon tbody tr:hover,
+div.rendered_html tbody tr:hover {
+  background: rgba(66, 165, 245, 0.2);
+}
+
+/* CSS overrides for sphinx_rtd_theme */
+
+/* 24px margin */
+.nbinput.nblast.container,
+.nboutput.nblast.container {
+    margin-bottom: 19px;  /* padding has already 5px */
+}
+
+/* ... except between code cells! */
+.nblast.container + .nbinput.container {
+    margin-top: -19px;
+}
+
+.admonition > p:before {
+    margin-right: 4px;  /* make room for the exclamation icon */
+}
+
+/* Fix math alignment, see https://github.com/rtfd/sphinx_rtd_theme/pull/686 */
+.math {
+    text-align: unset;
+}
+</style>
+<div class="section" id="FateZ-Explain">
+<h1>FateZ Explain<a class="headerlink" href="#FateZ-Explain" title="Permalink to this heading"></a></h1>
+<p>This notebook demonstrate how to utilize explanatory methods of FateZ models.</p>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[2]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">os</span>
+<span class="kn">import</span> <span class="nn">torch</span>
+<span class="kn">from</span> <span class="nn">torch.utils.data</span> <span class="kn">import</span> <span class="n">DataLoader</span>
+<span class="kn">import</span> <span class="nn">fatez.test</span> <span class="k">as</span> <span class="nn">test</span>
+<span class="kn">import</span> <span class="nn">fatez.model</span> <span class="k">as</span> <span class="nn">model</span>
+<span class="kn">import</span> <span class="nn">fatez.tool.JSON</span> <span class="k">as</span> <span class="nn">JSON</span>
+<span class="kn">import</span> <span class="nn">fatez.process.explainer</span> <span class="k">as</span> <span class="nn">explainer</span>
+<span class="kn">import</span> <span class="nn">fatez.process.fine_tuner</span> <span class="k">as</span> <span class="nn">fine_tuner</span>
+<span class="kn">import</span> <span class="nn">fatez.process.pre_trainer</span> <span class="k">as</span> <span class="nn">pre_trainer</span>
+<span class="kn">from</span> <span class="nn">pkg_resources</span> <span class="kn">import</span> <span class="n">resource_filename</span>
+
+<span class="c1"># Ignoring warnings because of using LazyLinear</span>
+<span class="kn">import</span> <span class="nn">warnings</span>
+<span class="n">warnings</span><span class="o">.</span><span class="n">filterwarnings</span><span class="p">(</span><span class="s1">&#39;ignore&#39;</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<div class="section" id="Build-model-and-make-some-fake-data-first.">
+<h2>Build model and make some fake data first.<a class="headerlink" href="#Build-model-and-make-some-fake-data-first." title="Permalink to this heading"></a></h2>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[27]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># Parameters</span>
+<span class="n">params</span> <span class="o">=</span> <span class="p">{</span>
+    <span class="s1">&#39;n_sample&#39;</span><span class="p">:</span> <span class="mi">10</span><span class="p">,</span>       <span class="c1"># Fake samples to make</span>
+    <span class="s1">&#39;batch_size&#39;</span><span class="p">:</span> <span class="mi">1</span><span class="p">,</span>      <span class="c1"># Batch size</span>
+<span class="p">}</span>
+
+<span class="c1"># Load built-in config file</span>
+<span class="n">config</span> <span class="o">=</span> <span class="n">JSON</span><span class="o">.</span><span class="n">decode</span><span class="p">(</span><span class="n">resource_filename</span><span class="p">(</span>
+        <span class="vm">__name__</span><span class="p">,</span> <span class="s1">&#39;../../fatez/data/config/gat_bert_config.json&#39;</span>
+    <span class="p">)</span>
+<span class="p">)</span>
+
+<span class="n">factory_kwargs</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;device&#39;</span><span class="p">:</span> <span class="s1">&#39;cuda&#39;</span><span class="p">,</span> <span class="s1">&#39;dtype&#39;</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">float32</span><span class="p">,}</span>
+
+<span class="c1"># Generate Fake data</span>
+<span class="n">faker</span> <span class="o">=</span> <span class="n">test</span><span class="o">.</span><span class="n">Faker</span><span class="p">(</span><span class="n">model_config</span> <span class="o">=</span> <span class="n">config</span><span class="p">,</span> <span class="o">**</span><span class="n">params</span><span class="p">)</span>
+<span class="n">train_dataloader</span> <span class="o">=</span> <span class="n">faker</span><span class="o">.</span><span class="n">make_data_loader</span><span class="p">()</span>
+<br/><br/></pre></div>
+</div>
+</div>
+</div>
+<div class="section" id="Now-we-perform-pre-training-with-no-label.">
+<h2>Now we perform pre-training with no label.<a class="headerlink" href="#Now-we-perform-pre-training-with-no-label." title="Permalink to this heading"></a></h2>
+<p>Here trainer’s <span class="math notranslate nohighlight">\(n\_dim\_adj\)</span> is set to None, and the model is NOT reconstructing the adjacency matrices, etc.</p>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[28]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">trainer</span> <span class="o">=</span> <span class="n">pre_trainer</span><span class="o">.</span><span class="n">Set</span><span class="p">(</span><span class="n">config</span><span class="p">,</span> <span class="n">factory_kwargs</span><span class="p">)</span>
+<span class="n">report</span> <span class="o">=</span> <span class="n">trainer</span><span class="o">.</span><span class="n">train</span><span class="p">(</span><span class="n">train_dataloader</span><span class="p">,</span> <span class="n">report_batch</span> <span class="o">=</span> <span class="kc">True</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="n">report</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+        Loss
+0   1.371900
+1   0.768842
+2   1.256326
+3   1.237347
+4   1.134314
+5   0.577454
+6   1.105542
+7   1.238400
+8   0.952839
+9   0.915199
+10  1.055816
+</pre></div></div>
+</div>
+<p>In the case of pre-training with reconstructing adjacency matrices as well.</p>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[29]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">config</span><span class="p">[</span><span class="s1">&#39;pre_trainer&#39;</span><span class="p">][</span><span class="s1">&#39;n_dim_adj&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">config</span><span class="p">[</span><span class="s1">&#39;input_sizes&#39;</span><span class="p">][</span><span class="mi">0</span><span class="p">][</span><span class="mi">1</span><span class="p">]</span>
+<span class="n">trainer</span> <span class="o">=</span> <span class="n">pre_trainer</span><span class="o">.</span><span class="n">Set</span><span class="p">(</span><span class="n">config</span><span class="p">,</span> <span class="n">factory_kwargs</span><span class="p">)</span>
+<span class="n">report</span> <span class="o">=</span> <span class="n">trainer</span><span class="o">.</span><span class="n">train</span><span class="p">(</span><span class="n">train_dataloader</span><span class="p">,</span> <span class="n">report_batch</span> <span class="o">=</span> <span class="kc">True</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="n">report</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+        Loss
+0   1.816574
+1   1.730838
+2   1.741792
+3   2.077016
+4   1.784506
+5   2.210017
+6   1.868762
+7   1.616021
+8   2.049183
+9   1.998312
+10  1.889302
+</pre></div></div>
+</div>
+</div>
+<div class="section" id="Then,-we-can-go-for-fine-tuning-part-with-class-labels.">
+<h2>Then, we can go for fine tuning part with class labels.<a class="headerlink" href="#Then,-we-can-go-for-fine-tuning-part-with-class-labels." title="Permalink to this heading"></a></h2>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[30]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">tuner</span> <span class="o">=</span> <span class="n">fine_tuner</span><span class="o">.</span><span class="n">Set</span><span class="p">(</span><span class="n">config</span><span class="p">,</span> <span class="n">factory_kwargs</span><span class="p">,</span> <span class="n">prev_model</span> <span class="o">=</span> <span class="n">trainer</span><span class="o">.</span><span class="n">model</span><span class="p">)</span>
+<span class="n">report</span> <span class="o">=</span> <span class="n">tuner</span><span class="o">.</span><span class="n">train</span><span class="p">(</span><span class="n">train_dataloader</span><span class="p">,</span> <span class="n">report_batch</span> <span class="o">=</span> <span class="kc">True</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="n">report</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+        Loss  ACC
+0   1.393003  0.0
+1   1.395453  0.0
+2   1.484483  0.0
+3   1.469457  0.0
+4   1.292269  1.0
+5   1.478473  0.0
+6   1.389301  0.0
+7   1.281845  1.0
+8   1.476806  0.0
+9   1.279046  1.0
+10  1.394014  0.3
+</pre></div></div>
+</div>
+</div>
+<div class="section" id="To-explain-Fine-Tuning-model-in-general.">
+<h2>To explain Fine Tuning model in general.<a class="headerlink" href="#To-explain-Fine-Tuning-model-in-general." title="Permalink to this heading"></a></h2>
+<p>Note: to make overall conclusion on the contribution of a specific gene, we would need to sum up importance values for every feature dimension (RNA-count, peaks)</p>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[47]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># Get background data</span>
+<span class="n">background_data</span> <span class="o">=</span> <span class="p">[</span><span class="n">a</span> <span class="k">for</span> <span class="n">a</span><span class="p">,</span> <span class="n">_</span> <span class="ow">in</span> <span class="n">DataLoader</span><span class="p">(</span><span class="n">train_dataloader</span><span class="o">.</span><span class="n">dataset</span><span class="p">,</span> <span class="n">batch_size</span> <span class="o">=</span> <span class="n">params</span><span class="p">[</span><span class="s1">&#39;n_sample&#39;</span><span class="p">])][</span><span class="mi">0</span><span class="p">]</span>
+<span class="n">background_data</span> <span class="o">=</span> <span class="p">[</span><span class="n">a</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">factory_kwargs</span><span class="p">[</span><span class="s1">&#39;device&#39;</span><span class="p">])</span> <span class="k">for</span> <span class="n">a</span> <span class="ow">in</span> <span class="n">background_data</span><span class="p">]</span>
+<span class="n">explain</span> <span class="o">=</span> <span class="n">explainer</span><span class="o">.</span><span class="n">Gradient</span><span class="p">(</span><span class="n">tuner</span><span class="o">.</span><span class="n">model</span><span class="p">,</span> <span class="n">background_data</span><span class="p">)</span>
+
+<span class="c1"># vars can be used to estimate how accurate the explanation would be: lower the better</span>
+<span class="k">for</span> <span class="n">input_data</span><span class="p">,</span> <span class="n">_</span> <span class="ow">in</span> <span class="n">train_dataloader</span><span class="p">:</span>
+    <span class="n">input_data</span> <span class="o">=</span> <span class="p">[</span><span class="n">i</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">factory_kwargs</span><span class="p">[</span><span class="s1">&#39;device&#39;</span><span class="p">])</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">input_data</span><span class="p">]</span>
+    <span class="n">gene_shap_values</span><span class="p">,</span> <span class="nb">vars</span> <span class="o">=</span> <span class="n">explain</span><span class="o">.</span><span class="n">shap_values</span><span class="p">(</span><span class="n">input_data</span><span class="p">,</span> <span class="n">return_variances</span> <span class="o">=</span> <span class="kc">True</span><span class="p">)</span>
+    <span class="k">break</span>
+
+<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s1">&#39;Explaining </span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">gene_shap_values</span><span class="p">)</span><span class="si">}</span><span class="s1"> classes.&#39;</span><span class="p">)</span>
+
+<span class="c1"># Having 2 inputs</span>
+<span class="k">assert</span> <span class="nb">len</span><span class="p">(</span><span class="n">gene_shap_values</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span> <span class="o">==</span> <span class="mi">2</span>
+
+<span class="c1"># Only the feat mat explanation should be working</span>
+<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s1">&#39;Each class has explain in shape of </span><span class="si">{</span><span class="n">gene_shap_values</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">shape</span><span class="si">}</span><span class="s1">.&#39;</span><span class="p">)</span>
+
+<span class="c1"># The adj mat explanation should NOT be working since lacking gradient</span>
+<span class="c1"># print(gene_shap_values[0][1].shape)</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+Explaining 4 classes.
+Each class has explain in shape of (1, 10, 2).
+</pre></div></div>
+</div>
+</div>
+<div class="section" id="To-explain-the-BERT-part-for-analyzing-importances-of-TFs-only.">
+<h2>To explain the BERT part for analyzing importances of TFs only.<a class="headerlink" href="#To-explain-the-BERT-part-for-analyzing-importances-of-TFs-only." title="Permalink to this heading"></a></h2>
+<p>Note: similarly, we would want to sum up values across embed dimensions.</p>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[49]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># We also should accumulate gat_out for every trained input.</span>
+<span class="c1"># Here I just make 1 gat_out for example</span>
+<span class="n">gat_out</span> <span class="o">=</span> <span class="n">tuner</span><span class="o">.</span><span class="n">model</span><span class="o">.</span><span class="n">get_gat_output</span><span class="p">(</span><span class="n">input_data</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">input_data</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
+<span class="n">explain</span> <span class="o">=</span> <span class="n">explainer</span><span class="o">.</span><span class="n">Gradient</span><span class="p">(</span><span class="n">tuner</span><span class="o">.</span><span class="n">model</span><span class="o">.</span><span class="n">bert_model</span><span class="p">,</span> <span class="n">gat_out</span><span class="p">)</span>
+
+<span class="n">regulon_shap_values</span><span class="p">,</span> <span class="nb">vars</span> <span class="o">=</span> <span class="n">explain</span><span class="o">.</span><span class="n">shap_values</span><span class="p">(</span><span class="n">gat_out</span><span class="p">,</span> <span class="n">return_variances</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s1">&#39;Explaining </span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">regulon_shap_values</span><span class="p">)</span><span class="si">}</span><span class="s1"> classes.&#39;</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s1">&#39;Each class has explain in shape of </span><span class="si">{</span><span class="n">regulon_shap_values</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">shape</span><span class="si">}</span><span class="s1">.&#39;</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+Explaining 4 classes.
+Each class has explain in shape of (1, 4, 3).
+</pre></div></div>
+</div>
+</div>
+<div class="section" id="To-explain-the-GAT-for-analyzing-GRP-importances.">
+<h2>To explain the GAT for analyzing GRP importances.<a class="headerlink" href="#To-explain-the-GAT-for-analyzing-GRP-importances." title="Permalink to this heading"></a></h2>
+<p>The grp_explain here is purely based on the GAT attention weights.</p>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[50]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">grp_explain</span> <span class="o">=</span> <span class="n">tuner</span><span class="o">.</span><span class="n">model</span><span class="o">.</span><span class="n">gat</span><span class="o">.</span><span class="n">explain</span><span class="p">(</span><span class="nb">input</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="mi">0</span><span class="p">],</span> <span class="nb">input</span><span class="p">[</span><span class="mi">1</span><span class="p">][</span><span class="mi">0</span><span class="p">])</span>
+<span class="nb">print</span><span class="p">(</span><span class="n">grp_explain</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span>
+
+<span class="c1"># Or we can feed in matrices with ones to extract attention weights.</span>
+<span class="n">grp_explain</span> <span class="o">=</span> <span class="n">tuner</span><span class="o">.</span><span class="n">model</span><span class="o">.</span><span class="n">gat</span><span class="o">.</span><span class="n">explain</span><span class="p">(</span>
+    <span class="n">torch</span><span class="o">.</span><span class="n">ones_like</span><span class="p">(</span><span class="nb">input</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="mi">0</span><span class="p">]),</span> <span class="n">torch</span><span class="o">.</span><span class="n">ones_like</span><span class="p">(</span><span class="nb">input</span><span class="p">[</span><span class="mi">1</span><span class="p">][</span><span class="mi">0</span><span class="p">])</span>
+<span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="n">grp_explain</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+torch.Size([4, 10])
+torch.Size([4, 10])
+</pre></div></div>
+</div>
+<p>Utilizing the importance values of each gene or TF regulon inferred from the calculated shapley values above would be sufficent to obtain importances of each GRP.</p>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[51]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># Sum up shapley values of each features for every node (gene or TF).</span>
+<span class="n">regulon_importance_values</span> <span class="o">=</span> <span class="n">regulon_shap_values</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="mi">2</span><span class="p">)</span>
+<span class="n">gene_importance_values</span> <span class="o">=</span> <span class="n">gene_shap_values</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="mi">2</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="n">regulon_importance_values</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="n">gene_importance_values</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span>
+
+<span class="n">grp_importance</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">matmul</span><span class="p">(</span>
+    <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">(</span><span class="n">regulon_importance_values</span><span class="p">[</span><span class="mi">0</span><span class="p">]),</span> <span class="n">grp_explain</span>
+<span class="p">)</span>
+<span class="n">grp_importance</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">matmul</span><span class="p">(</span>
+    <span class="n">grp_explain</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">(</span><span class="n">gene_importance_values</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+<span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+(1, 4)
+(1, 10)
+</pre></div></div>
+</div>
+</div>
+</div>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="clustering.html" class="btn btn-neutral float-left" title="FateZ Clustering" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2022, JackSSK.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>
