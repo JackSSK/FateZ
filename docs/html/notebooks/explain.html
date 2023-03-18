@@ -363,7 +363,7 @@ div.rendered_html tbody tr:hover {
 <h1>FateZ Explain<a class="headerlink" href="#FateZ-Explain" title="Permalink to this heading"></a></h1>
 <p>This notebook demonstrate how to utilize explanatory methods of FateZ models.</p>
 <div class="nbinput nblast docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[2]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[1]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">os</span>
@@ -386,7 +386,7 @@ div.rendered_html tbody tr:hover {
 <div class="section" id="Build-model-and-make-some-fake-data-first.">
 <h2>Build model and make some fake data first.<a class="headerlink" href="#Build-model-and-make-some-fake-data-first." title="Permalink to this heading"></a></h2>
 <div class="nbinput nblast docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[27]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[2]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># Parameters</span>
@@ -579,16 +579,14 @@ Each class has explain in shape of (1, 4, 3).
 <h2>To explain the GAT for analyzing GRP importances.<a class="headerlink" href="#To-explain-the-GAT-for-analyzing-GRP-importances." title="Permalink to this heading"></a></h2>
 <p>The grp_explain here is purely based on the GAT attention weights.</p>
 <div class="nbinput docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[50]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[53]:
 </pre></div>
 </div>
-<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">grp_explain</span> <span class="o">=</span> <span class="n">tuner</span><span class="o">.</span><span class="n">model</span><span class="o">.</span><span class="n">gat</span><span class="o">.</span><span class="n">explain</span><span class="p">(</span><span class="nb">input</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="mi">0</span><span class="p">],</span> <span class="nb">input</span><span class="p">[</span><span class="mi">1</span><span class="p">][</span><span class="mi">0</span><span class="p">])</span>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">grp_explain</span> <span class="o">=</span> <span class="n">tuner</span><span class="o">.</span><span class="n">model</span><span class="o">.</span><span class="n">gat</span><span class="o">.</span><span class="n">explain</span><span class="p">(</span><span class="n">input_data</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="mi">0</span><span class="p">],</span> <span class="n">input_data</span><span class="p">[</span><span class="mi">1</span><span class="p">][</span><span class="mi">0</span><span class="p">])</span>
 <span class="nb">print</span><span class="p">(</span><span class="n">grp_explain</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span>
 
 <span class="c1"># Or we can feed in matrices with ones to extract attention weights.</span>
-<span class="n">grp_explain</span> <span class="o">=</span> <span class="n">tuner</span><span class="o">.</span><span class="n">model</span><span class="o">.</span><span class="n">gat</span><span class="o">.</span><span class="n">explain</span><span class="p">(</span>
-    <span class="n">torch</span><span class="o">.</span><span class="n">ones_like</span><span class="p">(</span><span class="nb">input</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="mi">0</span><span class="p">]),</span> <span class="n">torch</span><span class="o">.</span><span class="n">ones_like</span><span class="p">(</span><span class="nb">input</span><span class="p">[</span><span class="mi">1</span><span class="p">][</span><span class="mi">0</span><span class="p">])</span>
-<span class="p">)</span>
+<span class="n">grp_explain</span> <span class="o">=</span> <span class="n">tuner</span><span class="o">.</span><span class="n">model</span><span class="o">.</span><span class="n">gat</span><span class="o">.</span><span class="n">explain</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">ones_like</span><span class="p">(</span><span class="n">input_data</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="mi">0</span><span class="p">]),</span> <span class="n">torch</span><span class="o">.</span><span class="n">ones_like</span><span class="p">(</span><span class="n">input_data</span><span class="p">[</span><span class="mi">1</span><span class="p">][</span><span class="mi">0</span><span class="p">]))</span>
 <span class="nb">print</span><span class="p">(</span><span class="n">grp_explain</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span>
 </pre></div>
 </div>
@@ -604,7 +602,7 @@ torch.Size([4, 10])
 </div>
 <p>Utilizing the importance values of each gene or TF regulon inferred from the calculated shapley values above would be sufficent to obtain importances of each GRP.</p>
 <div class="nbinput docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[51]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[54]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># Sum up shapley values of each features for every node (gene or TF).</span>
@@ -613,12 +611,8 @@ torch.Size([4, 10])
 <span class="nb">print</span><span class="p">(</span><span class="n">regulon_importance_values</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span>
 <span class="nb">print</span><span class="p">(</span><span class="n">gene_importance_values</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span>
 
-<span class="n">grp_importance</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">matmul</span><span class="p">(</span>
-    <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">(</span><span class="n">regulon_importance_values</span><span class="p">[</span><span class="mi">0</span><span class="p">]),</span> <span class="n">grp_explain</span>
-<span class="p">)</span>
-<span class="n">grp_importance</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">matmul</span><span class="p">(</span>
-    <span class="n">grp_explain</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">(</span><span class="n">gene_importance_values</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
-<span class="p">)</span>
+<span class="n">grp_importance</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">matmul</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">(</span><span class="n">regulon_importance_values</span><span class="p">[</span><span class="mi">0</span><span class="p">]),</span> <span class="n">grp_explain</span><span class="p">)</span>
+<span class="n">grp_importance</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">matmul</span><span class="p">(</span><span class="n">grp_explain</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">(</span><span class="n">gene_importance_values</span><span class="p">[</span><span class="mi">0</span><span class="p">]))</span>
 </pre></div>
 </div>
 </div>
