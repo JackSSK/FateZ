@@ -9,7 +9,7 @@ import torch
 import torch.nn as nn
 import fatez.model.mlp as mlp
 import fatez.model.transformer as transformer
-import fatez.process.position_embedder as pe
+import fatez.model.position_embedder as pe
 
 
 

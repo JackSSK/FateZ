@@ -31,7 +31,7 @@ class RNN(nn.Module):
         self.num_layers = num_layers
         self.hidden_size = hidden_size
         self.bidirectional = bidirectional
-        self.dropout = nn.Dropout(p = dropout)
+        self.dropout = nn.Dropout(p = dropout, inplace = False)
         self.rnn = nn.RNN(
             input_size = input_size,
             hidden_size = hidden_size,
@@ -46,7 +46,7 @@ class RNN(nn.Module):
 
     def forward(self, input):
         # input needs to be: (batch_size, seq, input_size)
-        input = self.dropout(input)
+        input = self.dropout(input, training=self.training)
         # Set initial hidden states
         if not self.bidirectional:
             h0 = torch.zeros(self.num_layers, input.size(0), self.hidden_size)
@@ -80,7 +80,7 @@ class GRU(nn.Module):
         self.num_layers = num_layers
         self.hidden_size = hidden_size
         self.bidirectional = bidirectional
-        self.dropout = nn.Dropout(p = dropout)
+        self.dropout = nn.Dropout(p = dropout, inplace = False)
         self.gru = nn.GRU(
             input_size = input_size,
             hidden_size = hidden_size,
@@ -94,7 +94,7 @@ class GRU(nn.Module):
 
     def forward(self, input):
         # input needs to be: (batch_size, seq, input_size)
-        input = self.dropout(input)
+        input = self.dropout(input, training=self.training)
         # Set initial hidden states
         if not self.bidirectional:
             h0 = torch.zeros(self.num_layers, input.size(0), self.hidden_size)
@@ -129,7 +129,7 @@ class LSTM(nn.Module):
         self.num_layers = num_layers
         self.hidden_size = hidden_size
         self.bidirectional = bidirectional
-        self.dropout = nn.Dropout(p = dropout)
+        self.dropout = nn.Dropout(p = dropout, inplace = False)
         self.lstm = nn.LSTM(
             input_size = input_size,
             hidden_size = hidden_size,
@@ -144,7 +144,7 @@ class LSTM(nn.Module):
 
     def forward(self, input):
         # input needs to be: (batch_size, seq, input_size)
-        input = self.dropout(input)
+        input = self.dropout(input, training=self.training)
         # Set initial hidden and cell states
         if not self.bidirectional:
             h0 = torch.zeros(self.num_layers, input.size(0), self.hidden_size)

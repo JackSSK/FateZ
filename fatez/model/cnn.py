@@ -54,7 +54,7 @@ class Model_1D(nn.Module):
                 kernel_size = conv_kernel_size,
                 dtype = dtype,
             )),
-            ('relu0', nn.ReLU(inplace = False)),
+            ('relu0', nn.ReLU(inplace = True)),
             ('pool0', nn.MaxPool1d(kernel_size = maxpool_kernel_size))
         ])
 
@@ -68,7 +68,7 @@ class Model_1D(nn.Module):
                     dtype = dtype,
                 )
             })
-            model_dict.update({f'relu{i+1}': nn.ReLU(inplace = False)})
+            model_dict.update({f'relu{i+1}': nn.ReLU(inplace = True)})
             model_dict.update({
                 f'pool{i+1}': nn.MaxPool1d(kernel_size = maxpool_kernel_size)
             })
@@ -76,7 +76,7 @@ class Model_1D(nn.Module):
         # Adding FC, dense, and decision layers
         model_dict.update({f'fc': nn.Flatten(start_dim = 1, end_dim = -1)})
         model_dict.update({f'dense': nn.LazyLinear(densed_size, dtype = dtype)})
-        model_dict.update({f'relu_last': nn.ReLU(inplace = False)})
+        model_dict.update({f'relu_last': nn.ReLU(inplace = True)})
         model_dict.update(
             {f'decide': nn.Linear(densed_size, n_class, dtype = dtype)}
         )
@@ -149,7 +149,7 @@ class Model_2D(nn.Module):
                 kernel_size = conv_kernel_size,
                 dtype = dtype,
             )),
-            ('relu0', nn.ReLU(inplace = False)),
+            ('relu0', nn.ReLU(inplace = True)),
             ('pool0', nn.MaxPool2d(kernel_size = maxpool_kernel_size))
         ])
 
@@ -163,7 +163,7 @@ class Model_2D(nn.Module):
                     dtype = dtype,
                 )
             })
-            model_dict.update({f'relu{i+1}': nn.ReLU(inplace = False)})
+            model_dict.update({f'relu{i+1}': nn.ReLU(inplace = True)})
             model_dict.update({
                 f'pool{i+1}': nn.MaxPool2d(kernel_size = maxpool_kernel_size)
             })
@@ -171,7 +171,7 @@ class Model_2D(nn.Module):
         # Adding FC, dense, and decision layers
         model_dict.update({f'fc': nn.Flatten(start_dim = 1, end_dim = -1)})
         model_dict.update({f'dense': nn.LazyLinear(densed_size, dtype = dtype)})
-        model_dict.update({f'relu_last': nn.ReLU(inplace = False)})
+        model_dict.update({f'relu_last': nn.ReLU(inplace = True)})
         model_dict.update(
             {f'decide': nn.Linear(densed_size, n_class, dtype = dtype)}
         )
@@ -255,7 +255,7 @@ class Model_Hybrid(nn.Module):
                 kernel_size = (1, horiz_kernel_size),
                 dtype = dtype,
             )),
-            ('relu0', nn.ReLU(inplace = False)),
+            ('relu0', nn.ReLU(inplace = True)),
             ('pool0', nn.MaxPool2d((1, maxpool_kernel_size)))
         ])
 
@@ -266,7 +266,7 @@ class Model_Hybrid(nn.Module):
                 kernel_size = (verti_kernel_size, 1),
                 dtype = dtype,
             )),
-            ('relu0', nn.ReLU(inplace = False)),
+            ('relu0', nn.ReLU(inplace = True)),
             ('pool0', nn.MaxPool2d((maxpool_kernel_size, 1)))
         ])
 
@@ -282,7 +282,7 @@ class Model_Hybrid(nn.Module):
                     dtype = dtype,
                 )
             })
-            model_horiz.update({f'relu{i+1}': nn.ReLU(inplace = False)})
+            model_horiz.update({f'relu{i+1}': nn.ReLU(inplace = True)})
             model_horiz.update({
                 f'pool{i+1}': nn.MaxPool2d((1, maxpool_kernel_size))
             })
@@ -298,7 +298,7 @@ class Model_Hybrid(nn.Module):
                     dtype = dtype,
                 )
             })
-            model_verti.update({f'relu{i+1}': nn.ReLU(inplace = False)})
+            model_verti.update({f'relu{i+1}': nn.ReLU(inplace = True)})
             model_verti.update({
                 f'pool{i+1}': nn.MaxPool2d((maxpool_kernel_size, 1))
             })
@@ -311,7 +311,7 @@ class Model_Hybrid(nn.Module):
         self.model_verti = nn.Sequential(model_verti)
         self.decision = nn.Sequential(OrderedDict([
             ('dense', nn.LazyLinear(densed_size, dtype = dtype)),
-            ('relu_last', nn.ReLU(inplace = False)),
+            ('relu_last', nn.ReLU(inplace = True)),
             ('decide', nn.Linear(densed_size, n_class, dtype = dtype))
         ]))
 

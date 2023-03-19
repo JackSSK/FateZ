@@ -37,4 +37,4 @@ Models
 .. autosummary::
     :toctree: generated/
 
-    fatez.model.bert.Encoder
+    fatez.model.transformer.Encoder

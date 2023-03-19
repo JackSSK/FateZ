@@ -391,12 +391,8 @@ div.rendered_html tbody tr:hover {
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># Parameters</span>
 <span class="n">params</span> <span class="o">=</span> <span class="p">{</span>
-    <span class="s1">&#39;k&#39;</span><span class="p">:</span> <span class="mi">10</span><span class="p">,</span>              <span class="c1"># Equivalent to total gene number</span>
-    <span class="s1">&#39;top_k&#39;</span><span class="p">:</span> <span class="mi">4</span><span class="p">,</span>           <span class="c1"># Equivalent to TF number</span>
-    <span class="s1">&#39;n_features&#39;</span><span class="p">:</span> <span class="mi">3</span><span class="p">,</span>      <span class="c1"># Feature matrix dimmension</span>
     <span class="s1">&#39;n_sample&#39;</span><span class="p">:</span> <span class="mi">10</span><span class="p">,</span>       <span class="c1"># Fake samples to make</span>
     <span class="s1">&#39;batch_size&#39;</span><span class="p">:</span> <span class="mi">1</span><span class="p">,</span>      <span class="c1"># Batch size</span>
-    <span class="s1">&#39;n_class&#39;</span><span class="p">:</span> <span class="mi">4</span><span class="p">,</span>         <span class="c1"># Class number</span>
 <span class="p">}</span>
 
 <span class="c1"># Load built-in config file</span>
@@ -405,10 +401,7 @@ div.rendered_html tbody tr:hover {
     <span class="p">)</span>
 <span class="p">)</span>
 
-<span class="c1"># Adjust parametes according to data dims</span>
-<span class="n">config</span><span class="p">[</span><span class="s1">&#39;gat&#39;</span><span class="p">][</span><span class="s1">&#39;params&#39;</span><span class="p">][</span><span class="s1">&#39;d_model&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">params</span><span class="p">[</span><span class="s1">&#39;n_features&#39;</span><span class="p">]</span>
-<span class="n">config</span><span class="p">[</span><span class="s1">&#39;fine_tuner&#39;</span><span class="p">][</span><span class="s1">&#39;n_class&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">params</span><span class="p">[</span><span class="s1">&#39;n_class&#39;</span><span class="p">]</span>
-<span class="n">factory_kwargs</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;device&#39;</span><span class="p">:</span> <span class="s1">&#39;cpu&#39;</span><span class="p">,</span> <span class="s1">&#39;dtype&#39;</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">float32</span><span class="p">,}</span>
+<span class="n">factory_kwargs</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;device&#39;</span><span class="p">:</span> <span class="s1">&#39;cuda&#39;</span><span class="p">,</span> <span class="s1">&#39;dtype&#39;</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">float32</span><span class="p">,}</span>
 
 <span class="c1"># Generate Fake data</span>
 <span class="n">faker</span> <span class="o">=</span> <span class="n">test</span><span class="o">.</span><span class="n">Faker</span><span class="p">(</span><span class="n">model_config</span> <span class="o">=</span> <span class="n">config</span><span class="p">,</span> <span class="o">**</span><span class="n">params</span><span class="p">)</span>
@@ -421,12 +414,12 @@ div.rendered_html tbody tr:hover {
 <h2>Now we perform pre-training with no label.<a class="headerlink" href="#Now-we-perform-pre-training-with-no-label." title="Permalink to this heading"></a></h2>
 <p>Here trainer’s <span class="math notranslate nohighlight">\(n\_dim\_adj\)</span> is set to None, and the model is NOT reconstructing the adjacency matrices, etc.</p>
 <div class="nbinput docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[3]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[28]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">trainer</span> <span class="o">=</span> <span class="n">pre_trainer</span><span class="o">.</span><span class="n">Set</span><span class="p">(</span><span class="n">config</span><span class="p">,</span> <span class="n">factory_kwargs</span><span class="p">)</span>
-<span class="n">pt_loss</span> <span class="o">=</span> <span class="n">trainer</span><span class="o">.</span><span class="n">train</span><span class="p">(</span><span class="n">train_dataloader</span><span class="p">)</span>
-<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s1">&#39;Pre-Trainer total loss:</span><span class="si">{</span><span class="n">pt_loss</span><span class="si">}</span><span class="se">\n</span><span class="s1">&#39;</span><span class="p">)</span>
+<span class="n">report</span> <span class="o">=</span> <span class="n">trainer</span><span class="o">.</span><span class="n">train</span><span class="p">(</span><span class="n">train_dataloader</span><span class="p">,</span> <span class="n">report_batch</span> <span class="o">=</span> <span class="kc">True</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="n">report</span><span class="p">)</span>
 </pre></div>
 </div>
 </div>
@@ -435,19 +428,29 @@ div.rendered_html tbody tr:hover {
 </div>
 <div class="output_area docutils container">
 <div class="highlight"><pre>
-Pre-Trainer total loss:1.1127713918685913
-
+        Loss
+0   1.371900
+1   0.768842
+2   1.256326
+3   1.237347
+4   1.134314
+5   0.577454
+6   1.105542
+7   1.238400
+8   0.952839
+9   0.915199
+10  1.055816
 </pre></div></div>
 </div>
 <p>In the case of pre-training with reconstructing adjacency matrices as well.</p>
 <div class="nbinput docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[4]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[29]:
 </pre></div>
 </div>
-<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">config</span><span class="p">[</span><span class="s1">&#39;pre_trainer&#39;</span><span class="p">][</span><span class="s1">&#39;n_dim_adj&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">params</span><span class="p">[</span><span class="s1">&#39;k&#39;</span><span class="p">]</span>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">config</span><span class="p">[</span><span class="s1">&#39;pre_trainer&#39;</span><span class="p">][</span><span class="s1">&#39;n_dim_adj&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">config</span><span class="p">[</span><span class="s1">&#39;input_sizes&#39;</span><span class="p">][</span><span class="mi">0</span><span class="p">][</span><span class="mi">1</span><span class="p">]</span>
 <span class="n">trainer</span> <span class="o">=</span> <span class="n">pre_trainer</span><span class="o">.</span><span class="n">Set</span><span class="p">(</span><span class="n">config</span><span class="p">,</span> <span class="n">factory_kwargs</span><span class="p">)</span>
-<span class="n">pt_loss</span> <span class="o">=</span> <span class="n">trainer</span><span class="o">.</span><span class="n">train</span><span class="p">(</span><span class="n">train_dataloader</span><span class="p">)</span>
-<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s1">&#39;Pre-Trainer total loss:</span><span class="si">{</span><span class="n">pt_loss</span><span class="si">}</span><span class="se">\n</span><span class="s1">&#39;</span><span class="p">)</span>
+<span class="n">report</span> <span class="o">=</span> <span class="n">trainer</span><span class="o">.</span><span class="n">train</span><span class="p">(</span><span class="n">train_dataloader</span><span class="p">,</span> <span class="n">report_batch</span> <span class="o">=</span> <span class="kc">True</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="n">report</span><span class="p">)</span>
 </pre></div>
 </div>
 </div>
@@ -456,45 +459,71 @@ Pre-Trainer total loss:1.1127713918685913
 </div>
 <div class="output_area docutils container">
 <div class="highlight"><pre>
-Pre-Trainer total loss:1.924447774887085
-
+        Loss
+0   1.816574
+1   1.730838
+2   1.741792
+3   2.077016
+4   1.784506
+5   2.210017
+6   1.868762
+7   1.616021
+8   2.049183
+9   1.998312
+10  1.889302
 </pre></div></div>
 </div>
 </div>
 <div class="section" id="Then,-we-can-go-for-fine-tuning-part-with-class-labels.">
 <h2>Then, we can go for fine tuning part with class labels.<a class="headerlink" href="#Then,-we-can-go-for-fine-tuning-part-with-class-labels." title="Permalink to this heading"></a></h2>
-<div class="nbinput nblast docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[7]:
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[30]:
 </pre></div>
 </div>
-<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">tuner</span> <span class="o">=</span> <span class="n">fine_tuner</span><span class="o">.</span><span class="n">Tuner</span><span class="p">(</span>
-    <span class="n">gat</span> <span class="o">=</span> <span class="n">trainer</span><span class="o">.</span><span class="n">model</span><span class="o">.</span><span class="n">gat</span><span class="p">,</span>
-    <span class="n">encoder</span> <span class="o">=</span> <span class="n">trainer</span><span class="o">.</span><span class="n">model</span><span class="o">.</span><span class="n">bert_model</span><span class="o">.</span><span class="n">encoder</span><span class="p">,</span>
-    <span class="n">rep_embedder</span> <span class="o">=</span> <span class="n">trainer</span><span class="o">.</span><span class="n">model</span><span class="o">.</span><span class="n">bert_model</span><span class="o">.</span><span class="n">rep_embedder</span><span class="p">,</span>
-    <span class="o">**</span><span class="n">config</span><span class="p">[</span><span class="s1">&#39;fine_tuner&#39;</span><span class="p">],</span>
-    <span class="o">**</span><span class="n">factory_kwargs</span><span class="p">,</span>
-<span class="p">)</span>
-
-<span class="k">for</span> <span class="nb">input</span><span class="p">,</span> <span class="n">label</span> <span class="ow">in</span> <span class="n">train_dataloader</span><span class="p">:</span>
-    <span class="n">output</span> <span class="o">=</span> <span class="n">tuner</span><span class="o">.</span><span class="n">model</span><span class="p">(</span><span class="nb">input</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="nb">input</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
-    <span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">CrossEntropyLoss</span><span class="p">()(</span><span class="n">output</span><span class="p">,</span> <span class="n">label</span><span class="p">)</span><span class="o">.</span><span class="n">backward</span><span class="p">()</span>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">tuner</span> <span class="o">=</span> <span class="n">fine_tuner</span><span class="o">.</span><span class="n">Set</span><span class="p">(</span><span class="n">config</span><span class="p">,</span> <span class="n">factory_kwargs</span><span class="p">,</span> <span class="n">prev_model</span> <span class="o">=</span> <span class="n">trainer</span><span class="o">.</span><span class="n">model</span><span class="p">)</span>
+<span class="n">report</span> <span class="o">=</span> <span class="n">tuner</span><span class="o">.</span><span class="n">train</span><span class="p">(</span><span class="n">train_dataloader</span><span class="p">,</span> <span class="n">report_batch</span> <span class="o">=</span> <span class="kc">True</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="n">report</span><span class="p">)</span>
 </pre></div>
 </div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+        Loss  ACC
+0   1.393003  0.0
+1   1.395453  0.0
+2   1.484483  0.0
+3   1.469457  0.0
+4   1.292269  1.0
+5   1.478473  0.0
+6   1.389301  0.0
+7   1.281845  1.0
+8   1.476806  0.0
+9   1.279046  1.0
+10  1.394014  0.3
+</pre></div></div>
 </div>
 </div>
 <div class="section" id="To-explain-Fine-Tuning-model-in-general.">
 <h2>To explain Fine Tuning model in general.<a class="headerlink" href="#To-explain-Fine-Tuning-model-in-general." title="Permalink to this heading"></a></h2>
 <p>Note: to make overall conclusion on the contribution of a specific gene, we would need to sum up importance values for every feature dimension (RNA-count, peaks)</p>
 <div class="nbinput docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[8]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[47]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># Get background data</span>
 <span class="n">background_data</span> <span class="o">=</span> <span class="p">[</span><span class="n">a</span> <span class="k">for</span> <span class="n">a</span><span class="p">,</span> <span class="n">_</span> <span class="ow">in</span> <span class="n">DataLoader</span><span class="p">(</span><span class="n">train_dataloader</span><span class="o">.</span><span class="n">dataset</span><span class="p">,</span> <span class="n">batch_size</span> <span class="o">=</span> <span class="n">params</span><span class="p">[</span><span class="s1">&#39;n_sample&#39;</span><span class="p">])][</span><span class="mi">0</span><span class="p">]</span>
+<span class="n">background_data</span> <span class="o">=</span> <span class="p">[</span><span class="n">a</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">factory_kwargs</span><span class="p">[</span><span class="s1">&#39;device&#39;</span><span class="p">])</span> <span class="k">for</span> <span class="n">a</span> <span class="ow">in</span> <span class="n">background_data</span><span class="p">]</span>
 <span class="n">explain</span> <span class="o">=</span> <span class="n">explainer</span><span class="o">.</span><span class="n">Gradient</span><span class="p">(</span><span class="n">tuner</span><span class="o">.</span><span class="n">model</span><span class="p">,</span> <span class="n">background_data</span><span class="p">)</span>
 
 <span class="c1"># vars can be used to estimate how accurate the explanation would be: lower the better</span>
-<span class="n">gene_shap_values</span><span class="p">,</span> <span class="nb">vars</span> <span class="o">=</span> <span class="n">explain</span><span class="o">.</span><span class="n">shap_values</span><span class="p">(</span><span class="nb">input</span><span class="p">,</span> <span class="n">return_variances</span> <span class="o">=</span> <span class="kc">True</span><span class="p">)</span>
+<span class="k">for</span> <span class="n">input_data</span><span class="p">,</span> <span class="n">_</span> <span class="ow">in</span> <span class="n">train_dataloader</span><span class="p">:</span>
+    <span class="n">input_data</span> <span class="o">=</span> <span class="p">[</span><span class="n">i</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">factory_kwargs</span><span class="p">[</span><span class="s1">&#39;device&#39;</span><span class="p">])</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">input_data</span><span class="p">]</span>
+    <span class="n">gene_shap_values</span><span class="p">,</span> <span class="nb">vars</span> <span class="o">=</span> <span class="n">explain</span><span class="o">.</span><span class="n">shap_values</span><span class="p">(</span><span class="n">input_data</span><span class="p">,</span> <span class="n">return_variances</span> <span class="o">=</span> <span class="kc">True</span><span class="p">)</span>
+    <span class="k">break</span>
+
 <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s1">&#39;Explaining </span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">gene_shap_values</span><span class="p">)</span><span class="si">}</span><span class="s1"> classes.&#39;</span><span class="p">)</span>
 
 <span class="c1"># Having 2 inputs</span>
@@ -514,7 +543,7 @@ Pre-Trainer total loss:1.924447774887085
 <div class="output_area docutils container">
 <div class="highlight"><pre>
 Explaining 4 classes.
-Each class has explain in shape of (1, 10, 3).
+Each class has explain in shape of (1, 10, 2).
 </pre></div></div>
 </div>
 </div>
@@ -522,12 +551,12 @@ Each class has explain in shape of (1, 10, 3).
 <h2>To explain the BERT part for analyzing importances of TFs only.<a class="headerlink" href="#To-explain-the-BERT-part-for-analyzing-importances-of-TFs-only." title="Permalink to this heading"></a></h2>
 <p>Note: similarly, we would want to sum up values across embed dimensions.</p>
 <div class="nbinput docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[9]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[49]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># We also should accumulate gat_out for every trained input.</span>
 <span class="c1"># Here I just make 1 gat_out for example</span>
-<span class="n">gat_out</span> <span class="o">=</span> <span class="n">tuner</span><span class="o">.</span><span class="n">model</span><span class="o">.</span><span class="n">get_gat_output</span><span class="p">(</span><span class="nb">input</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="nb">input</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
+<span class="n">gat_out</span> <span class="o">=</span> <span class="n">tuner</span><span class="o">.</span><span class="n">model</span><span class="o">.</span><span class="n">get_gat_output</span><span class="p">(</span><span class="n">input_data</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">input_data</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
 <span class="n">explain</span> <span class="o">=</span> <span class="n">explainer</span><span class="o">.</span><span class="n">Gradient</span><span class="p">(</span><span class="n">tuner</span><span class="o">.</span><span class="n">model</span><span class="o">.</span><span class="n">bert_model</span><span class="p">,</span> <span class="n">gat_out</span><span class="p">)</span>
 
 <span class="n">regulon_shap_values</span><span class="p">,</span> <span class="nb">vars</span> <span class="o">=</span> <span class="n">explain</span><span class="o">.</span><span class="n">shap_values</span><span class="p">(</span><span class="n">gat_out</span><span class="p">,</span> <span class="n">return_variances</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
@@ -550,16 +579,14 @@ Each class has explain in shape of (1, 4, 3).
 <h2>To explain the GAT for analyzing GRP importances.<a class="headerlink" href="#To-explain-the-GAT-for-analyzing-GRP-importances." title="Permalink to this heading"></a></h2>
 <p>The grp_explain here is purely based on the GAT attention weights.</p>
 <div class="nbinput docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[10]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[53]:
 </pre></div>
 </div>
-<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">grp_explain</span> <span class="o">=</span> <span class="n">tuner</span><span class="o">.</span><span class="n">model</span><span class="o">.</span><span class="n">gat</span><span class="o">.</span><span class="n">explain</span><span class="p">(</span><span class="nb">input</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="mi">0</span><span class="p">],</span> <span class="nb">input</span><span class="p">[</span><span class="mi">1</span><span class="p">][</span><span class="mi">0</span><span class="p">])</span>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">grp_explain</span> <span class="o">=</span> <span class="n">tuner</span><span class="o">.</span><span class="n">model</span><span class="o">.</span><span class="n">gat</span><span class="o">.</span><span class="n">explain</span><span class="p">(</span><span class="n">input_data</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="mi">0</span><span class="p">],</span> <span class="n">input_data</span><span class="p">[</span><span class="mi">1</span><span class="p">][</span><span class="mi">0</span><span class="p">])</span>
 <span class="nb">print</span><span class="p">(</span><span class="n">grp_explain</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span>
 
 <span class="c1"># Or we can feed in matrices with ones to extract attention weights.</span>
-<span class="n">grp_explain</span> <span class="o">=</span> <span class="n">tuner</span><span class="o">.</span><span class="n">model</span><span class="o">.</span><span class="n">gat</span><span class="o">.</span><span class="n">explain</span><span class="p">(</span>
-    <span class="n">torch</span><span class="o">.</span><span class="n">ones_like</span><span class="p">(</span><span class="nb">input</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="mi">0</span><span class="p">]),</span> <span class="n">torch</span><span class="o">.</span><span class="n">ones_like</span><span class="p">(</span><span class="nb">input</span><span class="p">[</span><span class="mi">1</span><span class="p">][</span><span class="mi">0</span><span class="p">])</span>
-<span class="p">)</span>
+<span class="n">grp_explain</span> <span class="o">=</span> <span class="n">tuner</span><span class="o">.</span><span class="n">model</span><span class="o">.</span><span class="n">gat</span><span class="o">.</span><span class="n">explain</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">ones_like</span><span class="p">(</span><span class="n">input_data</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="mi">0</span><span class="p">]),</span> <span class="n">torch</span><span class="o">.</span><span class="n">ones_like</span><span class="p">(</span><span class="n">input_data</span><span class="p">[</span><span class="mi">1</span><span class="p">][</span><span class="mi">0</span><span class="p">]))</span>
 <span class="nb">print</span><span class="p">(</span><span class="n">grp_explain</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span>
 </pre></div>
 </div>
@@ -575,7 +602,7 @@ torch.Size([4, 10])
 </div>
 <p>Utilizing the importance values of each gene or TF regulon inferred from the calculated shapley values above would be sufficent to obtain importances of each GRP.</p>
 <div class="nbinput docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[11]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[54]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># Sum up shapley values of each features for every node (gene or TF).</span>
@@ -584,12 +611,8 @@ torch.Size([4, 10])
 <span class="nb">print</span><span class="p">(</span><span class="n">regulon_importance_values</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span>
 <span class="nb">print</span><span class="p">(</span><span class="n">gene_importance_values</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span>
 
-<span class="n">grp_importance</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">matmul</span><span class="p">(</span>
-    <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">(</span><span class="n">regulon_importance_values</span><span class="p">[</span><span class="mi">0</span><span class="p">]),</span> <span class="n">grp_explain</span>
-<span class="p">)</span>
-<span class="n">grp_importance</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">matmul</span><span class="p">(</span>
-    <span class="n">grp_explain</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">(</span><span class="n">gene_importance_values</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
-<span class="p">)</span>
+<span class="n">grp_importance</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">matmul</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">(</span><span class="n">regulon_importance_values</span><span class="p">[</span><span class="mi">0</span><span class="p">]),</span> <span class="n">grp_explain</span><span class="p">)</span>
+<span class="n">grp_importance</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">matmul</span><span class="p">(</span><span class="n">grp_explain</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">(</span><span class="n">gene_importance_values</span><span class="p">[</span><span class="mi">0</span><span class="p">]))</span>
 </pre></div>
 </div>
 </div>
