@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-This file contains Graph Convolutional Networks (GCN) related objects.
+This file contains Graph Attention Network (GAT) version 2 related objects.
 
 author: jy
 """
