@@ -2,14 +2,10 @@ import os
 import numpy as np
 import pandas as pd
 import torch
-import torch.nn as nn
 from torch.utils.data import DataLoader
-from torch.optim.lr_scheduler import CosineAnnealingWarmRestarts
-
 import fatez.lib as lib
 import fatez.tool.JSON as JSON
 from fatez.tool import PreprocessIO
-from fatez.tool import model_training
 import fatez.model as model
 import fatez.model.transformer as transformer
 import fatez.model.gat as gat
@@ -25,14 +21,14 @@ preprocess
 #device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
 device = 'cpu'
 ## preprocess parameters
-pseudo_cell_num_per_cell_type = 250
-cluster_use =[1,4]
+pseudo_cell_num_per_cell_type = 100
+cluster_use = [1,4]
 
 
 matrix1 = PreprocessIO.input_csv_dict_df(
-    'D:\\Westlake\\pwk lab\\fatez\\para_test/node/')
+    'D:\\Westlake\\pwk lab\\fatez\\para_test_10x/node/')
 matrix2 = pd.read_csv(
-    'D:\\Westlake\\pwk lab\\fatez\\para_test/edge_matrix.csv'
+    'D:\\Westlake\\pwk lab\\fatez\\para_test_10x/edge_matrix.csv'
     ,index_col=0)
 matrix2 = matrix2.replace(np.nan,0)
 m2 = torch.from_numpy(matrix2.to_numpy())
@@ -56,11 +52,11 @@ hyperparameters
 ###############################
 # General params
 batch_size = 10
-num_epoch = 1
+num_epoch = 30
 test_size = 0.3
 
 ##############################
-data_save = True
+data_save = False
 data_save_dir = 'D:\\Westlake\\pwk lab\\fatez\\tune_para\\test1/'
 outgat_dir = data_save_dir+'out_gat/'
 #os.makedirs(outgat_dir )
@@ -86,7 +82,7 @@ test_dataloader = DataLoader(
 """
 model define
 """
-config = JSON.decode('test_config.json')
+config = JSON.decode('test_config_cnnhyb.json')
 
 
 """
@@ -97,7 +93,7 @@ print(config['input_sizes'])
 
 factory_kwargs = {'device': device, 'dtype': torch.float32,}
 fine_tuner_model = fine_tuner.Set(config, factory_kwargs)
-early_stop = es.Monitor(tolerance = 10, min_delta = 0.01)
+early_stop = es.Monitor(tolerance = 20, min_delta = 0.01)
 """
 traning
 """
@@ -111,8 +107,9 @@ for epoch in range(num_epoch):
     report_test = fine_tuner_model.test(test_dataloader,)
     print(report_test[-1:])
 
-    report_train.to_csv(data_save_dir + 'train_report.csv', mode='a',header=False)
-    report_test.to_csv(data_save_dir + 'test_report.csv', mode='a',header=False)
+    report_train.to_csv(data_save_dir + 'train_report_gru_skip.csv',
+                        mode='a',header=False)
+    report_test.to_csv(data_save_dir + 'test_report_gru_skip.csv', mode='a',header=False)
 
     if early_stop(float(report_train[-1:]['Loss']),
                   float(report_test[-1:]['Loss'])):
