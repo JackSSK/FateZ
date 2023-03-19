@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-This folder contains Graph Attention Network (GAT) related objects.
+This file contains Graph Attention Network (GAT) related objects.
 
 author: jy
 """
@@ -481,7 +481,7 @@ class Model(nn.Module):
         """
         fea_mat = fea_mat.to(self.factory_kwargs['device'])
         adj_mat = adj_mat.to(self.factory_kwargs['device'])
-        
+
         att_explain = None
         last_explain = None
 
