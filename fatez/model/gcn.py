@@ -27,7 +27,6 @@ class GCN(nn.Module):
         en_dim:int = 2,
         dropout:float = 0.0,
         n_layer_set:int = 1,
-
         device:str = 'cpu',
         dtype:str = None,
         **kwargs
