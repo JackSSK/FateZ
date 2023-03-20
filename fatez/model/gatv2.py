@@ -16,9 +16,9 @@ from torch_geometric.data import Data
 import fatez.lib as lib
 
 
-class GCN(nn.Module):
+class GAT(nn.Module):
     """
-    A simple GCN using torch_geometric operator.
+    A simple GAT using torch_geometric operator.
     """
     def __init__(self,
         d_model:int = 1,
@@ -39,20 +39,20 @@ class GCN(nn.Module):
 
         if self.n_layer_set == 1:
             model_dict.update({
-                f'conv-1':gnn.GCNConv(in_channels=d_model, out_channels=en_dim)
+                f'conv-1':gnn.GATConv(in_channels=d_model, out_channels=en_dim,)
             })
 
         elif self.n_layer_set >= 1:
-            model_dict.update({f'conv0':gnn.GCNConv(d_model, n_hidden)})
+            model_dict.update({f'conv0':gnn.GATConv(d_model, n_hidden, heads=1)})
             model_dict.update({f'relu0': nn.ReLU(inplace = True)})
 
             # Adding Conv blocks
             for i in range(self.n_layer_set - 2):
-                model_dict.update({f'conv{i+1}':gnn.GCNConv(n_hidden,n_hidden)})
+                model_dict.update({f'conv{i+1}':gnn.GATConv(n_hidden,n_hidden)})
                 model_dict.update({f'relu{i+1}': nn.ReLU(inplace = True)})
 
             # Adding last layer
-            model_dict.update({f'conv-1': gnn.GCNConv(n_hidden, en_dim)})
+            model_dict.update({f'conv-1': gnn.GATConv(n_hidden, en_dim)})
 
         else:
             raise Exception('Why are we still here? Just to suffer.')
@@ -72,6 +72,7 @@ class GCN(nn.Module):
             edge_index, edge_weight = adj_mat.get_index_value()
             # Feed into model
             for layer in self.model:
+                print(layer)
                 if re.search(r'torch_geometric.nn.', str(type(layer))):
                     x = layer(x, edge_index, edge_weight)
                 else:
@@ -88,10 +89,10 @@ if __name__ == '__main__':
     # data = dataset[0]
     # train_dataset = dataset[:5]
 
-    # import fatez as fz
-    # faker = fz.test.Faker(device = 'cuda').make_data_loader()
-    # gcn = GCN(d_model = 2, n_layer_set = 2, en_dim = 3, device = 'cuda')
-    # for x, y in faker:
-    #     result = gcn(x[0].to('cuda'), x[1].to('cuda'))
-    #     break
-    # print(result)
+    import fatez as fz
+    faker = fz.test.Faker(device = 'cuda').make_data_loader()
+    gcn = GAT(d_model = 2, n_layer_set = 1, en_dim = 3, device = 'cuda')
+    for x, y in faker:
+        result = gcn(x[0].to('cuda'), x[1].to('cuda'))
+        break
+    print(result)
