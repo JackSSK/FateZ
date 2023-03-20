@@ -63,3 +63,14 @@ class Adj_Mat(object):
             return self.sparse.to_dense().reshape(self.sparse.shape[:-1])
         else:
             return self.sparse.to_dense()
+
+# if __name__ == '__main__':
+#     t = torch.tensor([[0., -1, 0], [2., 0., 1]])
+#     adj_mat = Adj_Mat(t)
+#
+#     a = torch.Tensor([ [[0,0], [0,0]], [[1,2], [0,0]] ])
+#     adj_mat = Adj_Mat(a)
+#
+#     edge_index = torch.tensor([[0, 1, 1,], [1, 0, 2,]], dtype = torch.long)
+#     edge_weight = torch.tensor([[-1], [2], [1]], dtype=torch.float)
+#     adj_mat = Adj_Mat(indices=edge_index, values=edge_weight, size=(2,3,1))
