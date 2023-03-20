@@ -63,7 +63,8 @@ class Absolute_Encode(nn.Module):
         self.factory_kwargs = {'device': device, 'dtype': dtype,}
 
     def forward(self, x, fea_ind:int = 1, **kwargs):
-        return x + self.encoder(torch.arange(x.shape[fea_ind], device=x.device))
+        d = x.to_dense()
+        return d + self.encoder(torch.arange(d.shape[fea_ind], device=d.device))
 
 
 

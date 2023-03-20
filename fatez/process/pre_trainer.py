@@ -14,7 +14,7 @@ import fatez.model.gat as gat
 import fatez.model.bert as bert
 import fatez.model.transformer as transformer
 import fatez.model.position_embedder as pe
-
+import fatez.lib as lib
 
 
 def Set(config:dict = None, factory_kwargs:dict = None, prev_model = None,):
@@ -215,11 +215,13 @@ class Trainer(object):
             output_node, output_adj = self.model(node_fea_mat, adj_mat)
 
             # Get total loss
+            node_fea_mat = node_fea_mat.to_dense()
             loss_node = self.criterion(
                 output_node,
                 torch.split(node_fea_mat, output_node.shape[1], dim = 1)[0]
             )
             if output_adj is not None:
+                adj_mat = lib.Adj_Mat(sparse_mat = adj_mat).to_dense()
                 loss_adj = self.criterion(output_adj, adj_mat)
                 loss = loss_node + loss_adj
             else:

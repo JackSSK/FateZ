@@ -4,7 +4,14 @@ This folder contains basic objects for FateZ.
 
 author: jy
 """
-from torch.utils.data import Dataset
+from fatez.lib.database import FateZ_Dataset
+from fatez.lib.database import Adj_Mat
+
+__all__ = [
+    'Adj_Mat',
+    'FateZ_Dataset',
+    'GRN_Basic',
+]
 
 
 
@@ -44,19 +51,3 @@ class GRN_Basic(object):
 		"""
 		setattr(self, key, value)
 		return
-
-
-class FateZ_Dataset(Dataset):
-    """
-	Basic Dataset object for DataLoader
-	"""
-    def __init__(self, samples, labels):
-        assert len(samples) == len(labels)
-        self.samples = samples
-        self.labels = labels
-
-    def __len__(self):
-        return len(self.samples)
-
-    def __getitem__(self, idx):
-        return self.samples[idx], self.labels[idx]

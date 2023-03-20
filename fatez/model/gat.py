@@ -455,11 +455,9 @@ class Model(nn.Module):
         answer = list()
         assert len(fea_mats) == len(adj_mats)
         for i in range(len(fea_mats)):
-            x = fea_mats[i]
-            adj_mat = adj_mats[i]
+            x = fea_mats[i].to(self.factory_kwargs['device']).to_dense()
+            adj_mat = adj_mats[i].to(self.factory_kwargs['device']).to_dense()
             x = F.dropout(x, self.dropout, training = self.training)
-            x = x.to(self.factory_kwargs['device'])
-            adj_mat = adj_mat.to(self.factory_kwargs['device'])
             # Multi-head attention mechanism
             if self.attentions is not None:
                 x = torch.cat([a(x, adj_mat) for a in self.attentions], dim = 1)
@@ -479,8 +477,8 @@ class Model(nn.Module):
         fake_fea_mat = torch.ones_like(fea_mat)
         fake_adj_mat = torch.ones_like(adj_mat)
         """
-        fea_mat = fea_mat.to(self.factory_kwargs['device'])
-        adj_mat = adj_mat.to(self.factory_kwargs['device'])
+        fea_mat = fea_mat.to(self.factory_kwargs['device']).to_dense()
+        adj_mat = adj_mat.to(self.factory_kwargs['device']).to_dense()
 
         att_explain = None
         last_explain = None
@@ -631,10 +629,8 @@ class Sparse_Model(nn.Module):
         answer = list()
         assert len(fea_mats) == len(adj_mats)
         for i in range(len(fea_mats)):
-            x = fea_mats[i]
-            adj_mat = adj_mats[i]
-            x = x.to(self.factory_kwargs['device'])
-            adj_mat = adj_mat.to(self.factory_kwargs['device'])
+            x = fea_mats[i].to(self.factory_kwargs['device']).to_dense()
+            adj_mat = adj_mats[i].to(self.factory_kwargs['device']).to_dense()
             x = F.dropout(x, self.dropout, training = self.training)
             # Multi-head attention mechanism
             if self.attentions is not None:
@@ -655,8 +651,8 @@ class Sparse_Model(nn.Module):
         fake_fea_mat = torch.ones_like(fea_mat)
         fake_adj_mat = torch.ones_like(adj_mat)
         """
-        fea_mat = fea_mat.to(self.factory_kwargs['device'])
-        adj_mat = adj_mat.to(self.factory_kwargs['device'])
+        fea_mat = fea_mat.to(self.factory_kwargs['device']).to_dense()
+        adj_mat = adj_mat.to(self.factory_kwargs['device']).to_dense()
         att_explain = None
         last_explain = None
 

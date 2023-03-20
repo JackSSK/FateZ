@@ -10,6 +10,7 @@ author: jy
 import shap
 import torch
 import torch.nn as nn
+from torch_geometric.data import Data
 from torch.utils.data import DataLoader
 import fatez
 import fatez.lib as lib
@@ -64,9 +65,9 @@ def test_grn():
     for id, rec in toy_new.grps.items():
         print(rec.reg_source.symbol)
 
-if __name__ == '__main__':
-    make_template_grn()
-    test_grn()
+# if __name__ == '__main__':
+#     make_template_grn()
+#     test_grn()
 
 
 
@@ -91,17 +92,15 @@ class Faker(object):
             self.config = JSON.decode(resource_filename(__name__, path))
         else:
             self.config = model_config
-        self.k = self.config['input_sizes'][1][-1]
-        self.top_k = self.config['input_sizes'][1][-2]
-        self.n_class = self.config['fine_tuner']['n_class']
-        self.n_features = self.config['input_sizes'][0][-1]
-        assert self.n_features == self.config['gat']['params']['d_model']
+
+        n_features = self.config['input_sizes'][0][-1]
+        assert n_features == self.config['gat']['params']['d_model']
 
         self.n_sample = n_sample
         self.batch_size = batch_size
         self.factory_kwargs = {'device': device, 'dtype': dtype,}
 
-    def make_data_loader(self, test_consist:bool = False):
+    def make_data_loader(self, sparse_data = True):
         """
         Generate random data with given parameters and
         set up a PyTorch DataLoader.
@@ -109,62 +108,27 @@ class Faker(object):
         :return:
             torch.utils.data.DataLoader
         """
-        samples = [
-            [
-                # Fake node feature matrices
-                torch.randn(
-                    self.k,
-                    self.n_features,
-                    dtype = self.factory_kwargs['dtype'],
-                    device = self.factory_kwargs['device']
-                ),
-                # Fake adjacency matrices
-                torch.randn(
-                    self.top_k,
-                    self.k,
-                    dtype = self.factory_kwargs['dtype'],
-                    device = self.factory_kwargs['device']
-                )
-            ] for i in range(self.n_sample)
-        ]
+        dtype = self.factory_kwargs['dtype']
+        samples = list()
+        for i in range(self.n_sample):
+            fea_m = torch.randn(self.config['input_sizes'][0][1:], dtype=dtype)
+            adj_m = torch.randn(self.config['input_sizes'][1][1:], dtype=dtype)
+            if sparse_data:
+                samples.append([fea_m.to_sparse(), lib.Adj_Mat(adj_m).sparse])
+            else:
+                # Dense version
+                samples.append([fea_m, adj_m])
 
-        # To test data loader not messing up exp data and adj mats
-        if test_consist:
-            samples.pop(-1)
-            samples.append(
-                [
-                    torch.ones(
-                        self.k,
-                        self.n_features,
-                        dtype = self.factory_kwargs['dtype'],
-                        device = self.factory_kwargs['device']
-                    ),
-                    torch.ones(
-                        self.top_k,
-                        self.k,
-                        dtype = self.factory_kwargs['dtype'],
-                        device = self.factory_kwargs['device']
-                    )
-                ]
-            )
-
-        data_loader = DataLoader(
+        return DataLoader(
             lib.FateZ_Dataset(
                 samples = samples,
-                labels = torch.empty(
-                    self.n_sample,
-                    dtype = torch.long,
-                    device = self.factory_kwargs['device']
-                ).random_(self.n_class)
+                labels = torch.empty(self.n_sample, dtype=torch.long,).random_(
+                    self.config['fine_tuner']['n_class']
+                )
             ),
             batch_size = self.batch_size,
             shuffle = True
         )
-
-        if test_consist:
-            print('Under construction: previously examinated by human eyes')
-
-        return data_loader
 
     def test_gat(self, config:dict = None, decision = None):
         """
@@ -181,6 +145,7 @@ class Faker(object):
         """
         print('Testing GAT.\n')
         # Initialize
+        device = self.factory_kwargs['device']
         data_loader = self.make_data_loader()
         if config is None: config = self.config
         graph_embedder = pe.Skip()
@@ -189,11 +154,9 @@ class Faker(object):
             mlp_param = {
                 'd_model': self.config['gat']['params']['en_dim'],
                 'n_hidden': 4,
-                'n_class': self.n_class,
+                'n_class': self.config['fine_tuner']['n_class'],
             }
-            decision = mlp.Model(**mlp_param, **self.factory_kwargs).to(
-                self.factory_kwargs['device']
-            )
+            decision = mlp.Model(**mlp_param, **self.factory_kwargs).to(device)
         criterion = nn.CrossEntropyLoss()
         # criterion = crit.Accuracy(requires_grad = True)
 
@@ -202,7 +165,7 @@ class Faker(object):
             output = graph_embedder(input[0], adj = input[1])
             out_gat = gat_model(output, input[1])
             output = decision(out_gat)
-            loss = criterion(output, label)
+            loss = criterion(output, label.to(device))
             loss.backward()
         print(f'\tGAT Green.\n')
 
@@ -233,6 +196,7 @@ class Faker(object):
         """
         print('Testing Full Model.\n')
         # Initialize
+        device = self.factory_kwargs['device']
         epoch = 1
         data_loader = self.make_data_loader()
         if config is None: config = self.config
@@ -257,8 +221,14 @@ class Faker(object):
         for x, y in data_loader:
             gat_explain = tuner.model.gat.explain(x[0][0], x[1][0])
             # print(gat_explain)
-            explain = explainer.Gradient(tuner.model, x)
-            shap_values = explain.shap_values(x, return_variances = True)
+            explain = explainer.Gradient(
+                tuner.model,
+                [x[0].to_dense().to(device), x[1].to_dense().to(device)]
+            )
+            shap_values = explain.shap_values(
+                [x[0].to_dense().to(device), x[1].to_dense().to(device)],
+                return_variances = True,
+            )
             # print(shap_values)
             break
         print(f'\tExplainer Green.\n')
