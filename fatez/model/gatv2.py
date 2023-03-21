@@ -13,7 +13,9 @@ import torch.optim as optim
 import torch.nn.functional as func
 from collections import OrderedDict
 from torch_geometric.data import Data
+from torch_geometric.explain import Explainer # ,AttentionExplainer
 import fatez.lib as lib
+import fatez.process.explainer as exp
 
 
 class GAT(nn.Module):
@@ -108,7 +110,37 @@ class GAT(nn.Module):
         answer = torch.stack(answer, 0)
         return answer
 
-    def explain(self):
+
+    def explain(self, fea_mat, adj_mat):
+        """
+        This part will very likely be revised due to developmental stage of
+        torch_geometric.
+        """
+        x = fea_mat.to(self.factory_kwargs['device'])
+        adjm = lib.Adj_Mat(sparse_mat=adj_mat.to(self.factory_kwargs['device']))
+        edge_index, edge_weight = adjm.get_index_value()
+        explainer = exp.AttentionExplainer(reduce = 'max')
+        # explainer = Explainer(
+        #     model = self.model,
+        #     algorithm =  exp.AttentionExplainer(reduce = 'max'),
+        #     # AttentionExplainer not using target anyway
+        #     explainer_config = 'model',
+        #     node_mask_type='object',
+        #     model_config = dict(
+        #         mode = 'multiclass_classification',
+        #         task_level = 'graph',
+        #         return_type = 'probs',  # Model returns probabilities.
+        #     ),
+        # )
+
+        result = explainer.test(
+            model = self.model[0],
+            x = x,
+            edge_index = edge_index,
+            edge_attr = edge_weight,
+            target = None,
+        )
+        print(result)
         return
 
 
@@ -118,10 +150,14 @@ if __name__ == '__main__':
     # data = dataset[0]
     # train_dataset = dataset[:5]
 
-    # import fatez as fz
-    # faker = fz.test.Faker(device = 'cuda').make_data_loader()
-    # gcn = GAT(d_model = 2, n_layer_set = 1, en_dim = 3, device = 'cuda')
-    # for x, y in faker:
-    #     result = gcn(x[0].to('cuda'), x[1].to('cuda'))
-    #     break
-    # print(result)
+    import fatez as fz
+    device = 'cuda'
+    faker = fz.test.Faker(device = 'cuda').make_data_loader()
+    model = GAT(d_model = 2, n_layer_set = 1, en_dim = 3, device = 'cuda')
+    for x, y in faker:
+        fea = x[0].to(device)
+        adj = x[1].to(device)
+        result = model(fea, adj)
+        exp = model.explain(fea[0], adj[0])
+        break
+    print(result)

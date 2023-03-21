@@ -445,7 +445,7 @@ class Model(nn.Module):
             **self.factory_kwargs,
         )
 
-    def forward(self, fea_mats, adj_mats):
+    def forward(self, fea_mats, adj_mats,):
         """
         :param fea_mats: torch.Tensor
             Feature matrices. (Genes)
