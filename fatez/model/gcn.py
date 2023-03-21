@@ -35,11 +35,13 @@ class GCN(nn.Module):
         self.n_layer_set = n_layer_set
         self.factory_kwargs = {'device': device, 'dtype': dtype}
 
-        model_dict = OrderedDict([('dp0', nn.Dropout(p=dropout, inplace=True))])
+        model_dict = OrderedDict([])
+        # May take dropout layer out later
+        model_dict.update({f'dp0': nn.Dropout(p=dropout, inplace=True)})
 
         if self.n_layer_set == 1:
             model_dict.update({
-                f'conv-1':gnn.GCNConv(in_channels=d_model, out_channels=en_dim)
+                f'conv0':gnn.GCNConv(in_channels=d_model, out_channels=en_dim)
             })
 
         elif self.n_layer_set >= 1:
@@ -71,11 +73,13 @@ class GCN(nn.Module):
             )
             edge_index, edge_weight = adj_mat.get_index_value()
             # Feed into model
-            for layer in self.model:
+            for i, layer in enumerate(self.model):
                 if re.search(r'torch_geometric.nn.', str(type(layer))):
                     x = layer(x, edge_index, edge_weight)
                 else:
                     x = layer(x)
+            # Only take encoded presentations of TFs
+            x = x[:adj_mat.sparse.shape[0],:]
             answer.append(x)
         answer = torch.stack(answer, 0)
         return answer
@@ -90,7 +94,7 @@ if __name__ == '__main__':
 
     # import fatez as fz
     # faker = fz.test.Faker(device = 'cuda').make_data_loader()
-    # gcn = GCN(d_model = 2, n_layer_set = 2, en_dim = 3, device = 'cuda')
+    # gcn = GCN(d_model = 2, n_layer_set = 1, en_dim = 3, device = 'cuda')
     # for x, y in faker:
     #     result = gcn(x[0].to('cuda'), x[1].to('cuda'))
     #     break

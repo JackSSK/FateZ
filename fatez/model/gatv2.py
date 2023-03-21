@@ -24,6 +24,8 @@ class GAT(nn.Module):
         d_model:int = 1,
         n_hidden:int = 3,
         en_dim:int = 2,
+        nhead:int = 1,
+        concat:bool = True,
         dropout:float = 0.0,
         n_layer_set:int = 1,
         device:str = 'cpu',
@@ -35,24 +37,48 @@ class GAT(nn.Module):
         self.n_layer_set = n_layer_set
         self.factory_kwargs = {'device': device, 'dtype': dtype}
 
-        model_dict = OrderedDict([('dp0', nn.Dropout(p=dropout, inplace=True))])
+        model_dict = OrderedDict([])
+        # May take dropout layer out later
+        model_dict.update({f'dp0': nn.Dropout(p=dropout, inplace=True)})
 
         if self.n_layer_set == 1:
-            model_dict.update({
-                f'conv-1':gnn.GATConv(in_channels=d_model, out_channels=en_dim,)
-            })
+            model_dict.update({f'conv0':gnn.GATConv(
+                in_channels = d_model,
+                out_channels = en_dim,
+                heads = nhead,
+                concat = concat,
+                dropout = dropout,
+            )})
 
         elif self.n_layer_set >= 1:
-            model_dict.update({f'conv0':gnn.GATConv(d_model, n_hidden, heads=1)})
+            model_dict.update({f'conv0':gnn.GATConv(
+                in_channels = d_model,
+                out_channels = n_hidden,
+                heads = nhead,
+                concat = concat,
+                dropout = dropout,
+            )})
             model_dict.update({f'relu0': nn.ReLU(inplace = True)})
 
-            # Adding Conv blocks
+            # Adding layer set
             for i in range(self.n_layer_set - 2):
-                model_dict.update({f'conv{i+1}':gnn.GATConv(n_hidden,n_hidden)})
+                model_dict.update({f'conv{i+1}':gnn.GATConv(
+                    in_channels = n_hidden,
+                    out_channels = n_hidden,
+                    heads = nhead,
+                    concat = concat,
+                    dropout = dropout,
+                )})
                 model_dict.update({f'relu{i+1}': nn.ReLU(inplace = True)})
 
             # Adding last layer
-            model_dict.update({f'conv-1': gnn.GATConv(n_hidden, en_dim)})
+            model_dict.update({f'conv-1': gnn.GATConv(
+                in_channels = n_hidden,
+                out_channels = en_dim,
+                heads = nhead,
+                concat = concat,
+                dropout = dropout,
+            )})
 
         else:
             raise Exception('Why are we still here? Just to suffer.')
@@ -71,16 +97,19 @@ class GAT(nn.Module):
             )
             edge_index, edge_weight = adj_mat.get_index_value()
             # Feed into model
-            for layer in self.model:
-                print(layer)
+            for i, layer in enumerate(self.model):
                 if re.search(r'torch_geometric.nn.', str(type(layer))):
                     x = layer(x, edge_index, edge_weight)
                 else:
                     x = layer(x)
+            # Only take encoded presentations of TFs
+            x = x[:adj_mat.sparse.shape[0],:]
             answer.append(x)
         answer = torch.stack(answer, 0)
         return answer
 
+    def explain(self):
+        return
 
 
 if __name__ == '__main__':
@@ -89,10 +118,10 @@ if __name__ == '__main__':
     # data = dataset[0]
     # train_dataset = dataset[:5]
 
-    import fatez as fz
-    faker = fz.test.Faker(device = 'cuda').make_data_loader()
-    gcn = GAT(d_model = 2, n_layer_set = 1, en_dim = 3, device = 'cuda')
-    for x, y in faker:
-        result = gcn(x[0].to('cuda'), x[1].to('cuda'))
-        break
-    print(result)
+    # import fatez as fz
+    # faker = fz.test.Faker(device = 'cuda').make_data_loader()
+    # gcn = GAT(d_model = 2, n_layer_set = 1, en_dim = 3, device = 'cuda')
+    # for x, y in faker:
+    #     result = gcn(x[0].to('cuda'), x[1].to('cuda'))
+    #     break
+    # print(result)
