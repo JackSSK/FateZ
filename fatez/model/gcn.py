@@ -67,22 +67,35 @@ class GCN(nn.Module):
         assert len(fea_mats) == len(adj_mats)
         for i in range(len(fea_mats)):
             # Process batch data
-            x = fea_mats[i].to(self.factory_kwargs['device'])
-            adj_mat = lib.Adj_Mat(
-                sparse_mat = adj_mats[i].to(self.factory_kwargs['device'])
-            )
-            edge_index, edge_weight = adj_mat.get_index_value()
-            # Feed into model
-            for i, layer in enumerate(self.model):
-                if re.search(r'torch_geometric.nn.', str(type(layer))):
-                    x = layer(x, edge_index, edge_weight)
-                else:
-                    x = layer(x)
+            edge_index, edge_weight = self._get_index_weight(adj_mats[i])
+            rep = self._feed_model(fea_mats[i], edge_index, edge_weight)
             # Only take encoded presentations of TFs
-            x = x[:adj_mat.sparse.shape[0],:]
-            answer.append(x)
+            answer.append(rep[:adj_mats[i].shape[0],:])
         answer = torch.stack(answer, 0)
         return answer
+
+    def explain(self, fea_mat, adj_mat,):
+        return
+
+    def _get_index_weight(self, adj_mat):
+        """
+        Make edge index and edge weight matrices based on given adjacent matrix.
+        """
+        x = lib.Adj_Mat(sparse_mat = adj_mat.to(self.factory_kwargs['device']))
+        return x.get_index_value()
+
+    def _feed_model(self, fea_mat, edge_index, edge_weight):
+        """
+        Feed in data to the model.
+        """
+        x = fea_mat.to(self.factory_kwargs['device'])
+        # Feed into model
+        for i, layer in enumerate(self.model):
+            if re.search(r'torch_geometric.nn.', str(type(layer))):
+                x = layer(x, edge_index, edge_weight)
+            else:
+                x = layer(x)
+        return x
 
 
 

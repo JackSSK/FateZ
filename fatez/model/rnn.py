@@ -31,7 +31,7 @@ class RNN(nn.Module):
         self.num_layers = num_layers
         self.hidden_size = hidden_size
         self.bidirectional = bidirectional
-        self.dropout = nn.Dropout(p = dropout, inplace = False)
+        self.dropout = nn.Dropout(p = dropout, inplace = True)
         self.rnn = nn.RNN(
             input_size = input_size,
             hidden_size = hidden_size,
@@ -80,7 +80,7 @@ class GRU(nn.Module):
         self.num_layers = num_layers
         self.hidden_size = hidden_size
         self.bidirectional = bidirectional
-        self.dropout = nn.Dropout(p = dropout, inplace = False)
+        self.dropout = nn.Dropout(p = dropout, inplace = True)
         self.gru = nn.GRU(
             input_size = input_size,
             hidden_size = hidden_size,
@@ -129,7 +129,7 @@ class LSTM(nn.Module):
         self.num_layers = num_layers
         self.hidden_size = hidden_size
         self.bidirectional = bidirectional
-        self.dropout = nn.Dropout(p = dropout, inplace = False)
+        self.dropout = nn.Dropout(p = dropout, inplace = True)
         self.lstm = nn.LSTM(
             input_size = input_size,
             hidden_size = hidden_size,
