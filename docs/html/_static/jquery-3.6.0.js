@@ -3980,7 +3980,7 @@ jQuery.extend( {
 
 		// Call given func if any
 		if ( func ) {
-			F.call( deferred, deferred );
+			func.call( deferred, deferred );
 		}
 
 		// All done!

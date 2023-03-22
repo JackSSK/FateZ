@@ -88,7 +88,7 @@
   },
   {
    "cell_type": "code",
-   "execution_count": 28,
+   "execution_count": 3,
    "metadata": {
     "vscode": {
      "languageId": "plaintext"
@@ -100,17 +100,17 @@
      "output_type": "stream",
      "text": [
       "        Loss\n",
-      "0   1.371900\n",
-      "1   0.768842\n",
-      "2   1.256326\n",
-      "3   1.237347\n",
-      "4   1.134314\n",
-      "5   0.577454\n",
-      "6   1.105542\n",
-      "7   1.238400\n",
-      "8   0.952839\n",
-      "9   0.915199\n",
-      "10  1.055816\n"
+      "0   1.790248\n",
+      "1   1.578636\n",
+      "2   1.236971\n",
+      "3   1.832695\n",
+      "4   1.829405\n",
+      "5   1.824987\n",
+      "6   1.690906\n",
+      "7   1.344705\n",
+      "8   1.983823\n",
+      "9   1.670652\n",
+      "10  1.678303\n"
      ]
     }
    ],
@@ -129,7 +129,7 @@
   },
   {
    "cell_type": "code",
-   "execution_count": 29,
+   "execution_count": 4,
    "metadata": {
     "vscode": {
      "languageId": "plaintext"
@@ -141,17 +141,17 @@
      "output_type": "stream",
      "text": [
       "        Loss\n",
-      "0   1.816574\n",
-      "1   1.730838\n",
-      "2   1.741792\n",
-      "3   2.077016\n",
-      "4   1.784506\n",
-      "5   2.210017\n",
-      "6   1.868762\n",
-      "7   1.616021\n",
-      "8   2.049183\n",
-      "9   1.998312\n",
-      "10  1.889302\n"
+      "0   1.693697\n",
+      "1   2.295217\n",
+      "2   1.628723\n",
+      "3   1.921710\n",
+      "4   1.524667\n",
+      "5   1.796128\n",
+      "6   2.159242\n",
+      "7   2.204110\n",
+      "8   1.626665\n",
+      "9   1.913172\n",
+      "10  1.876333\n"
      ]
     }
    ],
@@ -171,7 +171,7 @@
   },
   {
    "cell_type": "code",
-   "execution_count": 30,
+   "execution_count": 5,
    "metadata": {
     "vscode": {
      "languageId": "plaintext"
@@ -183,17 +183,17 @@
      "output_type": "stream",
      "text": [
       "        Loss  ACC\n",
-      "0   1.393003  0.0\n",
-      "1   1.395453  0.0\n",
-      "2   1.484483  0.0\n",
-      "3   1.469457  0.0\n",
-      "4   1.292269  1.0\n",
-      "5   1.478473  0.0\n",
-      "6   1.389301  0.0\n",
-      "7   1.281845  1.0\n",
-      "8   1.476806  0.0\n",
-      "9   1.279046  1.0\n",
-      "10  1.394014  0.3\n"
+      "0   1.517589  0.0\n",
+      "1   1.515411  0.0\n",
+      "2   1.522767  0.0\n",
+      "3   1.521972  0.0\n",
+      "4   1.539299  0.0\n",
+      "5   1.465444  0.0\n",
+      "6   1.105266  1.0\n",
+      "7   1.514509  0.0\n",
+      "8   1.516590  0.0\n",
+      "9   1.495929  0.0\n",
+      "10  1.471478  0.1\n"
      ]
     }
    ],
@@ -214,7 +214,7 @@
   },
   {
    "cell_type": "code",
-   "execution_count": 47,
+   "execution_count": 7,
    "metadata": {
     "vscode": {
      "languageId": "plaintext"
@@ -232,13 +232,14 @@
    ],
    "source": [
     "# Get background data\n",
-    "background_data = [a for a, _ in DataLoader(train_dataloader.dataset, batch_size = params['n_sample'])][0]\n",
+    "background_data = DataLoader(train_dataloader.dataset, batch_size = params['n_sample'])\n",
+    "background_data = [a for a, _ in background_data][0]\n",
     "background_data = [a.to(factory_kwargs['device']) for a in background_data]\n",
     "explain = explainer.Gradient(tuner.model, background_data)\n",
     "\n",
     "# vars can be used to estimate how accurate the explanation would be: lower the better\n",
     "for input_data, _ in train_dataloader:\n",
-    "    input_data = [i.to(factory_kwargs['device']) for i in input_data]\n",
+    "    input_data = [i.to(factory_kwargs['device']).to_dense() for i in input_data]\n",
     "    gene_shap_values, vars = explain.shap_values(input_data, return_variances = True)\n",
     "    break\n",
     "\n",
@@ -265,7 +266,7 @@
   },
   {
    "cell_type": "code",
-   "execution_count": 49,
+   "execution_count": 8,
    "metadata": {
     "vscode": {
      "languageId": "plaintext"
@@ -303,7 +304,7 @@
   },
   {
    "cell_type": "code",
-   "execution_count": 53,
+   "execution_count": 9,
    "metadata": {
     "vscode": {
      "languageId": "plaintext"
@@ -324,7 +325,10 @@
     "print(grp_explain.shape)\n",
     "\n",
     "# Or we can feed in matrices with ones to extract attention weights.\n",
-    "grp_explain = tuner.model.gat.explain(torch.ones_like(input_data[0][0]), torch.ones_like(input_data[1][0]))\n",
+    "grp_explain = tuner.model.gat.explain(\n",
+    "    torch.ones_like(input_data[0][0]),\n",
+    "    torch.ones_like(input_data[1][0])\n",
+    ")\n",
     "print(grp_explain.shape)"
    ]
   },
@@ -337,7 +341,7 @@
   },
   {
    "cell_type": "code",
-   "execution_count": 54,
+   "execution_count": 11,
    "metadata": {
     "vscode": {
      "languageId": "plaintext"
@@ -360,8 +364,8 @@
     "print(regulon_importance_values.shape)\n",
     "print(gene_importance_values.shape)\n",
     "\n",
-    "grp_importance = torch.matmul(torch.Tensor(regulon_importance_values[0]), grp_explain)\n",
-    "grp_importance = torch.matmul(grp_explain, torch.Tensor(gene_importance_values[0]))"
+    "grp_importance = torch.matmul(torch.Tensor(regulon_importance_values[0]).to(factory_kwargs['device']), grp_explain)\n",
+    "grp_importance = torch.matmul(grp_explain, torch.Tensor(gene_importance_values[0]).to(factory_kwargs['device']))"
    ]
   }
  ],

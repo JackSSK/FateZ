@@ -432,18 +432,18 @@ Testing Full Model.
 <div class="output_area docutils container">
 <div class="highlight"><pre>
 Labels:
-[1, 1, 3, 3, 3, 0, 2, 0, 1, 2]
+[3, 2, 0, 2, 1, 2, 3, 0, 1, 0]
 </pre></div></div>
 </div>
 </div>
 <div class="section" id="Process-origin-data">
 <h2>Process origin data<a class="headerlink" href="#Process-origin-data" title="Permalink to this heading"></a></h2>
 <div class="nbinput docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[4]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[5]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># Flatten Data</span>
-<span class="n">origin</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="n">torch</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">ele</span><span class="p">,</span> <span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">,))</span><span class="o">.</span><span class="n">tolist</span><span class="p">()</span> <span class="k">for</span> <span class="n">ele</span> <span class="ow">in</span> <span class="n">all_fea_mat</span><span class="p">])</span>
+<span class="n">origin</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="n">torch</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">ele</span><span class="o">.</span><span class="n">to_dense</span><span class="p">(),</span> <span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">,))</span><span class="o">.</span><span class="n">tolist</span><span class="p">()</span> <span class="k">for</span> <span class="n">ele</span> <span class="ow">in</span> <span class="n">all_fea_mat</span><span class="p">])</span>
 
 <span class="c1"># PCA analysis for dimensionality deduction</span>
 <span class="n">pca_analysis</span> <span class="o">=</span> <span class="n">sc</span><span class="o">.</span><span class="n">pp</span><span class="o">.</span><span class="n">pca</span><span class="p">(</span><span class="n">origin</span><span class="p">,</span> <span class="n">n_comps</span> <span class="o">=</span> <span class="mi">9</span><span class="p">,</span> <span class="n">return_info</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,)</span>
@@ -459,15 +459,15 @@ Labels:
 <div class="output_area docutils container">
 <div class="highlight"><pre>
 Origin Data Var Ratios:
-[0.23292051 0.16507269 0.15504806 0.11590058 0.1086289  0.08842403
- 0.07736817 0.04511147 0.0115256 ]
+[0.23183194 0.19009876 0.16549532 0.12865475 0.10778842 0.08295161
+ 0.04993934 0.02638779 0.01685206]
 </pre></div></div>
 </div>
 </div>
 <div class="section" id="Process-data-with-encoder">
 <h2>Process data with encoder<a class="headerlink" href="#Process-data-with-encoder" title="Permalink to this heading"></a></h2>
 <div class="nbinput docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[5]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[6]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># Get encoded representaions made by GAT -&gt; BERT encoder</span>
@@ -491,8 +491,8 @@ Origin Data Var Ratios:
 <div class="output_area docutils container">
 <div class="highlight"><pre>
 Encoded Rep Var Ratios:
-[7.24497723e-01 1.99142691e-01 7.31430602e-02 2.65173665e-03
- 4.34263254e-04 1.27896569e-04 2.23717537e-06 3.91730420e-07
+[9.79227635e-01 1.91004990e-02 1.36150445e-03 1.87922273e-04
+ 1.18413872e-04 2.40584645e-06 1.61693856e-06 2.42179989e-09
  0.00000000e+00]
 </pre></div></div>
 </div>
@@ -500,7 +500,7 @@ Encoded Rep Var Ratios:
 <div class="section" id="Set-clustering-models-and-fit-models-with-original-data">
 <h2>Set clustering models and fit models with original data<a class="headerlink" href="#Set-clustering-models-and-fit-models-with-original-data" title="Permalink to this heading"></a></h2>
 <div class="nbinput docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[6]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[7]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">eps</span> <span class="o">=</span> <span class="mf">0.5</span>
@@ -528,7 +528,7 @@ Encoded Rep Var Ratios:
 <div class="output_area docutils container">
 <div class="highlight"><pre>
 [-1 -1 -1 -1 -1 -1 -1 -1 -1 -1]
-[2 1 0 0 2 3 3 1 2 3]
+[0 0 1 2 0 0 3 2 1 0]
 [0 0 0 0 0 0 0 0 0 0]
 </pre></div></div>
 </div>
@@ -536,7 +536,7 @@ Encoded Rep Var Ratios:
 <div class="section" id="Reset-models-and-fit-with-encoded-representaions">
 <h2>Reset models and fit with encoded representaions<a class="headerlink" href="#Reset-models-and-fit-with-encoded-representaions" title="Permalink to this heading"></a></h2>
 <div class="nbinput docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[7]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[8]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">dbscan</span> <span class="o">=</span> <span class="n">cluster</span><span class="o">.</span><span class="n">DBSCAN</span><span class="p">(</span><span class="n">eps</span> <span class="o">=</span> <span class="n">eps</span><span class="p">)</span>
@@ -558,8 +558,8 @@ Encoded Rep Var Ratios:
 </div>
 <div class="output_area docutils container">
 <div class="highlight"><pre>
-[-1 -1  0  0  0  0  0 -1 -1 -1]
-[1 1 0 0 0 0 0 2 0 3]
+[ 0  0  0 -1  0  0  0  0  0  0]
+[0 0 0 1 3 0 0 2 0 2]
 [0 0 0 0 0 0 0 0 0 0]
 </pre></div></div>
 </div>
