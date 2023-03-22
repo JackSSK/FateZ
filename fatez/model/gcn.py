@@ -10,13 +10,13 @@ import torch
 import torch.nn as nn
 import torch_geometric.nn as gnn
 import torch.optim as optim
-import torch.nn.functional as func
+import torch.nn.functional as F
 from collections import OrderedDict
 from torch_geometric.data import Data
 import fatez.lib as lib
 
 
-class GCN(nn.Module):
+class Model(nn.Module):
     """
     A simple GCN using torch_geometric operator.
     """
@@ -81,7 +81,7 @@ class GCN(nn.Module):
         """
         Make edge index and edge weight matrices based on given adjacent matrix.
         """
-        x = lib.Adj_Mat(sparse_mat = adj_mat.to(self.factory_kwargs['device']))
+        x = lib.Adj_Mat(adj_mat.to(self.factory_kwargs['device']))
         return x.get_index_value()
 
     def _feed_model(self, fea_mat, edge_index, edge_weight):
@@ -107,7 +107,7 @@ if __name__ == '__main__':
 
     # import fatez as fz
     # faker = fz.test.Faker(device = 'cuda').make_data_loader()
-    # gcn = GCN(d_model = 2, n_layer_set = 1, en_dim = 3, device = 'cuda')
+    # gcn = Model(d_model = 2, n_layer_set = 1, en_dim = 3, device = 'cuda')
     # for x, y in faker:
     #     result = gcn(x[0].to('cuda'), x[1].to('cuda'))
     #     break

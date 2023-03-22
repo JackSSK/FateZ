@@ -6,7 +6,7 @@ author: jy
 """
 import torch
 import torch.nn as nn
-import torch.nn.functional as func
+import torch.nn.functional as F
 from torch.nn import LayerNorm
 from torch.nn import TransformerEncoder
 from torch.nn import TransformerEncoderLayer
@@ -101,5 +101,5 @@ class Decoder(nn.Module):
     def forward(self, input, encoded):
         output = self.decoder(input, encoded)
         output = torch.flatten(output, start_dim = 1)
-        output = func.softmax(self.decision(output), dim = -1)
+        output = F.softmax(self.decision(output), dim = -1)
         return output

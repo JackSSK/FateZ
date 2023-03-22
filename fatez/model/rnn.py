@@ -7,7 +7,7 @@ author: jy, nkmtmsys
 
 import torch
 import torch.nn as nn
-import torch.nn.functional as func
+import torch.nn.functional as F
 
 
 
@@ -56,7 +56,7 @@ class RNN(nn.Module):
         out, _ = self.rnn(input, h0)
         # out: tensor of shape (batch_size, seq_length, hidden_size)
         # Decode the hidden state of the last time step
-        out = func.softmax(self.fc(out[:, -1, :]), dim = 1)
+        out = F.softmax(self.fc(out[:, -1, :]), dim = 1)
         return out
 
 
@@ -104,7 +104,7 @@ class GRU(nn.Module):
         out, _ = self.gru(input, h0)
         # out: tensor of shape (batch_size, seq_length, hidden_size)
         # Decode the hidden state of the last time step
-        out = func.softmax(self.fc(out[:, -1, :]), dim = 1)
+        out = F.softmax(self.fc(out[:, -1, :]), dim = 1)
         return out
 
 
@@ -157,7 +157,7 @@ class LSTM(nn.Module):
         out, _ = self.lstm(input, (h0, c0))
         # out: tensor of shape (batch_size, seq_length, hidden_size)
         # Decode the hidden state of the last time step
-        out = func.softmax(self.fc(out[:, -1, :]), dim = 1)
+        out = F.softmax(self.fc(out[:, -1, :]), dim = 1)
         return out
 
 # if __name__ == '__main__':

@@ -27,7 +27,7 @@ def Set(config:dict = None, factory_kwargs:dict = None, prev_model = None,):
     """
     if prev_model is None:
         return Tuner(
-            gat = gat.Set(config['gat'], config['input_sizes'], factory_kwargs),
+            gat = gat.Set(config['gnn'], config['input_sizes'], factory_kwargs),
             encoder = transformer.Encoder(**config['encoder'],**factory_kwargs),
             graph_embedder = pe.Set(
                 config['graph_embedder'], config['input_sizes'], factory_kwargs

@@ -62,7 +62,7 @@
   // argument length (or an explicit `startIndex`), into an array that becomes
   // the last argument. Similar to ES6’s "rest parameter".
   function restArguments(func, startIndex) {
-    startIndex = startIndex == null ? func.length - 1 : +startIndex;
+    startIndex = startIndex == null ? F.length - 1 : +startIndex;
     return function() {
       var length = Math.max(arguments.length - startIndex, 0),
           rest = Array(length),
@@ -71,16 +71,16 @@
         rest[index] = arguments[index + startIndex];
       }
       switch (startIndex) {
-        case 0: return func.call(this, rest);
-        case 1: return func.call(this, arguments[0], rest);
-        case 2: return func.call(this, arguments[0], arguments[1], rest);
+        case 0: return F.call(this, rest);
+        case 1: return F.call(this, arguments[0], rest);
+        case 2: return F.call(this, arguments[0], arguments[1], rest);
       }
       var args = Array(startIndex + 1);
       for (index = 0; index < startIndex; index++) {
         args[index] = arguments[index];
       }
       args[startIndex] = rest;
-      return func.apply(this, args);
+      return F.apply(this, args);
     };
   }
 
@@ -716,18 +716,18 @@
     if (context === void 0) return func;
     switch (argCount == null ? 3 : argCount) {
       case 1: return function(value) {
-        return func.call(context, value);
+        return F.call(context, value);
       };
       // The 2-argument case is omitted because we’re not using it.
       case 3: return function(value, index, collection) {
-        return func.call(context, value, index, collection);
+        return F.call(context, value, index, collection);
       };
       case 4: return function(accumulator, value, index, collection) {
-        return func.call(context, accumulator, value, index, collection);
+        return F.call(context, accumulator, value, index, collection);
       };
     }
     return function() {
-      return func.apply(context, arguments);
+      return F.apply(context, arguments);
     };
   }
 
@@ -983,9 +983,9 @@
   // `args`. Determines whether to execute a function as a constructor or as a
   // normal function.
   function executeBound(sourceFunc, boundFunc, context, callingContext, args) {
-    if (!(callingContext instanceof boundFunc)) return sourceFunc.apply(context, args);
-    var self = baseCreate(sourceFunc.prototype);
-    var result = sourceFunc.apply(self, args);
+    if (!(callingContext instanceof boundFunc)) return sourceF.apply(context, args);
+    var self = baseCreate(sourceF.prototype);
+    var result = sourceF.apply(self, args);
     if (isObject(result)) return result;
     return self;
   }
@@ -1072,7 +1072,7 @@
     var memoize = function(key) {
       var cache = memoize.cache;
       var address = '' + (hasher ? hasher.apply(this, arguments) : key);
-      if (!has$1(cache, address)) cache[address] = func.apply(this, arguments);
+      if (!has$1(cache, address)) cache[address] = F.apply(this, arguments);
       return cache[address];
     };
     memoize.cache = {};
@@ -1083,7 +1083,7 @@
   // it with the arguments supplied.
   var delay = restArguments(function(func, wait, args) {
     return setTimeout(function() {
-      return func.apply(null, args);
+      return F.apply(null, args);
     }, wait);
   });
 
@@ -1104,7 +1104,7 @@
     var later = function() {
       previous = options.leading === false ? 0 : now();
       timeout = null;
-      result = func.apply(context, args);
+      result = F.apply(context, args);
       if (!timeout) context = args = null;
     };
 
@@ -1120,7 +1120,7 @@
           timeout = null;
         }
         previous = _now;
-        result = func.apply(context, args);
+        result = F.apply(context, args);
         if (!timeout) context = args = null;
       } else if (!timeout && options.trailing !== false) {
         timeout = setTimeout(later, remaining);
@@ -1150,7 +1150,7 @@
         timeout = setTimeout(later, wait - passed);
       } else {
         timeout = null;
-        if (!immediate) result = func.apply(context, args);
+        if (!immediate) result = F.apply(context, args);
         // This check is needed because `func` can recursively invoke `debounced`.
         if (!timeout) args = context = null;
       }
@@ -1162,7 +1162,7 @@
       previous = now();
       if (!timeout) {
         timeout = setTimeout(later, wait);
-        if (immediate) result = func.apply(context, args);
+        if (immediate) result = F.apply(context, args);
       }
       return result;
     });
@@ -1206,7 +1206,7 @@
   function after(times, func) {
     return function() {
       if (--times < 1) {
-        return func.apply(this, arguments);
+        return F.apply(this, arguments);
       }
     };
   }
@@ -1217,7 +1217,7 @@
     var memo;
     return function() {
       if (--times > 0) {
-        memo = func.apply(this, arguments);
+        memo = F.apply(this, arguments);
       }
       if (times <= 1) func = null;
       return memo;
@@ -1846,7 +1846,7 @@
       _$1.prototype[name] = function() {
         var args = [this._wrapped];
         push.apply(args, arguments);
-        return chainResult(this, func.apply(_$1, args));
+        return chainResult(this, F.apply(_$1, args));
       };
     });
     return _$1;

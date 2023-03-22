@@ -10,12 +10,43 @@ import torch
 import torch.nn as nn
 import torch_geometric.nn as gnn
 import torch.optim as optim
-import torch.nn.functional as func
+import torch.nn.functional as F
 from collections import OrderedDict
 from torch_geometric.data import Data
 # from torch_geometric.explain import Explainer, AttentionExplainer
 from torch_geometric.nn.conv.message_passing import MessagePassing
 import fatez.lib as lib
+
+
+def Set(config:dict=None, input_sizes:list=None, factory_kwargs:dict=None):
+    """
+    Set up GAT model based on given config.
+    """
+    # Get edge dim
+    if len(input_sizes[1]) == 3:
+        edge_dim = 1
+    elif len(input_sizes[1]) == 4:
+        edge_dim = input_sizes[1][-1]
+    else:
+        raise Exception('Why are we still here? Just to suffer.')
+    if 'edge_dim' in config:
+        assert config['edge_dim'] == edge_dim
+    else:
+        config['edge_dim'] = edge_dim
+
+    # Get d_model
+    if 'd_model' in config:
+        assert config['d_model'] == input_sizes[0][-1]
+    else:
+        config['d_model'] = input_sizes[0][-1]
+
+    # Init models accordingly
+    if config['type'].upper() == 'GAT':
+        return Model(**config['params'], **factory_kwargs)
+    elif config['type'].upper() == 'GATv2':
+        return Modelv2(**config['params'], **factory_kwargs)
+    else:
+        raise model.Error('Unknown GAT type')
 
 
 
@@ -28,7 +59,6 @@ class Model(nn.Module):
         n_hidden:int = 3,
         en_dim:int = 2,
         nhead:int = 1,
-        concat:bool = True,
         dropout:float = 0.0,
         n_layer_set:int = 1,
         device:str = 'cpu',
@@ -49,8 +79,8 @@ class Model(nn.Module):
                 in_channels = d_model,
                 out_channels = en_dim,
                 heads = nhead,
-                concat = concat,
                 dropout = dropout,
+                **kwargs
             )})
 
         elif self.n_layer_set >= 1:
@@ -58,8 +88,8 @@ class Model(nn.Module):
                 in_channels = d_model,
                 out_channels = n_hidden,
                 heads = nhead,
-                concat = concat,
                 dropout = dropout,
+                **kwargs
             )})
             model_dict.update({f'relu0': nn.ReLU(inplace = True)})
 
@@ -69,8 +99,8 @@ class Model(nn.Module):
                     in_channels = n_hidden,
                     out_channels = n_hidden,
                     heads = nhead,
-                    concat = concat,
                     dropout = dropout,
+                    **kwargs
                 )})
                 model_dict.update({f'relu{i+1}': nn.ReLU(inplace = True)})
 
@@ -79,15 +109,14 @@ class Model(nn.Module):
                 in_channels = n_hidden,
                 out_channels = en_dim,
                 heads = nhead,
-                concat = concat,
                 dropout = dropout,
+                **kwargs
             )})
 
         else:
             raise Exception('Why are we still here? Just to suffer.')
 
         self.model = nn.Sequential(model_dict).to(self.factory_kwargs['device'])
-
 
     def forward(self, fea_mats, adj_mats):
         answer = list()
@@ -153,14 +182,14 @@ class Model(nn.Module):
         else:
             alpha = alphas[0]
 
-        answer = func.softmax(alpha.detach().squeeze(-1))
-        return answer.reshape(adj_mat.shape)
+        x = F.softmax(alpha.detach().squeeze(-1), dim=-1).reshape(adj_mat.shape)
+        return x
 
     def _get_index_weight(self, adj_mat):
         """
         Make edge index and edge weight matrices based on given adjacent matrix.
         """
-        x = lib.Adj_Mat(sparse_mat = adj_mat.to(self.factory_kwargs['device']))
+        x = lib.Adj_Mat(adj_mat.to(self.factory_kwargs['device']))
         return x.get_index_value()
 
     def _feed_model(self, fea_mat, edge_index, edge_weight):
@@ -178,6 +207,81 @@ class Model(nn.Module):
 
 
 
+class Modelv2(Model):
+    """
+    A simple GAT using torch_geometric operator.
+    """
+    def __init__(self,
+        d_model:int = 1,
+        n_hidden:int = 3,
+        en_dim:int = 2,
+        nhead:int = 1,
+        dropout:float = 0.0,
+        edge_dim:int = 1,
+        n_layer_set:int = 1,
+        device:str = 'cpu',
+        dtype:str = None,
+        **kwargs
+        ):
+        # Initialization
+        super().__init__()
+        self.n_layer_set = n_layer_set
+        self.factory_kwargs = {'device': device, 'dtype': dtype}
+
+        model_dict = OrderedDict([])
+        # May take dropout layer out later
+        model_dict.update({f'dp0': nn.Dropout(p=dropout, inplace=True)})
+
+        if self.n_layer_set == 1:
+            model_dict.update({f'conv0':gnn.GATv2Conv(
+                in_channels = d_model,
+                out_channels = en_dim,
+                heads = nhead,
+                dropout = dropout,
+                edge_dim = edge_dim,
+                **kwargs
+            )})
+
+        elif self.n_layer_set >= 1:
+            model_dict.update({f'conv0':gnn.GATv2Conv(
+                in_channels = d_model,
+                out_channels = n_hidden,
+                heads = nhead,
+                dropout = dropout,
+                edge_dim = edge_dim,
+                **kwargs
+            )})
+            model_dict.update({f'relu0': nn.ReLU(inplace = True)})
+
+            # Adding layer set
+            for i in range(self.n_layer_set - 2):
+                model_dict.update({f'conv{i+1}':gnn.GATv2Conv(
+                    in_channels = n_hidden,
+                    out_channels = n_hidden,
+                    heads = nhead,
+                    dropout = dropout,
+                    edge_dim = edge_dim,
+                    **kwargs
+                )})
+                model_dict.update({f'relu{i+1}': nn.ReLU(inplace = True)})
+
+            # Adding last layer
+            model_dict.update({f'conv-1': gnn.GATv2Conv(
+                in_channels = n_hidden,
+                out_channels = en_dim,
+                heads = nhead,
+                dropout = dropout,
+                edge_dim = edge_dim,
+                **kwargs
+            )})
+
+        else:
+            raise Exception('Why are we still here? Just to suffer.')
+
+        self.model = nn.Sequential(model_dict).to(self.factory_kwargs['device'])
+
+
+
 if __name__ == '__main__':
     # from torch_geometric.datasets import TUDataset
     # dataset = TUDataset(root='/tmp/ENZYMES', name='ENZYMES')
@@ -187,12 +291,11 @@ if __name__ == '__main__':
     import fatez as fz
     device = 'cuda'
     faker = fz.test.Faker(device = 'cuda').make_data_loader()
-    model = Model(d_model = 2, n_layer_set = 1, en_dim = 3, device = 'cuda')
+    model = Modelv2(d_model = 2, n_layer_set = 1, en_dim = 3, edge_dim = 1, device = 'cuda')
     for x, y in faker:
         fea = x[0].to(device)
         adj = x[1].to(device)
         result = model(fea, adj)
-
         exp = model.explain(fea[0], adj[0])
         break
     print(result)

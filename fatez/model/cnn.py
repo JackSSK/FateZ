@@ -18,7 +18,7 @@ author: jy, nkmtmsys
 
 import torch
 import torch.nn as nn
-import torch.nn.functional as func
+import torch.nn.functional as F
 from collections import OrderedDict
 
 
@@ -94,7 +94,7 @@ class Model_1D(nn.Module):
             out = reshaped
         else:
             out = self.model(reshaped)
-        return func.softmax(out, dim = -1)
+        return F.softmax(out, dim = -1)
 
     def _check_applicability(self, data_shape):
         """
@@ -189,7 +189,7 @@ class Model_2D(nn.Module):
             out = reshaped
         else:
             out = self.model(reshaped)
-        return func.softmax(out, dim = -1)
+        return F.softmax(out, dim = -1)
 
     def _check_applicability(self, data_shape):
         """
@@ -324,7 +324,7 @@ class Model_Hybrid(nn.Module):
             verti_out = self.model_verti(reshaped)
             horiz_out = self.model_horiz(reshaped)
             out = self.decision(torch.cat((horiz_out, verti_out), dim = 1))
-            return func.softmax(out, dim = -1)
+            return F.softmax(out, dim = -1)
 
     def _check_applicability(self, data_shape):
         """

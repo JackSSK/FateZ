@@ -32,21 +32,20 @@ class Adj_Mat(object):
     docstring for Adjacent Matix.
     """
     def __init__(self,
-        dense_mat:torch.Tensor = None,
+        full_mat:torch.Tensor = None,
         indices:torch.Tensor = None,
         values:torch.Tensor = None,
         size = None,
         sparse_dim:int = 2,
-        sparse_mat:torch.Tensor = None,
         **kwargs
         ):
         super(Adj_Mat, self).__init__()
-        if sparse_mat is None and dense_mat is None:
+        if full_mat is None:
             self.sparse = torch.sparse_coo_tensor(indices, values, size)
-        elif sparse_mat is None and dense_mat is not None:
-            self.sparse = dense_mat.to_sparse(sparse_dim = sparse_dim)
-        elif sparse_mat is not None:
-            self.sparse = sparse_mat
+        elif str(full_mat.layout) == 'torch.strided':
+            self.sparse = full_mat.to_sparse(sparse_dim = sparse_dim)
+        elif str(full_mat.layout) == 'torch.sparse_coo':
+            self.sparse = full_mat
         self.sparse = self.sparse.coalesce()
 
     def get_index_value(self,):

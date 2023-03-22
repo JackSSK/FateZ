@@ -23,7 +23,7 @@ def Set(config:dict = None, factory_kwargs:dict = None, prev_model = None,):
     """
     if prev_model is None:
         return Trainer(
-            gat = gat.Set(config['gat'], config['input_sizes'], factory_kwargs),
+            gat = gat.Set(config['gnn'], config['input_sizes'], factory_kwargs),
             encoder = transformer.Encoder(**config['encoder'],**factory_kwargs),
             graph_embedder = pe.Set(
                 config['graph_embedder'], config['input_sizes'], factory_kwargs
@@ -221,7 +221,7 @@ class Trainer(object):
                 torch.split(node_fea_mat, output_node.shape[1], dim = 1)[0]
             )
             if output_adj is not None:
-                adj_mat = lib.Adj_Mat(sparse_mat = adj_mat).to_dense()
+                adj_mat = lib.Adj_Mat(adj_mat).to_dense()
                 loss_adj = self.criterion(output_adj, adj_mat)
                 loss = loss_node + loss_adj
             else:

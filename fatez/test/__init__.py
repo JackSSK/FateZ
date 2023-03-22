@@ -94,7 +94,7 @@ class Faker(object):
             self.config = model_config
 
         n_features = self.config['input_sizes'][0][-1]
-        assert n_features == self.config['gat']['params']['d_model']
+        assert n_features == self.config['gnn']['params']['d_model']
 
         self.n_sample = n_sample
         self.batch_size = batch_size
@@ -149,10 +149,10 @@ class Faker(object):
         data_loader = self.make_data_loader()
         if config is None: config = self.config
         graph_embedder = pe.Skip()
-        gat_model = gat.Set(config['gat'], None, self.factory_kwargs)
+        gat_model = gat.Set(config['gnn'], None, self.factory_kwargs)
         if decision is None:
             mlp_param = {
-                'd_model': self.config['gat']['params']['en_dim'],
+                'd_model': self.config['gnn']['params']['en_dim'],
                 'n_hidden': 4,
                 'n_class': self.config['fine_tuner']['n_class'],
             }
