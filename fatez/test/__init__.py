@@ -149,7 +149,11 @@ class Faker(object):
         data_loader = self.make_data_loader()
         if config is None: config = self.config
         graph_embedder = pe.Skip()
-        gat_model = gat.Set(config['gnn'], None, self.factory_kwargs)
+        gat_model = gat.Set(
+            config['gnn'],
+            config['input_sizes'],
+            self.factory_kwargs
+        )
         if decision is None:
             mlp_param = {
                 'd_model': self.config['gnn']['params']['en_dim'],
@@ -234,3 +238,8 @@ class Faker(object):
         print(f'\tExplainer Green.\n')
 
         return trainer.model, tuner.model
+
+if __name__ == '__main__':
+    a = Faker(device = 'cuda')
+    models = a.test_gat()
+    models = a.test_full_model()
