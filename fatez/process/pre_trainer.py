@@ -49,6 +49,10 @@ def Set(config:dict = None, factory_kwargs:dict = None, prev_model = None,):
 class Masker(object):
     """
     Make masks for BERT encoder input.
+
+    ToDo:
+    Mask data on sparse matrices instead of full matrix.
+    Then, the loss should be calculated only considering masked values?
     """
     def __init__(self, ratio, seed = None):
         super(Masker, self).__init__()
