@@ -46,7 +46,7 @@ class Pre_Train_Model(nn.Module):
         )
         self.recon_adj = None
 
-        if n_dim_adj is not None:
+        if n_dim_adj != None:
             self.recon_adj = mlp.Model(
                 type = 'RECON',
                 d_model = self.encoder.d_model,
@@ -62,7 +62,7 @@ class Pre_Train_Model(nn.Module):
         embed_rep = self.encoder(output, mask)
         node_mat = self.recon_node(embed_rep)
 
-        if self.recon_adj is not None:
+        if self.recon_adj != None:
             adj_mat = self.recon_adj(embed_rep)
         else:
             adj_mat = None

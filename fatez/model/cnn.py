@@ -212,7 +212,7 @@ class Model_2D(nn.Module):
         """
         Reshape the input mat
         """
-        if shape is not None:
+        if shape != None:
             return torch.reshape(input, shape)
         else:
             return torch.reshape(
@@ -347,7 +347,7 @@ class Model_Hybrid(nn.Module):
         """
         Reshape the input mat
         """
-        if shape is not None:
+        if shape != None:
             return torch.reshape(input, shape)
         else:
             return torch.reshape(

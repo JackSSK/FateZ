@@ -60,7 +60,7 @@ class Reader_Template:
         """
         self.file.seek(coordinate)
         info = self.file.readline()
-        if sep is not None:
+        if sep != None:
             return info.split('\t')
         else:
             return list(info)

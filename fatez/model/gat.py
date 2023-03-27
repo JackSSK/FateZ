@@ -153,7 +153,7 @@ class Model(nn.Module):
             """
             if 'alpha' in msg_kwargs[0]:
                 alphas.append(msg_kwargs[0]['alpha'].detach())
-            elif getattr(module, '_alpha', None) is not None:
+            elif getattr(module, '_alpha', None) != None:
                 alphas.append(module._alpha.detach())
 
         # Register message forward hooks

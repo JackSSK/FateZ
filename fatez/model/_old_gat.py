@@ -412,7 +412,7 @@ class Model(nn.Module):
         self.factory_kwargs = {'device': device, 'dtype': dtype}
 
         # Add attention heads
-        if nhead is not None and nhead > 0:
+        if nhead != None and nhead > 0:
             self.attentions = [
                 Graph_Attention_Layer(
                     d_model = d_model,
@@ -459,7 +459,7 @@ class Model(nn.Module):
             adj_mat = adj_mats[i].to(self.factory_kwargs['device']).to_dense()
             x = F.dropout(x, self.dropout, training = self.training)
             # Multi-head attention mechanism
-            if self.attentions is not None:
+            if self.attentions != None:
                 x = torch.cat([a(x, adj_mat) for a in self.attentions], dim = 1)
                 x = F.dropout(x, self.dropout, training = self.training)
                 # Resize the adj_mat to top_k rows
@@ -483,7 +483,7 @@ class Model(nn.Module):
         att_explain = None
         last_explain = None
 
-        if self.attentions is not None:
+        if self.attentions != None:
             weights = None
             a_values = None
             for att in self.attentions:
@@ -588,7 +588,7 @@ class Sparse_Model(nn.Module):
         self.factory_kwargs = {'device': device, 'dtype': dtype}
 
         # Add attention heads
-        if nhead is not None and nhead > 0:
+        if nhead != None and nhead > 0:
             self.attentions = [
                 Sparse_Graph_Attention_Layer(
                     d_model = d_model,
@@ -633,7 +633,7 @@ class Sparse_Model(nn.Module):
             adj_mat = adj_mats[i].to(self.factory_kwargs['device']).to_dense()
             x = F.dropout(x, self.dropout, training = self.training)
             # Multi-head attention mechanism
-            if self.attentions is not None:
+            if self.attentions != None:
                 x = torch.cat([a(x, adj_mat) for a in self.attentions], dim = 1)
                 x = F.dropout(x, self.dropout, training = self.training)
                 # Resize the adj_mat to top_k rows
@@ -656,7 +656,7 @@ class Sparse_Model(nn.Module):
         att_explain = None
         last_explain = None
 
-        if self.attentions is not None:
+        if self.attentions != None:
             weights = None
             a_values = None
             for att in self.attentions:

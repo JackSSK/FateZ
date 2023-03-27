@@ -62,7 +62,7 @@ class Masker(object):
 
     def make_2d_mask(self, size, dtype:str = None):
         # Set random seed
-        if self.seed is not None:
+        if self.seed != None:
             random.seed(self.seed)
             self.seed += 1
         # Make tensors
@@ -70,7 +70,7 @@ class Masker(object):
         mask = torch.zeros(size[-1])
         # Set random choices to mask
         choices = random.choices(range(size[-2]), k = int(size[-2]*self.ratio))
-        assert choices is not None
+        assert choices != None
         self.choices = choices
         # Make mask
         for ind in choices:
@@ -224,7 +224,7 @@ class Trainer(object):
                 output_node,
                 torch.split(node_fea_mat, output_node.shape[1], dim = 1)[0]
             )
-            if output_adj is not None:
+            if output_adj != None:
                 adj_mat = lib.Adj_Mat(adj_mat).to_dense()
                 loss_adj = self.criterion(output_adj, adj_mat)
                 loss = loss_node + loss_adj

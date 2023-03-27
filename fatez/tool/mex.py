@@ -130,7 +130,7 @@ class Reader(object):
 			data.drop('eGFP')
 
 		# save GEM if specified path to save
-		if save_path is not None:
+		if save_path != None:
 			data.to_csv(save_path)
 
 		# Return df purned records only have 0 counts

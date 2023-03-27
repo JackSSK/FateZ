@@ -229,7 +229,7 @@ class _TFGradient(Explainer):
             model_output_values = self.run(self.model_output, self.model_inputs, X)
         else:
             model_output_values = self.run(self.model, self.model_inputs, X)
-        if ranked_outputs is not None and self.multi_output:
+        if ranked_outputs != None and self.multi_output:
             if output_rank_order == "max":
                 model_output_ranks = np.argsort(-model_output_values)
             elif output_rank_order == "min":
@@ -323,7 +323,7 @@ class _TFGradient(Explainer):
                 return output_phis[0], output_phi_vars[0]
             else:
                 return output_phis[0]
-        elif ranked_outputs is not None:
+        elif ranked_outputs != None:
             if return_variances:
                 return output_phis, output_phi_vars, model_output_ranks
             else:
@@ -337,7 +337,7 @@ class _TFGradient(Explainer):
     def run(self, out, model_inputs, X):
         if not tf.executing_eagerly():
             feed_dict = dict(zip(model_inputs, X))
-            if self.keras_phase_placeholder is not None:
+            if self.keras_phase_placeholder != None:
                 feed_dict[self.keras_phase_placeholder] = 0
             return self.session.run(out, feed_dict)
         else:
@@ -417,7 +417,7 @@ class _PyTorchGradient(Explainer):
         X = [x.requires_grad_() for x in inputs]
         outputs = self.model(*X)
         selected = [val for val in outputs[:, idx]]
-        if self.input_handle is not None:
+        if self.input_handle != None:
             interim_inputs = self.layer.target_input
             grads = [torch.autograd.grad(selected, input,
                                          retain_graph=True if idx + 1 < len(interim_inputs) else None)[0].cpu().numpy()
@@ -432,7 +432,7 @@ class _PyTorchGradient(Explainer):
                     allow_unused=True,
                     retain_graph=True if idx + 1 < len(X) else None
                 )[0]
-                if temp_grad is not None:
+                if temp_grad != None:
                     grads.append(temp_grad.cpu().numpy())
                 else:
                     grads.append(temp_grad)
@@ -462,7 +462,7 @@ class _PyTorchGradient(Explainer):
         else:
             assert type(X) == list, "Expected a list of model inputs!"
 
-        if ranked_outputs is not None and self.multi_output:
+        if ranked_outputs != None and self.multi_output:
             with torch.no_grad():
                 model_output_values = self.model(*X)
             # rank and determine the model outputs that we will explain
@@ -569,7 +569,7 @@ class _PyTorchGradient(Explainer):
             output_phis.append(phis[0] if len(self.data) == 1 else phis)
             output_phi_vars.append(phi_vars[0] if not self.multi_input else phi_vars)
         # cleanup: remove the handles, if they were added
-        if self.input_handle is not None:
+        if self.input_handle != None:
             self.input_handle.remove()
             self.input_handle = None
             # note: the target input attribute is deleted in the loop
@@ -579,7 +579,7 @@ class _PyTorchGradient(Explainer):
                 return output_phis[0], output_phi_vars[0]
             else:
                 return output_phis[0]
-        elif ranked_outputs is not None:
+        elif ranked_outputs != None:
             if return_variances:
                 return output_phis, output_phi_vars, model_output_ranks
             else:
@@ -641,7 +641,7 @@ class AttentionExplainer(ExplainerAlgorithm):
         def hook(module, msg_kwargs, out):
             if 'alpha' in msg_kwargs[0]:
                 alphas.append(msg_kwargs[0]['alpha'].detach())
-            elif getattr(module, '_alpha', None) is not None:
+            elif getattr(module, '_alpha', None) != None:
                 alphas.append(module._alpha.detach())
 
         hook_handles = []
@@ -692,7 +692,7 @@ class AttentionExplainer(ExplainerAlgorithm):
             return False
 
         node_mask_type = self.explainer_config.node_mask_type
-        if node_mask_type is not None:
+        if node_mask_type != None:
             logging.error(f"'{self.__class__.__name__}' does not support "
                           f"explaining input node features "
                           f"got (`node_mask_type={node_mask_type.value}`)")
