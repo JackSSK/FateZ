@@ -52,14 +52,9 @@ class Preprocessor():
         self.data_type = data_type
         self.rna_mt = list()
         self.atac_mt = list()
-        self.peak_count = dict()
         self.peak_annotations = dict()
         self.peak_region_df = pd.DataFrame()
         self.gene_region_df = pd.DataFrame()
-        self.pseudo_network = dict()
-        self.peak_gene_links = dict()
-        self.tf_target_db = dict()
-        self.motif_enrich_score = dict()
         self.gff_gene = list()
     def load_data(self,
         matrix_format:str = '10x_paired',
@@ -135,18 +130,9 @@ class Preprocessor():
 
         # ### extract chromosome start and end
         # Assertion here?
-        for i, name in enumerate(list(self.atac_mt.var_names)):
-            temp = name.split(':')
-            positions = temp[1].split('-')
-            chr_list.append(temp[0])
-            start_list.append(positions[0])
-            end_list.append(positions[1])
-            self.peak_count[name] = atac_array[i]
 
-        self.peak_region_df = pd.DataFrame(
-            {'chr': chr_list, 'start': start_list, 'end': end_list},
-            index = list(self.atac_mt.var_names)
-        )
+
+
         self.atac_mt.obs_names_make_unique()
         ###remove nan
         self.rna_mt = self.rna_mt[:,~self.rna_mt.var_names.isnull()]
@@ -187,13 +173,7 @@ class Preprocessor():
         sc.pp.filter_cells(self.atac_mt, min_genes = atac_min_features)
         sc.pp.filter_genes(self.atac_mt, min_cells = atac_min_cells)
         #self.atac_mt = self.atac_mt[self.atac_mt.obs.n_genes_by_counts < atac_max_cells, :]
-        self.peak_region_df = self.peak_region_df.loc[
-            list(self.atac_mt.var_names)
-        ]
-        ### peak_count dict
-        atac_array = self.atac_mt.X.toarray().T
-        for i, name in enumerate(list(self.atac_mt.var_names)):
-            self.peak_count[name] = atac_array[i]
+
 
     def merge_peak(self, width = 250):
         """
@@ -258,34 +238,10 @@ class Preprocessor():
         # final_start.append(peak_df.iloc[len(peak_df.index)-1,1])
         # final_end.append(peak_df.iloc[len(peak_df.index)-1,2])
         # peak_count_dict[peak_df.index[len(peak_df.index)]] = atac_array[len(peak_df.index)]
-        self.peak_count = peak_count_dict
         self.gene_region_df = pd.DataFrame(
             {'chr':final_chr, 'start':final_start, 'end':final_end},
             index = row_name_list
         )
-
-    def add_cell_label(self,cell_types,modality:str = 'rna'):
-
-        ### modify nonstandard cell type name
-        for i, name in enumerate(cell_types):
-            if ' ' in str(name):
-                cell_types[i] = cell_types[i].replace(' ', '-')
-            if '/' in str(name):
-                cell_types[i] = cell_types[i].replace('/', '-')
-
-        if modality == 'rna':
-            self.rna_mt = self.rna_mt[
-                np.intersect1d(cell_types.index, self.rna_mt.obs_names)
-            ]
-            cell_types = cell_types[list(self.rna_mt.obs_names)]
-            self.rna_mt.obs['cell_types'] = list(cell_types)
-        elif modality == 'atac':
-            self.atac_mt = self.atac_mt = self.atac_mt[
-                np.intersect1d(cell_types.index, self.atac_mt.obs_names)]
-            cell_types = cell_types[list(self.atac_mt.obs_names)]
-            self.atac_mt.obs['cell_types'] = list(cell_types)
-        else:
-            print('input correct modality')
 
     def annotate_peaks(self,tss_region=[2000,1000]):
         template = tgrn.Template_GRN(id='gff')
@@ -422,80 +378,42 @@ class Preprocessor():
                             cur_index -= 1
                             break
         self.peak_annotations = grn_recon.Reverse_Peaks_Ann(annotations)
+    def generate_feature_mt(self):
 
+        fea_mt_dict = {}
+        gff_gene = np.array(list(self.peak_annotations.keys()))
+        rna_gene = list(self.rna_mt.var.index)
+        atac_count = self.atac_mt.X.todense()
+        for cell in list(self.rna_mt.obs.index):
 
-    def cal_peak_gene_cor(self, exp_thr = 0, cor_thr = 0.6):
-         warnings.filterwarnings('ignore')
-         for network in list(self.pseudo_network.keys()):
-             print(network)
-             ### extract rna pseudo network
-             rna_cell_use = self.pseudo_network[network]['rna']
-             rna_pseudo = self.rna_mt[rna_cell_use]
-             rna_pseudo_network = pd.DataFrame(rna_pseudo.X.todense().T)
-             rna_pseudo_network.index = list(rna_pseudo.var_names.values)
-             rna_pseudo_network.columns = rna_pseudo.obs_names.values
-             rna_row_mean = rna_pseudo_network.mean(axis=1)
+            fea_mt = pd.DataFrame(
+                {
+                    'gene_mean_exp': [0] * len(self.gff_gene),
+                    'peak_mean_count': [0] * len(self.gff_gene)
+                },
+                index=list(self.gff_gene),
+                dtype='float64'
+            )
 
-             ### select expressed genes to reduce computional cost
-             rna_row_mean = rna_row_mean[rna_row_mean > exp_thr]
+            for i in list(gff_gene):
 
-             ### atac cell
-             atac_cell_use = self.pseudo_network[network]['atac']
-             ### overlapped genes
-             mt_gene_array = np.array(rna_row_mean.index)
-             gff_gene_array = np.array(list(self.peak_annotations.keys()))
-             gene_use = np.intersect1d(mt_gene_array,gff_gene_array)
-             self.peak_gene_links[network] = {}
-             for i in list(gene_use):
-
-                ### load target gene related tfs
-                ### then refine the list by gene_use
-                related_tf = np.array(self.tf_target_db[i]['motif'])
-                #tf_use = np.intersect1d(related_tf,gene_use)
-
-                self.peak_gene_links[network][i] = {}
-                all_overlap_peaks = list(self.peak_annotations[i].keys())
-                peak_cor = []
-                peak_use = []
-                ###
-                for j in all_overlap_peaks:
-                    rna_count = rna_pseudo_network.loc[i,]
-                    atac_count = self.peak_count[j][atac_cell_use]
-
-                    pg_cor = stats.pearsonr(list(rna_count),list(atac_count))
-                    if abs(pg_cor[0]) > cor_thr:
-                        peak_cor.append(pg_cor[0])
-                        peak_use.append(j)
-                # gene_mean_count = rna_row_mean[i]
-                if len(peak_use) > 0:
-                    peak_series = pd.Series(peak_cor,index=peak_use)
-                    peak_series_abs = abs(peak_series)
-                    if len(peak_series) > 1:
-                        cor_max_peak = peak_series_abs.sort_values().index[
-                            len(peak_series_abs)-1]
-                        # cor_max = peak_series[cor_max_peak]
-                    else:
-                        cor_max_peak = peak_series.index[0]
-                    #     cor_max = peak_series[0]
-                    mean_count = self.peak_count[cor_max_peak][atac_cell_use].mean()
-                    self.peak_gene_links[network][i]['peak'] = cor_max_peak
-                    # self.peak_gene_links[network][i][
-                    #     'peak_correlation'] = cor_max
-                    self.peak_gene_links[network][i]['peak_mean_count'] = mean_count
-                    # self.peak_gene_links[network][i][
-                    #     'gene_mean_count'] = gene_mean_count
-                    # self.peak_gene_links[network][i][
-                    #     'related_tf'] = related_tf
+                if i in rna_gene:
+                    all_overlap_peaks = list(self.peak_annotations[i].keys())
+                    gene_count = int(self.rna_mt[cell,i].X.todense())
+                    gene_peak_count = 0
+                    for j in all_overlap_peaks:
+                        peak_count = \
+                            int(self.atac_mt[cell,j].X.todense())
+                        gene_peak_count += peak_count
                 else:
-                    self.peak_gene_links[network][i]['peak'] = None
-                    # self.peak_gene_links[network][i][
-                    #     'peak_correlation'] = 0
-                    self.peak_gene_links[network][i]['peak_mean_count'] = 0
-                    # self.peak_gene_links[network][i][
-                    #     'gene_mean_count'] = gene_mean_count
-                    # self.peak_gene_links[network][i][
-                    #     'related_tf'] = related_tf
+                    gene_peak_count = 0
+                    gene_count = 0
 
+                fea_mt.loc[i][0] = gene_count
+                fea_mt.loc[i][1] = gene_peak_count
+
+            fea_mt_dict[cell] = fea_mt
+        return fea_mt_dict
 
 
 
@@ -503,29 +421,6 @@ class Preprocessor():
         assert key not in self.pseudo_network
         self.pseudo_network[key] = {'rna': rna_cell_use, 'atac': atac_cell_use}
 
-    def __extract_expressed_tfs(self,expressed_cell_percent:int = 0.05):
-        path = resource_filename(
-            __name__, '../data/' + 'mouse' + '/Transfac201803_MotifTFsF.txt.gz'
-        )
-        ### make TFs motifs dict
-        expressed_cell_thr = int(
-            expressed_cell_percent*len(self.rna_mt.obs_names))
-        tf_motifs = transfac.Reader(path=path).get_tfs()
-        tf_all = list(tf_motifs.keys())
-        gene_all = list(self.rna_mt.var_names)
-        tf_use = np.intersect1d(tf_all,gene_all)
-        tf_exp = self.rna_mt[:,tf_use].to_df().T
-        tf_use_idx = []
-        for i in range(tf_exp.shape[0]):
-            expressed_num = tf_exp.iloc[i][tf_exp.iloc[i] != 0].shape[0]
-            if expressed_num >= expressed_cell_thr:
-                tf_use_idx.append(i)
-        tf_use = tf_use[tf_use_idx]
-        return tf_use
-
-    # R u using this?
-    def __is_overlapping(self,x1, x2, y1, y2):
-        return max(x1, y1) <= min(x2, y2)
 
 
 
