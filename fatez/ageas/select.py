@@ -7,6 +7,7 @@ author: jy
 import numpy as np
 
 from random import random
+import math
 from math import log, ceil
 from time import time, ctime
 
@@ -38,12 +39,12 @@ class HyperBand(object):
 		self.best_counter = -1
 
     def _log_eta(self, x):
-        return (math.log( x ) / math.log(self.eta))
+        return (math.log(x) / math.log(self.eta))
 
 	# can be called multiple times
-	def run( self, skip_last = 0,):
+	def run(self, dataloader, ):
 
-		for s in reversed( range( self.s_max + 1 )):
+		for s in reversed(range(self.s_max + 1)):
 
 			# initial number of configurations
 			n = int( ceil( self.B / self.max_iter / ( s + 1 ) * self.eta ** s ))
