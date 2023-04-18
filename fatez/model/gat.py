@@ -4,6 +4,9 @@ This file contains Graph Attention Network (GAT) related objects.
 
 ToDo:
 Would JAX help on speeding up model training?
+Added back the GAT implementation with dense matrices, maybe a reimplementation
+in JAX could help, but probably we shall wait till GRN preprocess part fixed and
+tested.
 
 author: jy
 """
@@ -49,6 +52,8 @@ def Set(config:dict=None, input_sizes:list=None, factory_kwargs:dict=None):
         return Model(**config['params'], **factory_kwargs)
     elif config['type'].upper() == 'GATV2':
         return Modelv2(**config['params'], **factory_kwargs)
+    elif config['type'].upper() == 'GATVD':
+        return ModelvD(**config['params'], **factory_kwargs)
     else:
         raise model.Error('Unknown GAT type')
 
@@ -450,6 +455,7 @@ class ModelvD(nn.Module):
         alpha:float = 0.2,
         device:str = 'cpu',
         dtype:str = None,
+        **kwargs
         ):
         """
         :param d_model:int = None
@@ -480,7 +486,7 @@ class ModelvD(nn.Module):
             Data type of values in matrices.
             Note: torch default using float32, numpy default using float64
         """
-        super(Model, self).__init__()
+        super(ModelvD, self).__init__()
         self.d_model = d_model
         self.n_hidden = n_hidden
         self.en_dim = en_dim
@@ -627,12 +633,14 @@ class ModelvD(nn.Module):
     # import fatez as fz
     # device = 'cuda'
     # faker = fz.test.Faker(device = 'cuda').make_data_loader()
-    # model = Modelv2(d_model = 2, n_layer_set = 1, en_dim = 3, edge_dim = 1, device = 'cuda')
+    # model = ModelvD(
+    #     d_model = 2, n_layer_set = 1, en_dim = 3, edge_dim = 1, device = 'cuda'
+    # )
     # for x, y in faker:
     #     fea = x[0].to(device)
     #     adj = x[1].to(device)
     #     result = model(fea, adj)
     #     exp = model.explain(fea[0], adj[0])
     #     break
-    # print(result)
-    # print(exp)
+    # print(result.shape)
+    # print(exp.shape)
