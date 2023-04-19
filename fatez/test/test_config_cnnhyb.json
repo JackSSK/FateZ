@@ -12,27 +12,27 @@
             "n_dim": 2
         }
     },
-    "gat": {
+    "gnn": {
         "type": "GAT",
         "params": {
             "d_model": 2,
-            "en_dim": 4,
+            "en_dim": 32,
             "n_hidden": 2,
-            "nhead": 0
+            "nhead": 1
         }
     },
     "rep_embedder": {
-        "type": "Skip",
+        "type": "abs",
         "params": {
             "n_embed": 1104,
-            "n_dim": 4
+            "n_dim": 32
         }
     },
     "encoder": {
-        "d_model": 4,
-        "n_layer": 6,
+        "d_model": 32,
+        "n_layer": 8,
         "nhead": 8,
-        "dim_feedforward": 4
+        "dim_feedforward": 64
     },
     "pre_trainer": {
         "n_dim_adj": null,
