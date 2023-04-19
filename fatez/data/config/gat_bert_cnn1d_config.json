@@ -39,7 +39,7 @@
         }
     },
     "fine_tuner": {
-        "n_class": 4,
+        "n_class": 2,
         "clf_type": "CNN_1D",
         "clf_params":{
           "n_layer_set": 1,

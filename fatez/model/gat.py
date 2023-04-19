@@ -197,7 +197,7 @@ class Model(nn.Module):
                 alpha = alpha[0]
         else:
             alpha = alphas[0]
-
+        print(alpha)
         x = F.softmax(alpha.detach().squeeze(-1), dim=-1).reshape(adj_mat.shape)
         return x
 

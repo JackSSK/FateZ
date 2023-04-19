@@ -2,8 +2,8 @@
     "batch_size": 10,
     "epoch": 100,
     "input_sizes": [
-        [10, 21846, 2],
-        [10, 1104, 21846]
+        [1, 21846, 2],
+        [1, 1104, 21846]
     ],
     "graph_embedder": {
         "type": "skip",
@@ -13,16 +13,17 @@
         }
     },
     "gnn": {
-        "type": "GAT",
+        "type": "GATv2",
         "params": {
             "d_model": 2,
             "en_dim": 32,
             "n_hidden": 2,
-            "nhead": 1
+            "n_layer_set": 1,
+            "nhead": 4
         }
     },
     "rep_embedder": {
-        "type": "skip",
+        "type": "abs",
         "params": {
             "n_embed": 1104,
             "n_dim": 32
@@ -32,7 +33,7 @@
         "d_model": 32,
         "n_layer": 8,
         "nhead": 8,
-        "dim_feedforward": 64
+        "dim_feedforward": 512
     },
     "pre_trainer": {
         "n_dim_adj": null,

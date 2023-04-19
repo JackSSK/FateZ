@@ -39,7 +39,7 @@
         }
     },
     "fine_tuner": {
-        "n_class": 4,
+        "n_class": 2,
         "clf_type": "RNN",
         "clf_params":{
           "hidden_size": 8,

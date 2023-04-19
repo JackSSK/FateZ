@@ -109,23 +109,43 @@ class Faker(object):
             torch.utils.data.DataLoader
         """
         dtype = self.factory_kwargs['dtype']
+        assert self.config['fine_tuner']['n_class'] == 2
+
         samples = list()
-        for i in range(self.n_sample):
+        # Prepare labels
+        t0_labels = torch.zeros(int(self.n_sample/2), dtype=torch.long)
+        t1_labels = torch.ones(self.n_sample - len(t0_labels), dtype=torch.long)
+        labels = torch.cat((t0_labels, t1_labels), -1)
+
+        def rand_sample(dtype):
             fea_m = torch.randn(self.config['input_sizes'][0][1:], dtype=dtype)
             adj_m = torch.randn(self.config['input_sizes'][1][1:], dtype=dtype)
+            fea_m[:2,] *= 0
+            adj_m[:2,] *= 0
+            return fea_m, adj_m
+
+        def append_sample(samples, fea_m, adj_m):
             if sparse_data:
+                print(lib.Adj_Mat(adj_m).sparse.shape)
                 samples.append([fea_m.to_sparse(), lib.Adj_Mat(adj_m).sparse])
             else:
                 # Dense version
                 samples.append([fea_m, adj_m])
 
+        # Prepare type_0 samples
+        for i in range(len(t0_labels)):
+            fea_m, adj_m = rand_sample(dtype)
+            fea_m[0] += 1
+            adj_m[0] += 1
+            append_sample(samples, fea_m, adj_m)
+
+        # Prepare type_1 samples
+        for i in range(len(t1_labels)):
+            fea_m, adj_m = rand_sample(dtype)
+            append_sample(samples, fea_m, adj_m)
+
         return DataLoader(
-            lib.FateZ_Dataset(
-                samples = samples,
-                labels = torch.empty(self.n_sample, dtype=torch.long,).random_(
-                    self.config['fine_tuner']['n_class']
-                )
-            ),
+            lib.FateZ_Dataset(samples = samples, labels = labels),
             batch_size = self.batch_size,
             shuffle = True
         )
@@ -224,7 +244,7 @@ class Faker(object):
         # Test explain
         for x, y in data_loader:
             gat_explain = tuner.model.gat.explain(x[0][0], x[1][0])
-            # print(gat_explain)
+            print(gat_explain)
             explain = explainer.Gradient(
                 tuner.model,
                 [x[0].to_dense().to(device), x[1].to_dense().to(device)]
@@ -233,7 +253,7 @@ class Faker(object):
                 [x[0].to_dense().to(device), x[1].to_dense().to(device)],
                 return_variances = True,
             )
-            # print(shap_values)
+            print(shap_values)
             break
         print(f'\tExplainer Green.\n')
 
@@ -241,5 +261,5 @@ class Faker(object):
 
 if __name__ == '__main__':
     a = Faker(device = 'cuda')
-    models = a.test_gat()
+    # models = a.test_gat()
     models = a.test_full_model()

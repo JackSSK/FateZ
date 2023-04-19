@@ -24,17 +24,17 @@ Basically, we just simply whatever process leading to the result as a param mat.
 """
 def reps_to_probs(reps, probs, device = None):
     inv = torch.linalg.lstsq(reps, probs,).solution
-    return torch.matmul(reps, inv)
+    return torch.matmul(reps.data, inv)
 
 def probs_to_preds(probs, preds, device = None):
     preds = preds.reshape(probs.shape[0], 1).to(probs.dtype).to(probs.device)
     inv = torch.linalg.lstsq(probs, preds,).solution
-    return torch.matmul(probs, inv)
+    return torch.matmul(probs.data, inv)
 
 def preds_to_scores(preds, scores, device = None):
     scores = torch.Tensor([[scores]],).to(preds.dtype).to(preds.device)
     inv = torch.linalg.lstsq(preds.T, scores).solution.T
-    return torch.matmul(inv, preds)
+    return torch.matmul(inv, preds.data)
 
 
 

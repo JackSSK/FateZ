@@ -118,19 +118,21 @@ print(config['input_sizes'])
 """
 traning
 """
-rep_type = config["rep_embedder"]['type']
-n_layer_list = [6]
+d_model_list = [32]
+dim_feedforward_list = [128, 256, 512]
 nhead_list = [2]
-dim_feedforward_list = [4]
-d_model_list = [4]
+n_layer_list = [6]
+
 for p1 in d_model_list:
     for p2 in dim_feedforward_list:
         for p3 in nhead_list:
             for p4 in n_layer_list:
                 config['gnn']['params']['en_dim'] = p1
-                config['encoder']['d_model'] = p1
                 config["rep_embedder"]['params']["n_dim"] = p1
-                config['encoder']['dim_feedforward'] = p2
+                config['encoder']['d_model'] = p1
+
+                # config['encoder']['dim_feedforward'] = p2
+                config['gnn']['params']['nhead'] = p3
                 config['encoder']['nhead'] = p3
                 config['encoder']['n_layer'] = p4
 
@@ -141,6 +143,8 @@ for p1 in d_model_list:
                 factory_kwargs = {'device': device, 'dtype': torch.float32, }
                 fine_tuner_model = fine_tuner.Set(config, factory_kwargs)
                 early_stop = es.Monitor(tolerance = 30, min_delta = 0.01)
+
+                rep_type = config["rep_embedder"]['type']
                 para_name = 'd_model-'+str(p1)+'-dff-'+str(p2)+'-nhead-'+str(p3)+'-n_layer-'+str(p4) + '-rep-' +rep_type + '-batchsize-' + str(batch_size)
                 print(para_name)
                 for epoch in range(num_epoch):
