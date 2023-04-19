@@ -27,6 +27,7 @@ def Set(config:dict = None, factory_kwargs:dict = None, prev_model = None,):
     """
     if prev_model is None:
         return Tuner(
+            input_sizes = config['input_sizes'],
             gat = gat.Set(config['gnn'], config['input_sizes'], factory_kwargs),
             encoder = transformer.Encoder(**config['encoder'],**factory_kwargs),
             graph_embedder = pe.Set(
@@ -40,6 +41,7 @@ def Set(config:dict = None, factory_kwargs:dict = None, prev_model = None,):
         )
     else:
         return Tuner(
+            input_sizes = config['input_sizes'],
             gat = prev_model.gat,
             encoder = prev_model.bert_model.encoder,
             graph_embedder = prev_model.graph_embedder,
@@ -97,6 +99,7 @@ class Tuner(object):
     """
     def __init__(self,
         # Models to take
+        input_sizes:list = None,
         gat = None,
         encoder:transformer.Encoder = None,
         graph_embedder = pe.Skip(),
@@ -128,6 +131,7 @@ class Tuner(object):
         dtype:str = None,
         ):
         super(Tuner, self).__init__()
+        self.input_sizes = input_sizes
         self.factory_kwargs = {'device': device, 'dtype': dtype}
         self.n_class = n_class
         self.model = Model(

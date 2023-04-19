@@ -94,7 +94,6 @@ class Faker(object):
             self.config = model_config
 
         n_features = self.config['input_sizes'][0][-1]
-        assert n_features == self.config['gnn']['params']['d_model']
 
         self.n_sample = n_sample
         self.batch_size = batch_size
@@ -120,13 +119,12 @@ class Faker(object):
         def rand_sample(dtype):
             fea_m = torch.randn(self.config['input_sizes'][0][1:], dtype=dtype)
             adj_m = torch.randn(self.config['input_sizes'][1][1:], dtype=dtype)
-            fea_m[:2,] *= 0
-            adj_m[:2,] *= 0
+            fea_m[-2:,] *= 0
+            adj_m[:,-2:] *= 0
             return fea_m, adj_m
 
         def append_sample(samples, fea_m, adj_m):
             if sparse_data:
-                print(lib.Adj_Mat(adj_m).sparse.shape)
                 samples.append([fea_m.to_sparse(), lib.Adj_Mat(adj_m).sparse])
             else:
                 # Dense version
@@ -135,8 +133,9 @@ class Faker(object):
         # Prepare type_0 samples
         for i in range(len(t0_labels)):
             fea_m, adj_m = rand_sample(dtype)
-            fea_m[0] += 1
-            adj_m[0] += 1
+            fea_m[-1] += 1
+            adj_m[:,-1] += 1
+            print(fea_m, adj_m)
             append_sample(samples, fea_m, adj_m)
 
         # Prepare type_1 samples

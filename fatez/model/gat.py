@@ -42,10 +42,10 @@ def Set(config:dict=None, input_sizes:list=None, factory_kwargs:dict=None):
         config['params']['edge_dim'] = edge_dim
 
     # Get d_model
-    if 'd_model' in config['params']:
-        assert config['params']['d_model'] == input_sizes[0][-1]
-    else:
-        config['params']['d_model'] = input_sizes[0][-1]
+    # if 'd_model' in config['params']:
+    #     assert config['params']['d_model'] == input_sizes[0][-1]
+    # else:
+    #     config['params']['d_model'] = input_sizes[0][-1]
 
     # Init models accordingly
     if config['type'].upper() == 'GAT':
@@ -64,7 +64,7 @@ class Model(nn.Module):
     A simple GAT using torch_geometric operator.
     """
     def __init__(self,
-        d_model:int = 1,
+        d_model:int = -1,
         n_hidden:int = 3,
         en_dim:int = 2,
         nhead:int = 1,
@@ -228,7 +228,7 @@ class Modelv2(Model):
     A simple GAT using torch_geometric operator.
     """
     def __init__(self,
-        d_model:int = 1,
+        d_model:int = -1,
         n_hidden:int = 3,
         en_dim:int = 2,
         nhead:int = 1,

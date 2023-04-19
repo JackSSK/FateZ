@@ -23,6 +23,7 @@ def Set(config:dict = None, factory_kwargs:dict = None, prev_model = None,):
     """
     if prev_model is None:
         return Trainer(
+            input_sizes = config['input_sizes'],
             gat = gat.Set(config['gnn'], config['input_sizes'], factory_kwargs),
             encoder = transformer.Encoder(**config['encoder'],**factory_kwargs),
             graph_embedder = pe.Set(
@@ -36,6 +37,7 @@ def Set(config:dict = None, factory_kwargs:dict = None, prev_model = None,):
         )
     else:
         return Trainer(
+            input_sizes = config['input_sizes'],
             gat = prev_model.gat,
             encoder = prev_model.bert_model.encoder,
             graph_embedder = prev_model.graph_embedder,
@@ -157,6 +159,7 @@ class Trainer(object):
         dtype:str = None,
         ):
         super(Trainer, self).__init__()
+        self.input_sizes = input_sizes
         self.factory_kwargs = {'device': device, 'dtype': dtype}
         self.model = Model(
             gat = gat,
@@ -166,7 +169,7 @@ class Trainer(object):
                 encoder = encoder,
                 # Will need to take this away if embed before GAT.
                 rep_embedder = rep_embedder,
-                n_dim_node = gat.d_model,
+                n_dim_node = self.input_sizes[0][-1],
                 n_dim_adj = n_dim_adj,
                 **self.factory_kwargs,
             ),
