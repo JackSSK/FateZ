@@ -497,7 +497,7 @@ class ModelvD(nn.Module):
         self.factory_kwargs = {'device': device, 'dtype': dtype}
 
         # Add attention heads
-        if nhead != None and nhead > 0:
+        if nhead != None and nhead > 1:
             self.attentions = [
                 Graph_Attention_Layer(
                     d_model = d_model,
