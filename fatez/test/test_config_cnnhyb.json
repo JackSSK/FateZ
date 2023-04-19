@@ -12,12 +12,13 @@
             "n_dim": 2
         }
     },
-    "gnn": {
-        "type": "GAT",
+    "gat": {
+        "type": "GATv2",
         "params": {
             "d_model": 2,
-            "en_dim": 32,
+            "en_dim": 4,
             "n_hidden": 2,
+            "n_layer_set": 1,
             "nhead": 1
         }
     },
@@ -25,14 +26,14 @@
         "type": "abs",
         "params": {
             "n_embed": 1104,
-            "n_dim": 32
+            "n_dim": 4
         }
     },
     "encoder": {
-        "d_model": 32,
-        "n_layer": 8,
+        "d_model": 4,
+        "n_layer": 6,
         "nhead": 8,
-        "dim_feedforward": 64
+        "dim_feedforward": 4
     },
     "pre_trainer": {
         "n_dim_adj": null,

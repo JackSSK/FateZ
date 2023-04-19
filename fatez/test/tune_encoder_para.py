@@ -78,13 +78,17 @@ test_size = 0.3
 ##############################
 data_save = False
 data_save_dir = '/storage/peiweikeLab/jiangjunyao/fatez/tune_para/test_nmd_ct_reorder/'
-outgat_dir = data_save_dir+'out_gat/'
-#os.makedirs(outgat_dir )
+
 """
 dataloader
 """
 X_train,X_test,y_train,y_test = train_test_split(
-    samples,labels,test_size=test_size,train_size = 1-test_size,random_state=0)
+    samples,
+    labels,
+    test_size=test_size,
+    train_size = 1-test_size,
+    random_state=0
+)
 train_dataloader = DataLoader(
     lib.FateZ_Dataset(samples=X_train, labels=y_train),
     batch_size=batch_size,
@@ -114,7 +118,6 @@ print(config['input_sizes'])
 """
 traning
 """
-config["rep_embedder"]['type'] = 'abs'
 rep_type = config["rep_embedder"]['type']
 n_layer_list = [6]
 nhead_list = [2]
@@ -130,9 +133,14 @@ for p1 in d_model_list:
                 config['encoder']['dim_feedforward'] = p2
                 config['encoder']['nhead'] = p3
                 config['encoder']['n_layer'] = p4
+
+                """""""""""""""""""""""""""""""""""""""""""""""""""""
+                Get config file here so we can see how exactly the model is set
+                """""""""""""""""""""""""""""""""""""""""""""""""""""
+
                 factory_kwargs = {'device': device, 'dtype': torch.float32, }
                 fine_tuner_model = fine_tuner.Set(config, factory_kwargs)
-                early_stop = es.Monitor(tolerance=30, min_delta=0.01)
+                early_stop = es.Monitor(tolerance = 30, min_delta = 0.01)
                 para_name = 'd_model-'+str(p1)+'-dff-'+str(p2)+'-nhead-'+str(p3)+'-n_layer-'+str(p4) + '-rep-' +rep_type + '-batchsize-' + str(batch_size)
                 print(para_name)
                 for epoch in range(num_epoch):
@@ -144,13 +152,21 @@ for p1 in d_model_list:
                     report_test = fine_tuner_model.test(test_dataloader,)
                     print(report_test[-1:])
 
-                    report_train.to_csv(data_save_dir + 'train-'+para_name+'.csv',
-                                        mode='a',header=False)
-                    report_test.to_csv(data_save_dir + 'test-'+para_name+'.csv',
-                                       mode='a',header=False)
+                    report_train.to_csv(
+                        data_save_dir + 'train-' + para_name + '.csv',
+                        mode = 'a',
+                        header = False
+                    )
+                    report_test.to_csv(
+                        data_save_dir + 'test-' + para_name + '.csv',
+                        mode = 'a',
+                        header = False
+                    )
 
-                    if early_stop(float(report_train[-1:]['Loss']),
-                                  float(report_test[-1:]['Loss'])):
+                    if early_stop(
+                        float(report_train[-1:]['Loss']),
+                        float(report_test[-1:]['Loss'])
+                        ):
                         print("We are at epoch:", i)
                         break
                 torch.cuda.empty_cache()

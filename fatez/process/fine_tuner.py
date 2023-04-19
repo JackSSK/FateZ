@@ -67,9 +67,13 @@ class Model(nn.Module):
         self.bert_model = bert_model
 
     def forward(self, fea_mats, adj_mats):
+        print('Prior graph_embedder')
         output = self.graph_embedder(fea_mats, adj = adj_mats)
+        print('Passed graph_embedder, moving to gat')
         output = self.gat(output, adj_mats)
+        print('Passed GAT, moving to rep_embedder and transformer encoders')
         output = self.bert_model(output)
+        print('Clear')
         return output
 
     def get_gat_output(self, fea_mats, adj_mats,):
