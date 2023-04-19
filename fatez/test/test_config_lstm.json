@@ -22,7 +22,7 @@
         }
     },
     "rep_embedder": {
-        "type": "Skip",
+        "type": "abs",
         "params": {
             "n_embed": 1104,
             "n_dim": 4
@@ -31,7 +31,7 @@
     "encoder": {
         "d_model": 4,
         "n_layer": 6,
-        "nhead": 8,
+        "nhead": 4,
         "dim_feedforward": 4
     },
     "pre_trainer": {
