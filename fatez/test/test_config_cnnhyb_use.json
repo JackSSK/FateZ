@@ -13,7 +13,7 @@
         }
     },
     "gnn": {
-        "type": "GATv2",
+        "type": "GATvD",
         "params": {
             "d_model": 2,
             "en_dim": 32,
@@ -36,7 +36,7 @@
         "dim_feedforward": 512
     },
     "pre_trainer": {
-        "n_dim_adj": null,
+        "train_adj": false,
         "lr": 1e-4,
         "weight_decay": 1e-3,
         "sch_T_0": 2,

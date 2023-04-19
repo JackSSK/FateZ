@@ -136,7 +136,7 @@ class Trainer(object):
         masker_params:dict = {'ratio': 0.15},
         graph_embedder = pe.Skip(),
         rep_embedder = pe.Skip(),
-        n_dim_adj:int = None,
+        train_adj:bool = False,
 
         # Adam optimizer settings
         lr:float = 1e-4,
@@ -170,7 +170,8 @@ class Trainer(object):
                 # Will need to take this away if embed before GAT.
                 rep_embedder = rep_embedder,
                 n_dim_node = self.input_sizes[0][-1],
-                n_dim_adj = n_dim_adj,
+                n_dim_adj = self.input_sizes[1][-1],
+                train_adj = train_adj,
                 **self.factory_kwargs,
             ),
         )
