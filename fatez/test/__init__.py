@@ -21,6 +21,7 @@ import fatez.tool.JSON as JSON
 import fatez.model as model
 import fatez.model.mlp as mlp
 import fatez.model.gat as gat
+import fatez.process as process
 import fatez.process.explainer as explainer
 import fatez.process.fine_tuner as fine_tuner
 import fatez.process.pre_trainer as pre_trainer
@@ -81,7 +82,8 @@ class Faker(object):
     def __init__(self,
         model_config:dict = None,
         n_sample:int = 10,
-        batch_size:int = 4,
+        batch_size:int = 5,
+        simpler_samples:bool = False,
         device:str = 'cpu',
         dtype:type = torch.float32,
         ):
@@ -98,6 +100,7 @@ class Faker(object):
 
         self.n_sample = n_sample
         self.batch_size = batch_size
+        self.simpler_samples = simpler_samples
         self.factory_kwargs = {'device': device, 'dtype': dtype,}
 
     def make_data_loader(self, sparse_data = True):
@@ -108,7 +111,6 @@ class Faker(object):
         :return:
             torch.utils.data.DataLoader
         """
-        dtype = self.factory_kwargs['dtype']
         assert self.config['fine_tuner']['n_class'] == 2
 
         samples = list()
@@ -117,11 +119,15 @@ class Faker(object):
         t1_labels = torch.ones(self.n_sample - len(t0_labels), dtype=torch.long)
         labels = torch.cat((t0_labels, t1_labels), -1)
 
-        def rand_sample(dtype):
+        def rand_sample():
+            dtype = self.factory_kwargs['dtype']
             fea_m = torch.randn(self.config['input_sizes'][0][1:], dtype=dtype)
             adj_m = torch.randn(self.config['input_sizes'][1][1:], dtype=dtype)
-            fea_m[-2] *= 0
-            adj_m[:,-2] *= 0
+            if self.simpler_samples:
+                fea_m = fea_m * 0 + 1
+                adj_m = adj_m * 0 + 1
+            fea_m[-2:] *= 0
+            adj_m[:,-2:] *= 0
             return fea_m, adj_m
 
         def append_sample(samples, fea_m, adj_m):
@@ -133,14 +139,16 @@ class Faker(object):
 
         # Prepare type_0 samples
         for i in range(len(t0_labels)):
-            fea_m, adj_m = rand_sample(dtype)
+            fea_m, adj_m = rand_sample()
             fea_m[-1] += 9
             adj_m[:,-1] += 9
             append_sample(samples, fea_m, adj_m)
 
         # Prepare type_1 samples
         for i in range(len(t1_labels)):
-            fea_m, adj_m = rand_sample(dtype)
+            fea_m, adj_m = rand_sample()
+            fea_m[-1] += 1
+            adj_m[:,-1] += 1
             append_sample(samples, fea_m, adj_m)
 
         return DataLoader(
@@ -163,6 +171,7 @@ class Faker(object):
             GAT model
         """
         print('Testing GAT.\n')
+        suppressor = process.Quiet_Mode()
         # Initialize
         device = self.factory_kwargs['device']
         data_loader = self.make_data_loader()
@@ -207,7 +216,11 @@ class Faker(object):
         print(f'\tExplainer Green.\n')
         return gat_model
 
-    def test_full_model(self, config:dict = None, epoch:int = 50):
+    def test_full_model(self,
+        config:dict = None,
+        epoch:int = 50,
+        quiet:bool = True
+        ):
         """
         Function to test whether FateZ is performing properly or not.
 
@@ -218,6 +231,7 @@ class Faker(object):
             Pre-trainer model
         """
         print('Testing Full Model.\n')
+        suppressor = process.Quiet_Mode()
         # Initialize
         device = self.factory_kwargs['device']
         data_loader = self.make_data_loader()
@@ -230,16 +244,22 @@ class Faker(object):
         print(f'\tPre-Trainer Green.\n')
 
         # Fine tune part
+        if quiet: suppressor.on()
         tuner = fine_tuner.Set(
             config, self.factory_kwargs, prev_model = trainer.model
         )
         for i in range(epoch):
-            report = tuner.train(data_loader, report_batch = True)
+            report = tuner.train(data_loader, report_batch = False)
+            print(f'Epoch {i} Loss: {report.iloc[0,0]}')
         # Test fine tune model
         report = tuner.test(data_loader, report_batch = True)
+        print('Tuner Test Report')
+        print(report)
+        if quiet: suppressor.off()
         print(f'\tFine-Tuner Green.\n')
 
         # Test explain
+        suppressor.on()
         adj_explain = torch.zeros(self.config['input_sizes'][1][1:])
         node_explain = torch.zeros(self.config['input_sizes'][0][1:])
 
@@ -257,9 +277,9 @@ class Faker(object):
                 [i.to(self.factory_kwargs['device']).to_dense() for i in x],
                 return_variances = True
             )
-
-            for exp in node_exp[0][0]:
-                node_explain += abs(exp)
+            for exp in node_exp[0][0]: node_explain += abs(exp)
+            break
+        suppressor.off()
 
         print(adj_explain)
         print(torch.sum(node_explain, dim = -1))
@@ -268,6 +288,6 @@ class Faker(object):
         return trainer.model, tuner.model
 
 if __name__ == '__main__':
-    a = Faker(device = 'cuda')
+    a = Faker(batch_size = 4, simpler_samples = False, device = 'cuda')
     # models = a.test_gat()
-    models = a.test_full_model()
+    models = a.test_full_model(quiet = False)

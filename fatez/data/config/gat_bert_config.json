@@ -4,7 +4,7 @@
         [1, 4, 10]
     ],
     "graph_embedder": {
-        "type": "abs",
+        "type": "skip",
         "params": {
             "n_embed": 10,
             "n_dim": 2
@@ -14,23 +14,23 @@
         "type": "GATVD",
         "params": {
             "d_model": 2,
-            "en_dim": 3,
-            "n_hidden": 2,
-            "nhead": 3
+            "en_dim": 4,
+            "n_hidden": 4,
+            "nhead": 2
         }
     },
     "rep_embedder": {
         "type": "ABS",
         "params": {
             "n_embed": 4,
-            "n_dim": 3
+            "n_dim": 4
         }
     },
     "encoder": {
-        "d_model": 3,
-        "n_layer": 6,
-        "nhead": 3,
-        "dim_feedforward": 3
+        "d_model": 4,
+        "n_layer": 1,
+        "nhead": 2,
+        "dim_feedforward": 512
     },
     "pre_trainer": {
         "train_adj": true,
@@ -44,6 +44,7 @@
         "clf_params":{
           "n_hidden": 2,
           "n_layer_set": 2
-        }
+        },
+        "lr": 0.01
     }
 }

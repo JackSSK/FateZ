@@ -188,8 +188,8 @@ class Tuner(object):
         #     self.model = nn.DataParallel(self.model, device_ids = cuda_devices)
 
     def train(self, data_loader, report_batch:bool = False, quiet:bool = True):
-        suppressor = process.Quiet_Mode()
         # Suppress std out if in quiet mode
+        suppressor = process.Quiet_Mode()
         if quiet: suppressor.on()
 
         # save_gat_out:bool = False
@@ -279,7 +279,7 @@ class Tuner(object):
         n_dim:int = 4,
         n_class:int = 2,
         clf_type:str = 'MLP',
-        clf_params:dict = {'n_hidden': 2},
+        clf_params:dict = {'n_hidden': 2, 'n_layer_set': 2},
         ):
         """
         Set up classifier model accordingly.
