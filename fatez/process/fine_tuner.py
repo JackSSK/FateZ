@@ -18,7 +18,7 @@ import fatez.model.bert as bert
 import fatez.model.transformer as transformer
 import fatez.model.position_embedder as pe
 import fatez.model.criterion as crit
-
+import fatez.process as process
 
 
 def Set(config:dict = None, factory_kwargs:dict = None, prev_model = None,):
@@ -187,7 +187,11 @@ class Tuner(object):
         # if with_cuda and torch.cuda.device_count() > 1:
         #     self.model = nn.DataParallel(self.model, device_ids = cuda_devices)
 
-    def train(self, data_loader, report_batch:bool = False,):
+    def train(self, data_loader, report_batch:bool = False, quiet:bool = True):
+        suppressor = process.Quiet_Mode()
+        # Suppress std out if in quiet mode
+        if quiet: suppressor.on()
+
         # save_gat_out:bool = False
         self.model.train()
         self.model.to(self.factory_kwargs['device'])
@@ -226,9 +230,15 @@ class Tuner(object):
         report.append([loss_all.item() / nbatch, acc_all / nbatch])
         report = pd.DataFrame(report)
         report.columns = ['Loss', 'ACC',]
+
+        if quiet: suppressor.off()
         return report
 
-    def test(self, data_loader, report_batch = False):
+    def test(self, data_loader, report_batch = False, quiet:bool = True):
+        suppressor = process.Quiet_Mode()
+        # Suppress std out if in quiet mode
+        if quiet: suppressor.on()
+
         self.model.eval()
         nbatch = len(data_loader)
         report = list()
@@ -261,6 +271,8 @@ class Tuner(object):
         report.append([loss_all / nbatch, acc_all / nbatch, auroc_all / nbatch])
         report = pd.DataFrame(report)
         report.columns = ['Loss', 'ACC', 'AUROC']
+
+        if quiet: suppressor.off()
         return report
 
     def __set_classifier(self,
