@@ -362,16 +362,18 @@ div.rendered_html tbody tr:hover {
 <div class="section" id="FateZ-Explain">
 <h1>FateZ Explain<a class="headerlink" href="#FateZ-Explain" title="Permalink to this heading"></a></h1>
 <p>This notebook demonstrate how to utilize explanatory methods of FateZ models.</p>
-<div class="nbinput nblast docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[1]:
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[8]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">os</span>
+<span class="kn">import</span> <span class="nn">sys</span>
 <span class="kn">import</span> <span class="nn">torch</span>
 <span class="kn">from</span> <span class="nn">torch.utils.data</span> <span class="kn">import</span> <span class="n">DataLoader</span>
 <span class="kn">import</span> <span class="nn">fatez.test</span> <span class="k">as</span> <span class="nn">test</span>
 <span class="kn">import</span> <span class="nn">fatez.model</span> <span class="k">as</span> <span class="nn">model</span>
 <span class="kn">import</span> <span class="nn">fatez.tool.JSON</span> <span class="k">as</span> <span class="nn">JSON</span>
+<span class="kn">import</span> <span class="nn">fatez.process</span> <span class="k">as</span> <span class="nn">process</span>
 <span class="kn">import</span> <span class="nn">fatez.process.explainer</span> <span class="k">as</span> <span class="nn">explainer</span>
 <span class="kn">import</span> <span class="nn">fatez.process.fine_tuner</span> <span class="k">as</span> <span class="nn">fine_tuner</span>
 <span class="kn">import</span> <span class="nn">fatez.process.pre_trainer</span> <span class="k">as</span> <span class="nn">pre_trainer</span>
@@ -380,12 +382,22 @@ div.rendered_html tbody tr:hover {
 <span class="c1"># Ignoring warnings because of using LazyLinear</span>
 <span class="kn">import</span> <span class="nn">warnings</span>
 <span class="n">warnings</span><span class="o">.</span><span class="n">filterwarnings</span><span class="p">(</span><span class="s1">&#39;ignore&#39;</span><span class="p">)</span>
+
+<span class="nb">print</span><span class="p">(</span><span class="s1">&#39;Done&#39;</span><span class="p">)</span>
 </pre></div>
 </div>
 </div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+Done
+</pre></div></div>
+</div>
 <div class="section" id="Build-model-and-make-some-fake-data-first.">
 <h2>Build model and make some fake data first.<a class="headerlink" href="#Build-model-and-make-some-fake-data-first." title="Permalink to this heading"></a></h2>
-<div class="nbinput nblast docutils container">
+<div class="nbinput docutils container">
 <div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[2]:
 </pre></div>
 </div>
@@ -406,13 +418,23 @@ div.rendered_html tbody tr:hover {
 <span class="c1"># Generate Fake data</span>
 <span class="n">faker</span> <span class="o">=</span> <span class="n">test</span><span class="o">.</span><span class="n">Faker</span><span class="p">(</span><span class="n">model_config</span> <span class="o">=</span> <span class="n">config</span><span class="p">,</span> <span class="o">**</span><span class="n">params</span><span class="p">)</span>
 <span class="n">train_dataloader</span> <span class="o">=</span> <span class="n">faker</span><span class="o">.</span><span class="n">make_data_loader</span><span class="p">()</span>
-<br/><br/></pre></div>
+
+<span class="nb">print</span><span class="p">(</span><span class="s1">&#39;Done&#39;</span><span class="p">)</span>
+</pre></div>
 </div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+Done
+</pre></div></div>
 </div>
 </div>
 <div class="section" id="Now-we-perform-pre-training-with-no-label.">
 <h2>Now we perform pre-training with no label.<a class="headerlink" href="#Now-we-perform-pre-training-with-no-label." title="Permalink to this heading"></a></h2>
-<p>Here trainer’s <span class="math notranslate nohighlight">\(n\_dim\_adj\)</span> is set to None, and the model is NOT reconstructing the adjacency matrices, etc.</p>
+<p>Here trainer’s <span class="math notranslate nohighlight">\(train\_adj\)</span> is set to False, and the model is NOT reconstructing the adjacency matrices, etc.</p>
 <div class="nbinput docutils container">
 <div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[3]:
 </pre></div>
@@ -429,17 +451,17 @@ div.rendered_html tbody tr:hover {
 <div class="output_area docutils container">
 <div class="highlight"><pre>
         Loss
-0   1.790248
-1   1.578636
-2   1.236971
-3   1.832695
-4   1.829405
-5   1.824987
-6   1.690906
-7   1.344705
-8   1.983823
-9   1.670652
-10  1.678303
+0   2.855018
+1   2.470851
+2   2.365319
+3   2.289390
+4   1.723159
+5   2.777436
+6   2.480390
+7   1.580967
+8   1.582995
+9   1.561940
+10  2.168747
 </pre></div></div>
 </div>
 <p>In the case of pre-training with reconstructing adjacency matrices as well.</p>
@@ -447,7 +469,7 @@ div.rendered_html tbody tr:hover {
 <div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[4]:
 </pre></div>
 </div>
-<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">config</span><span class="p">[</span><span class="s1">&#39;pre_trainer&#39;</span><span class="p">][</span><span class="s1">&#39;n_dim_adj&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">config</span><span class="p">[</span><span class="s1">&#39;input_sizes&#39;</span><span class="p">][</span><span class="mi">0</span><span class="p">][</span><span class="mi">1</span><span class="p">]</span>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">config</span><span class="p">[</span><span class="s1">&#39;pre_trainer&#39;</span><span class="p">][</span><span class="s1">&#39;train_adj&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="kc">True</span>
 <span class="n">trainer</span> <span class="o">=</span> <span class="n">pre_trainer</span><span class="o">.</span><span class="n">Set</span><span class="p">(</span><span class="n">config</span><span class="p">,</span> <span class="n">factory_kwargs</span><span class="p">)</span>
 <span class="n">report</span> <span class="o">=</span> <span class="n">trainer</span><span class="o">.</span><span class="n">train</span><span class="p">(</span><span class="n">train_dataloader</span><span class="p">,</span> <span class="n">report_batch</span> <span class="o">=</span> <span class="kc">True</span><span class="p">)</span>
 <span class="nb">print</span><span class="p">(</span><span class="n">report</span><span class="p">)</span>
@@ -460,17 +482,17 @@ div.rendered_html tbody tr:hover {
 <div class="output_area docutils container">
 <div class="highlight"><pre>
         Loss
-0   1.693697
-1   2.295217
-2   1.628723
-3   1.921710
-4   1.524667
-5   1.796128
-6   2.159242
-7   2.204110
-8   1.626665
-9   1.913172
-10  1.876333
+0   2.429936
+1   2.488689
+2   2.209337
+3   1.618044
+4   2.654165
+5   2.571504
+6   1.685288
+7   1.725671
+8   1.828922
+9   2.634892
+10  2.184645
 </pre></div></div>
 </div>
 </div>
@@ -481,7 +503,7 @@ div.rendered_html tbody tr:hover {
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">tuner</span> <span class="o">=</span> <span class="n">fine_tuner</span><span class="o">.</span><span class="n">Set</span><span class="p">(</span><span class="n">config</span><span class="p">,</span> <span class="n">factory_kwargs</span><span class="p">,</span> <span class="n">prev_model</span> <span class="o">=</span> <span class="n">trainer</span><span class="o">.</span><span class="n">model</span><span class="p">)</span>
-<span class="n">report</span> <span class="o">=</span> <span class="n">tuner</span><span class="o">.</span><span class="n">train</span><span class="p">(</span><span class="n">train_dataloader</span><span class="p">,</span> <span class="n">report_batch</span> <span class="o">=</span> <span class="kc">True</span><span class="p">)</span>
+<span class="n">report</span> <span class="o">=</span> <span class="n">tuner</span><span class="o">.</span><span class="n">train</span><span class="p">(</span><span class="n">train_dataloader</span><span class="p">,</span> <span class="n">report_batch</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span> <span class="n">quiet</span> <span class="o">=</span> <span class="kc">True</span><span class="p">)</span>
 <span class="nb">print</span><span class="p">(</span><span class="n">report</span><span class="p">)</span>
 </pre></div>
 </div>
@@ -492,17 +514,17 @@ div.rendered_html tbody tr:hover {
 <div class="output_area docutils container">
 <div class="highlight"><pre>
         Loss  ACC
-0   1.517589  0.0
-1   1.515411  0.0
-2   1.522767  0.0
-3   1.521972  0.0
-4   1.539299  0.0
-5   1.465444  0.0
-6   1.105266  1.0
-7   1.514509  0.0
-8   1.516590  0.0
-9   1.495929  0.0
-10  1.471478  0.1
+0   1.121826  0.0
+1   1.119385  0.0
+2   0.394212  1.0
+3   0.394363  1.0
+4   0.393310  1.0
+5   1.119084  0.0
+6   0.394333  1.0
+7   1.118813  0.0
+8   1.120818  0.0
+9   0.394569  1.0
+10  0.757071  0.5
 </pre></div></div>
 </div>
 </div>
@@ -510,20 +532,26 @@ div.rendered_html tbody tr:hover {
 <h2>To explain Fine Tuning model in general.<a class="headerlink" href="#To-explain-Fine-Tuning-model-in-general." title="Permalink to this heading"></a></h2>
 <p>Note: to make overall conclusion on the contribution of a specific gene, we would need to sum up importance values for every feature dimension (RNA-count, peaks)</p>
 <div class="nbinput docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[7]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[9]:
 </pre></div>
 </div>
-<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># Get background data</span>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># Suppress debug print outs</span>
+<span class="n">suppressor</span> <span class="o">=</span> <span class="n">process</span><span class="o">.</span><span class="n">Quiet_Mode</span><span class="p">()</span>
+<span class="n">suppressor</span><span class="o">.</span><span class="n">on</span><span class="p">()</span>
+
+<span class="c1"># Get background data</span>
 <span class="n">background_data</span> <span class="o">=</span> <span class="n">DataLoader</span><span class="p">(</span><span class="n">train_dataloader</span><span class="o">.</span><span class="n">dataset</span><span class="p">,</span> <span class="n">batch_size</span> <span class="o">=</span> <span class="n">params</span><span class="p">[</span><span class="s1">&#39;n_sample&#39;</span><span class="p">])</span>
 <span class="n">background_data</span> <span class="o">=</span> <span class="p">[</span><span class="n">a</span> <span class="k">for</span> <span class="n">a</span><span class="p">,</span> <span class="n">_</span> <span class="ow">in</span> <span class="n">background_data</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span>
 <span class="n">background_data</span> <span class="o">=</span> <span class="p">[</span><span class="n">a</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">factory_kwargs</span><span class="p">[</span><span class="s1">&#39;device&#39;</span><span class="p">])</span> <span class="k">for</span> <span class="n">a</span> <span class="ow">in</span> <span class="n">background_data</span><span class="p">]</span>
 <span class="n">explain</span> <span class="o">=</span> <span class="n">explainer</span><span class="o">.</span><span class="n">Gradient</span><span class="p">(</span><span class="n">tuner</span><span class="o">.</span><span class="n">model</span><span class="p">,</span> <span class="n">background_data</span><span class="p">)</span>
-
+<span class="nb">print</span><span class="p">(</span><span class="s1">&#39;Suppress here?&#39;</span><span class="p">)</span>
 <span class="c1"># vars can be used to estimate how accurate the explanation would be: lower the better</span>
 <span class="k">for</span> <span class="n">input_data</span><span class="p">,</span> <span class="n">_</span> <span class="ow">in</span> <span class="n">train_dataloader</span><span class="p">:</span>
     <span class="n">input_data</span> <span class="o">=</span> <span class="p">[</span><span class="n">i</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">factory_kwargs</span><span class="p">[</span><span class="s1">&#39;device&#39;</span><span class="p">])</span><span class="o">.</span><span class="n">to_dense</span><span class="p">()</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">input_data</span><span class="p">]</span>
     <span class="n">gene_shap_values</span><span class="p">,</span> <span class="nb">vars</span> <span class="o">=</span> <span class="n">explain</span><span class="o">.</span><span class="n">shap_values</span><span class="p">(</span><span class="n">input_data</span><span class="p">,</span> <span class="n">return_variances</span> <span class="o">=</span> <span class="kc">True</span><span class="p">)</span>
     <span class="k">break</span>
+<span class="n">suppressor</span><span class="o">.</span><span class="n">off</span><span class="p">()</span>
+
 
 <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s1">&#39;Explaining </span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">gene_shap_values</span><span class="p">)</span><span class="si">}</span><span class="s1"> classes.&#39;</span><span class="p">)</span>
 
@@ -543,7 +571,7 @@ div.rendered_html tbody tr:hover {
 </div>
 <div class="output_area docutils container">
 <div class="highlight"><pre>
-Explaining 4 classes.
+Explaining 2 classes.
 Each class has explain in shape of (1, 10, 2).
 </pre></div></div>
 </div>
@@ -552,7 +580,7 @@ Each class has explain in shape of (1, 10, 2).
 <h2>To explain the BERT part for analyzing importances of TFs only.<a class="headerlink" href="#To-explain-the-BERT-part-for-analyzing-importances-of-TFs-only." title="Permalink to this heading"></a></h2>
 <p>Note: similarly, we would want to sum up values across embed dimensions.</p>
 <div class="nbinput docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[8]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[10]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># We also should accumulate gat_out for every trained input.</span>
@@ -571,7 +599,7 @@ Each class has explain in shape of (1, 10, 2).
 </div>
 <div class="output_area docutils container">
 <div class="highlight"><pre>
-Explaining 4 classes.
+Explaining 2 classes.
 Each class has explain in shape of (1, 4, 3).
 </pre></div></div>
 </div>
@@ -580,7 +608,7 @@ Each class has explain in shape of (1, 4, 3).
 <h2>To explain the GAT for analyzing GRP importances.<a class="headerlink" href="#To-explain-the-GAT-for-analyzing-GRP-importances." title="Permalink to this heading"></a></h2>
 <p>The grp_explain here is purely based on the GAT attention weights.</p>
 <div class="nbinput docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[9]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[11]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">grp_explain</span> <span class="o">=</span> <span class="n">tuner</span><span class="o">.</span><span class="n">model</span><span class="o">.</span><span class="n">gat</span><span class="o">.</span><span class="n">explain</span><span class="p">(</span><span class="n">input_data</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="mi">0</span><span class="p">],</span> <span class="n">input_data</span><span class="p">[</span><span class="mi">1</span><span class="p">][</span><span class="mi">0</span><span class="p">])</span>
@@ -606,7 +634,7 @@ torch.Size([4, 10])
 </div>
 <p>Utilizing the importance values of each gene or TF regulon inferred from the calculated shapley values above would be sufficent to obtain importances of each GRP.</p>
 <div class="nbinput docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[11]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[12]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># Sum up shapley values of each features for every node (gene or TF).</span>
@@ -614,7 +642,7 @@ torch.Size([4, 10])
 <span class="n">gene_importance_values</span> <span class="o">=</span> <span class="n">gene_shap_values</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="mi">2</span><span class="p">)</span>
 <span class="nb">print</span><span class="p">(</span><span class="n">regulon_importance_values</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span>
 <span class="nb">print</span><span class="p">(</span><span class="n">gene_importance_values</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span>
-
+<span class="n">grp_explain</span> <span class="o">=</span> <span class="n">grp_explain</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">factory_kwargs</span><span class="p">[</span><span class="s1">&#39;device&#39;</span><span class="p">])</span>
 <span class="n">grp_importance</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">matmul</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">(</span><span class="n">regulon_importance_values</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">factory_kwargs</span><span class="p">[</span><span class="s1">&#39;device&#39;</span><span class="p">]),</span> <span class="n">grp_explain</span><span class="p">)</span>
 <span class="n">grp_importance</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">matmul</span><span class="p">(</span><span class="n">grp_explain</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">(</span><span class="n">gene_importance_values</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">factory_kwargs</span><span class="p">[</span><span class="s1">&#39;device&#39;</span><span class="p">]))</span>
 </pre></div>

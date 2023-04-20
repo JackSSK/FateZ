@@ -44,9 +44,11 @@
       ~Encoder.register_forward_hook
       ~Encoder.register_forward_pre_hook
       ~Encoder.register_full_backward_hook
+      ~Encoder.register_full_backward_pre_hook
       ~Encoder.register_load_state_dict_post_hook
       ~Encoder.register_module
       ~Encoder.register_parameter
+      ~Encoder.register_state_dict_pre_hook
       ~Encoder.requires_grad_
       ~Encoder.set_extra_state
       ~Encoder.share_memory
@@ -67,6 +69,7 @@
    .. autosummary::
    
       ~Encoder.T_destination
+      ~Encoder.call_super_init
       ~Encoder.dump_patches
       ~Encoder.training
    
