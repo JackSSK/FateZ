@@ -7,6 +7,7 @@ Need to revise explainary mechanism if using graph embedder
 
 author: jy
 """
+import sys
 import shap
 import torch
 import torch.nn as nn
@@ -119,8 +120,8 @@ class Faker(object):
         def rand_sample(dtype):
             fea_m = torch.randn(self.config['input_sizes'][0][1:], dtype=dtype)
             adj_m = torch.randn(self.config['input_sizes'][1][1:], dtype=dtype)
-            fea_m[-2:,] *= 0
-            adj_m[:,-2:] *= 0
+            fea_m[-2] *= 0
+            adj_m[:,-2] *= 0
             return fea_m, adj_m
 
         def append_sample(samples, fea_m, adj_m):
@@ -133,9 +134,8 @@ class Faker(object):
         # Prepare type_0 samples
         for i in range(len(t0_labels)):
             fea_m, adj_m = rand_sample(dtype)
-            fea_m[-1] += 1
-            adj_m[:,-1] += 1
-            print(fea_m, adj_m)
+            fea_m[-1] += 9
+            adj_m[:,-1] += 9
             append_sample(samples, fea_m, adj_m)
 
         # Prepare type_1 samples
@@ -207,7 +207,7 @@ class Faker(object):
         print(f'\tExplainer Green.\n')
         return gat_model
 
-    def test_full_model(self, config:dict = None,):
+    def test_full_model(self, config:dict = None, epoch:int = 50):
         """
         Function to test whether FateZ is performing properly or not.
 
@@ -220,7 +220,6 @@ class Faker(object):
         print('Testing Full Model.\n')
         # Initialize
         device = self.factory_kwargs['device']
-        epoch = 1
         data_loader = self.make_data_loader()
         if config is None: config = self.config
 
@@ -241,19 +240,29 @@ class Faker(object):
         print(f'\tFine-Tuner Green.\n')
 
         # Test explain
+        adj_explain = torch.zeros(self.config['input_sizes'][1][1:])
+        node_explain = torch.zeros(self.config['input_sizes'][0][1:])
+
+        bg_data = DataLoader(data_loader.dataset, batch_size = self.n_sample)
+        bg_data = [a for a, _ in bg_data][0]
+        bg_data = [a.to(self.factory_kwargs['device']) for a in bg_data]
+        explain = explainer.Gradient(tuner.model, bg_data)
+
         for x, y in data_loader:
-            gat_explain = tuner.model.gat.explain(x[0][0], x[1][0])
-            print(gat_explain)
-            explain = explainer.Gradient(
-                tuner.model,
-                [x[0].to_dense().to(device), x[1].to_dense().to(device)]
+            # Explain GAT to obtain adj explanations
+            for i in range(len(x[0])):
+                adj_explain += tuner.model.gat.explain(x[0][i], x[1][i])
+
+            node_exp, vars = explain.shap_values(
+                [i.to(self.factory_kwargs['device']).to_dense() for i in x],
+                return_variances = True
             )
-            shap_values = explain.shap_values(
-                [x[0].to_dense().to(device), x[1].to_dense().to(device)],
-                return_variances = True,
-            )
-            print(shap_values)
-            break
+
+            for exp in node_exp[0][0]:
+                node_explain += abs(exp)
+
+        print(adj_explain)
+        print(torch.sum(node_explain, dim = -1))
         print(f'\tExplainer Green.\n')
 
         return trainer.model, tuner.model

@@ -11,7 +11,7 @@
         }
     },
     "gnn": {
-        "type": "GATV2",
+        "type": "GATVD",
         "params": {
             "d_model": 2,
             "en_dim": 3,
@@ -33,7 +33,7 @@
         "dim_feedforward": 3
     },
     "pre_trainer": {
-        "n_dim_adj": 10,
+        "train_adj": true,
         "masker_params": {
             "ratio": 0.5
         }
