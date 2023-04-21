@@ -200,6 +200,10 @@ class Model(nn.Module):
         x = F.softmax(alpha.detach().squeeze(-1), dim=-1).reshape(adj_mat.shape)
         return x
 
+    def switch_device(self, device = 'cpu'):
+        self.factory_kwargs['device'] = device
+        self.model = self.model.to(device)
+
     def _get_index_weight(self, adj_mat):
         """
         Make edge index and edge weight matrices based on given adjacent matrix.
@@ -304,7 +308,7 @@ class Modelv2(Model):
 
 
 
-def _prepare_attentions(e_values, adj_mat):
+def _prepare_attentions(e_values, adj_mat, device = 'cpu'):
     """
     Calculate attention values for every GRP.
 
@@ -323,11 +327,13 @@ def _prepare_attentions(e_values, adj_mat):
     attention = np.multiply(
         attention.detach().cpu().numpy(),
         adj_mat.detach().cpu()
-    )
+    ).to(device)
     # Change 0s to neg inf now
     attention = attention.masked_fill(attention == 0, float(-9e15))
     attention = F.softmax(attention, dim = 1)
     return attention
+
+
 
 class Graph_Attention_Layer(nn.Module):
     """
@@ -380,10 +386,10 @@ class Graph_Attention_Layer(nn.Module):
         self.concat = concat
         # Set up parameters
         self.weights = nn.Parameter(
-            torch.empty(size = (d_model, out_dim), device = device, dtype=dtype)
+            torch.empty(size = (d_model, out_dim), device=device, dtype=dtype)
         )
         self.a_values = nn.Parameter(
-            torch.empty(size = (2 * out_dim, 1), device = device, dtype = dtype)
+            torch.empty(size = (2 * out_dim, 1), device=device, dtype=dtype)
         )
         nn.init.xavier_uniform_(self.weights.data, gain = gain)
         nn.init.xavier_uniform_(self.a_values.data, gain = gain)
@@ -394,22 +400,7 @@ class Graph_Attention_Layer(nn.Module):
             lr = lr,
             weight_decay = weight_decay
         )
-        self.device = device
-
-    def _prepare_attentional_mechanism_input(self, w_h, n_regulons):
-        """
-        Calculate e values according to input matrix and weights.
-
-        :param w_h:torch.Tensor = None
-            Weighted matrix.
-        """
-        # w_h1.shape (n_regulons, 1) and w_h2.shape (N, 1)
-        # e.shape (n_regulons, N)
-
-        w_h1 = torch.matmul(w_h[:n_regulons,:], self.a_values[:self.out_dim, :])
-        w_h2 = torch.matmul(w_h, self.a_values[self.out_dim:, :])
-        # broadcast add and return
-        return self.leaky_relu(w_h1 + w_h2.T)
+        self.factory_kwargs = {'device': device, 'dtype': dtype}
 
     def forward(self, input, adj_mat):
         """
@@ -419,17 +410,23 @@ class Graph_Attention_Layer(nn.Module):
         :param adj_mat:torch.Tensor = None
             Adjacent matrix. (Based on GRPs)
         """
+        device = self.factory_kwargs['device']
         # Multiply hs to ensure output dimension == out_dim
+        # The Weighted matrix: w_h.shape == (N, out_feature)
         w_h = torch.mm(input, self.weights)
 
-        # w_h.shape == (N, out_feature)
-        # Now we calculate weights for GRPs.
-        e_values = self._prepare_attentional_mechanism_input(
-            w_h = w_h, n_regulons = adj_mat.size()[0]
-        )
-        attention = _prepare_attentions(e_values, adj_mat)
+        # Now we calculate weights for GRPs according to input matrix & weights.
+        n_regulons = adj_mat.size()[0]
+        # w_h1.shape (n_regulons, 1) and w_h2.shape (N, 1)
+        w_h1 = torch.matmul(w_h[:n_regulons,:], self.a_values[:self.out_dim, :])
+        w_h2 = torch.matmul(w_h, self.a_values[self.out_dim:, :])
+        # broadcast add: e_values.shape (n_regulons, N)
+        e_values = self.leaky_relu(w_h1 + w_h2.T)
+
+        # Then we apply e_values to calculate attention
+        attention = _prepare_attentions(e_values, adj_mat, device = device)
         attention = F.dropout(attention, self.dropout, training = self.training)
-        result = torch.matmul(attention.to(self.device), w_h)
+        result = torch.matmul(attention, w_h)
 
         if self.concat:
             # if this layer is not last layer,
@@ -437,6 +434,11 @@ class Graph_Attention_Layer(nn.Module):
         else:
             # if this layer is last layer,
             return result
+
+    def switch_device(self, device:str = 'cpu'):
+        self.factory_kwargs['device'] = device
+
+
 
 class ModelvD(nn.Module):
     """
@@ -539,8 +541,8 @@ class ModelvD(nn.Module):
         answer = list()
         assert len(fea_mats) == len(adj_mats)
         for i in range(len(fea_mats)):
-            x = fea_mats[i].to(self.factory_kwargs['device']).to_dense()
-            adj_mat = adj_mats[i].to(self.factory_kwargs['device']).to_dense()
+            x = fea_mats[i].to_dense().to(self.factory_kwargs['device'])
+            adj_mat = adj_mats[i].to_dense().to(self.factory_kwargs['device'])
             x = F.dropout(x, self.dropout, training = self.training)
             # Multi-head attention mechanism
             if self.attentions != None:
@@ -561,8 +563,9 @@ class ModelvD(nn.Module):
         fake_fea_mat = torch.ones_like(fea_mat)
         fake_adj_mat = torch.ones_like(adj_mat)
         """
-        fea_mat = fea_mat.to(self.factory_kwargs['device']).to_dense()
-        adj_mat = adj_mat.to(self.factory_kwargs['device']).to_dense()
+        device = self.factory_kwargs['device']
+        fea_mat = fea_mat.to(device).to_dense()
+        adj_mat = adj_mat.to(device).to_dense()
 
         att_explain = None
         last_explain = None
@@ -572,7 +575,7 @@ class ModelvD(nn.Module):
             w_h1 = torch.matmul(w_h[:adj_mat.size()[0],:], a_values[:out_dim,:])
             w_h2 = torch.matmul(w_h, a_values[out_dim:, :])
             e_values = F.leaky_relu(w_h1 + w_h2.T)
-            return _prepare_attentions(e_values, adj_mat)
+            return _prepare_attentions(e_values, adj_mat, device)
 
         if self.attentions != None:
             weights = None
@@ -621,25 +624,46 @@ class ModelvD(nn.Module):
         else:
             return torch.matmul(last_explain, att_explain)
 
+    def switch_device(self, device:str = 'cpu'):
+        self.factory_kwargs['device'] = device
+        if self.attentions is not None:
+            for att in self.attentions:
+                att.switch_device(device)
+                att = att.to(device)
+        self.last.switch_device(device)
+        self.last = self.last.to(device)
 
 
-# if __name__ == '__main__':
+
+if __name__ == '__main__':
     # from torch_geometric.datasets import TUDataset
     # dataset = TUDataset(root='/tmp/ENZYMES', name='ENZYMES')
     # data = dataset[0]
     # train_dataset = dataset[:5]
 
-    # import fatez as fz
-    # device = 'cuda'
-    # faker = fz.test.Faker(device = 'cuda').make_data_loader()
-    # model = ModelvD(
-    #     d_model = 2, n_layer_set = 1, en_dim = 3, edge_dim = 1, device = 'cuda'
-    # )
-    # for x, y in faker:
-    #     fea = x[0].to(device)
-    #     adj = x[1].to(device)
-    #     result = model(fea, adj)
-    #     exp = model.explain(fea[0], adj[0])
-    #     break
-    # print(result.shape)
+    import fatez as fz
+    device = 'cuda'
+    faker = fz.test.Faker(device = 'cpu').make_data_loader()
+    model = ModelvD(
+        d_model = 2, n_layer_set = 1, en_dim = 3, edge_dim = 1, device = device
+    )
+    # Process data in GPU
+    for x, y in faker:
+        result = model(x[0], x[1])
+        # exp = model.explain(fea[0], adj[0])
+        break
+    print(result.shape)
+    print(result.device)
+    # print(exp.shape)
+
+
+    # Switching into CPU mode
+    model.switch_device('cpu')
+    # Process data in CPU
+    for x, y in faker:
+        result = model(x[0], x[1])
+        # exp = model.explain(fea[0], adj[0])
+        break
+    print(result.shape)
+    print(result.device)
     # print(exp.shape)
