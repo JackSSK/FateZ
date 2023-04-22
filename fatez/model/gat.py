@@ -203,6 +203,7 @@ class Model(nn.Module):
     def switch_device(self, device = 'cpu'):
         self.factory_kwargs['device'] = device
         self.model = self.model.to(device)
+        return
 
     def _get_index_weight(self, adj_mat):
         """
@@ -632,6 +633,7 @@ class ModelvD(nn.Module):
                 att = att.to(device)
         self.last.switch_device(device)
         self.last = self.last.to(device)
+        return
 
 
 

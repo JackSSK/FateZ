@@ -221,7 +221,7 @@ class Trainer(object):
             node_fea_mat = x[0].to(self.factory_kwargs['device'])
             adj_mat = x[1].to(self.factory_kwargs['device'])
             output_node, output_adj = self.model(node_fea_mat, adj_mat)
-
+            
             # Get total loss
             node_fea_mat = node_fea_mat.to_dense()
             loss_node = self.criterion(
@@ -252,3 +252,9 @@ class Trainer(object):
         report = pd.DataFrame(report)
         report.columns = ['Loss', ]
         return report
+
+    def switch_device(self, device:str = 'cpu'):
+        self.factory_kwargs['device'] = device
+        self.model = self.model.to(device)
+        self.model.gat.switch_device(device)
+        return
