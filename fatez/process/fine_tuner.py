@@ -240,6 +240,7 @@ class Tuner(object):
         if quiet: suppressor.on()
 
         self.model.eval()
+        self.model.to(self.factory_kwargs['device'])
         nbatch = len(data_loader)
         report = list()
         loss_all, acc_all, auroc_all = 0, 0, 0
@@ -254,7 +255,6 @@ class Tuner(object):
                     x[0].to(self.factory_kwargs['device']),
                     x[1].to(self.factory_kwargs['device'])
                 )
-
                 # Batch specific
                 loss = self.criterion(output, y).item()
                 acc = acc_crit(output, y)
@@ -274,6 +274,12 @@ class Tuner(object):
 
         if quiet: suppressor.off()
         return report
+
+    def switch_device(self, device:str = 'cpu'):
+        self.factory_kwargs['device'] = device
+        self.model = self.model.to(device)
+        self.model.gat.switch_device(device)
+        return
 
     def __set_classifier(self,
         n_dim:int = 4,

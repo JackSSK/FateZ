@@ -77,6 +77,10 @@ class Model(nn.Module):
     def explain(self, fea_mat, adj_mat,):
         return
 
+    def switch_device(self, device:str = 'cpu'):
+        self.factory_kwargs['device'] = device
+        self.model = self.model.to(device)
+
     def _get_index_weight(self, adj_mat):
         """
         Make edge index and edge weight matrices based on given adjacent matrix.
