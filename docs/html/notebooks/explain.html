@@ -363,7 +363,7 @@ div.rendered_html tbody tr:hover {
 <h1>FateZ Explain<a class="headerlink" href="#FateZ-Explain" title="Permalink to this heading"></a></h1>
 <p>This notebook demonstrate how to utilize explanatory methods of FateZ models.</p>
 <div class="nbinput docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[8]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[1]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">os</span>
@@ -451,17 +451,17 @@ Done
 <div class="output_area docutils container">
 <div class="highlight"><pre>
         Loss
-0   2.855018
-1   2.470851
-2   2.365319
-3   2.289390
-4   1.723159
-5   2.777436
-6   2.480390
-7   1.580967
-8   1.582995
-9   1.561940
-10  2.168747
+0   1.565720
+1   2.900557
+2   2.166636
+3   1.762677
+4   2.366010
+5   2.911416
+6   2.797966
+7   1.742560
+8   2.400287
+9   1.946299
+10  2.256013
 </pre></div></div>
 </div>
 <p>In the case of pre-training with reconstructing adjacency matrices as well.</p>
@@ -482,17 +482,17 @@ Done
 <div class="output_area docutils container">
 <div class="highlight"><pre>
         Loss
-0   2.429936
-1   2.488689
-2   2.209337
-3   1.618044
-4   2.654165
-5   2.571504
-6   1.685288
-7   1.725671
-8   1.828922
-9   2.634892
-10  2.184645
+0   2.821428
+1   1.732386
+2   2.861434
+3   2.155074
+4   2.810074
+5   2.665386
+6   1.765009
+7   2.106514
+8   1.699396
+9   2.549504
+10  2.316621
 </pre></div></div>
 </div>
 </div>
@@ -514,17 +514,17 @@ Done
 <div class="output_area docutils container">
 <div class="highlight"><pre>
         Loss  ACC
-0   1.121826  0.0
-1   1.119385  0.0
-2   0.394212  1.0
-3   0.394363  1.0
-4   0.393310  1.0
-5   1.119084  0.0
-6   0.394333  1.0
-7   1.118813  0.0
-8   1.120818  0.0
-9   0.394569  1.0
-10  0.757071  0.5
+0   0.707717  0.0
+1   0.656518  1.0
+2   0.832635  0.0
+3   0.608765  1.0
+4   0.518559  1.0
+5   0.511055  1.0
+6   0.960859  0.0
+7   0.875309  0.0
+8   0.917681  0.0
+9   0.931165  0.0
+10  0.752026  0.4
 </pre></div></div>
 </div>
 </div>
@@ -532,7 +532,7 @@ Done
 <h2>To explain Fine Tuning model in general.<a class="headerlink" href="#To-explain-Fine-Tuning-model-in-general." title="Permalink to this heading"></a></h2>
 <p>Note: to make overall conclusion on the contribution of a specific gene, we would need to sum up importance values for every feature dimension (RNA-count, peaks)</p>
 <div class="nbinput docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[9]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[6]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># Suppress debug print outs</span>
@@ -580,15 +580,21 @@ Each class has explain in shape of (1, 10, 2).
 <h2>To explain the BERT part for analyzing importances of TFs only.<a class="headerlink" href="#To-explain-the-BERT-part-for-analyzing-importances-of-TFs-only." title="Permalink to this heading"></a></h2>
 <p>Note: similarly, we would want to sum up values across embed dimensions.</p>
 <div class="nbinput docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[10]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[17]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># We also should accumulate gat_out for every trained input.</span>
-<span class="c1"># Here I just make 1 gat_out for example</span>
-<span class="n">gat_out</span> <span class="o">=</span> <span class="n">tuner</span><span class="o">.</span><span class="n">model</span><span class="o">.</span><span class="n">get_gat_output</span><span class="p">(</span><span class="n">input_data</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">input_data</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
-<span class="n">explain</span> <span class="o">=</span> <span class="n">explainer</span><span class="o">.</span><span class="n">Gradient</span><span class="p">(</span><span class="n">tuner</span><span class="o">.</span><span class="n">model</span><span class="o">.</span><span class="n">bert_model</span><span class="p">,</span> <span class="n">gat_out</span><span class="p">)</span>
+<span class="n">explain</span> <span class="o">=</span> <span class="n">explainer</span><span class="o">.</span><span class="n">Gradient</span><span class="p">(</span>
+    <span class="n">tuner</span><span class="o">.</span><span class="n">model</span><span class="o">.</span><span class="n">bert_model</span><span class="p">,</span>
+    <span class="n">tuner</span><span class="o">.</span><span class="n">model</span><span class="o">.</span><span class="n">get_gat_output</span><span class="p">(</span><span class="n">background_data</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">background_data</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
+<span class="p">)</span>
 
-<span class="n">regulon_shap_values</span><span class="p">,</span> <span class="nb">vars</span> <span class="o">=</span> <span class="n">explain</span><span class="o">.</span><span class="n">shap_values</span><span class="p">(</span><span class="n">gat_out</span><span class="p">,</span> <span class="n">return_variances</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+<span class="c1"># Here I just make 1 gat_out for example</span>
+<span class="n">regulon_shap_values</span><span class="p">,</span> <span class="nb">vars</span> <span class="o">=</span> <span class="n">explain</span><span class="o">.</span><span class="n">shap_values</span><span class="p">(</span>
+    <span class="n">tuner</span><span class="o">.</span><span class="n">model</span><span class="o">.</span><span class="n">get_gat_output</span><span class="p">(</span><span class="n">input_data</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">input_data</span><span class="p">[</span><span class="mi">1</span><span class="p">]),</span>
+    <span class="n">return_variances</span><span class="o">=</span><span class="kc">True</span>
+<span class="p">)</span>
+
 <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s1">&#39;Explaining </span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">regulon_shap_values</span><span class="p">)</span><span class="si">}</span><span class="s1"> classes.&#39;</span><span class="p">)</span>
 <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s1">&#39;Each class has explain in shape of </span><span class="si">{</span><span class="n">regulon_shap_values</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">shape</span><span class="si">}</span><span class="s1">.&#39;</span><span class="p">)</span>
 </pre></div>
@@ -600,7 +606,7 @@ Each class has explain in shape of (1, 10, 2).
 <div class="output_area docutils container">
 <div class="highlight"><pre>
 Explaining 2 classes.
-Each class has explain in shape of (1, 4, 3).
+Each class has explain in shape of (1, 4, 4).
 </pre></div></div>
 </div>
 </div>
@@ -608,7 +614,7 @@ Each class has explain in shape of (1, 4, 3).
 <h2>To explain the GAT for analyzing GRP importances.<a class="headerlink" href="#To-explain-the-GAT-for-analyzing-GRP-importances." title="Permalink to this heading"></a></h2>
 <p>The grp_explain here is purely based on the GAT attention weights.</p>
 <div class="nbinput docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[11]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[18]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">grp_explain</span> <span class="o">=</span> <span class="n">tuner</span><span class="o">.</span><span class="n">model</span><span class="o">.</span><span class="n">gat</span><span class="o">.</span><span class="n">explain</span><span class="p">(</span><span class="n">input_data</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="mi">0</span><span class="p">],</span> <span class="n">input_data</span><span class="p">[</span><span class="mi">1</span><span class="p">][</span><span class="mi">0</span><span class="p">])</span>
@@ -634,7 +640,7 @@ torch.Size([4, 10])
 </div>
 <p>Utilizing the importance values of each gene or TF regulon inferred from the calculated shapley values above would be sufficent to obtain importances of each GRP.</p>
 <div class="nbinput docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[12]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[19]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># Sum up shapley values of each features for every node (gene or TF).</span>
