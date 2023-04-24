@@ -140,12 +140,15 @@ class Model(nn.Module):
         self.model = self.model.to(self.factory_kwargs['device'])
 
     def forward(self, fea_mats, adj_mats):
+        answer = list()
         assert len(fea_mats) == len(adj_mats)
         # Process batch data
-        edge_index, edge_weight = self._get_index_weight(adj_mats)
-        print(edge_index.shape, edge_weight.shape)
-        rep = self.model(fea_mats, edge_index, edge_weight)
-        return rep
+        for i in range(len(fea_mats)):
+            edge_index, edge_weight = self._get_index_weight(adj_mats[i])
+            rep = self.model(fea_mats[i], edge_index, edge_weight)
+            answer.append(rep)
+        answer = torch.stack(answer, 0)
+        return answer
 
     def explain(self, fea_mat, adj_mat, reduce = 'sum'):
         """
@@ -171,7 +174,7 @@ class Model(nn.Module):
                 hook_handles.append(module.register_message_forward_hook(hook))
         # Feed data in to the model.
         edge_index, edge_weight = self._get_index_weight(adj_mat)
-        rep = self._feed_model(fea_mat, edge_index, edge_weight)
+        rep = self.model(fea_mat, edge_index, edge_weight)
         # Remove all the hooks
         del hook_handles
 
@@ -198,8 +201,12 @@ class Model(nn.Module):
                 alpha = alpha[0]
         else:
             alpha = alphas[0]
-        x = F.softmax(alpha.detach().squeeze(-1), dim=-1).reshape(adj_mat.shape)
-        return x
+
+        return lib.Adj_Mat(
+            indices = edge_index,
+            values = F.softmax(alpha.detach().squeeze(-1), dim=-1),
+            size = adj_mat.shape
+        ).to_dense()
 
     def switch_device(self, device = 'cpu'):
         self.factory_kwargs['device'] = device
@@ -650,23 +657,21 @@ if __name__ == '__main__':
 
     for step, data, in enumerate(train_loader):
         print(step, data)
-        print(data.num_graphs)
         x = data[0].x
         ei = data[0].edge_index
         ea = data[0].edge_attr
         sample = Data(x = x, edge_index = ei, edge_attr = ea)
         print(sample)
         result = gatmodel.model(data.x, data.edge_index, data.edge_attr)
-        print(data.y)
-        print(data.batch)
-        print(result)
         break
 
+    gatmodel = Modelv2(
+        d_model = 2, n_layer_set = 1, en_dim = 3, edge_dim = 1, device = device
+    )
     # Process data in GPU
-    # for x, y in faker:
-    #     result = gatmodel(x[0], x[1])
-    #     # exp = model.explain(fea[0], adj[0])
-    #     break
-    # print(result.shape)
-    # print(result.device)
-    # print(exp.shape)
+    for x, y in faker:
+        result = gatmodel(x[0], x[1])
+        exp = gatmodel.explain(x[0][0], x[1][0])
+        break
+    print(result.shape)
+    print(exp)
