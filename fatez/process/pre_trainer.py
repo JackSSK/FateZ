@@ -217,11 +217,10 @@ class Trainer(object):
         report = list()
 
         for x, _ in data_loader:
-            self.optimizer.zero_grad()
             node_fea_mat = x[0].to(self.factory_kwargs['device'])
             adj_mat = x[1].to(self.factory_kwargs['device'])
             output_node, output_adj = self.model(node_fea_mat, adj_mat)
-            
+
             # Get total loss
             node_fea_mat = node_fea_mat.to_dense()
             loss_node = self.criterion(
@@ -238,6 +237,7 @@ class Trainer(object):
             loss.backward()
             nn.utils.clip_grad_norm_(self.model.parameters(), self.max_norm)
             self.optimizer.step()
+            self.optimizer.zero_grad()
 
             # Accumulate
             best_loss = min(best_loss, loss.item())

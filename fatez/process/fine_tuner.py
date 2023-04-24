@@ -204,8 +204,6 @@ class Tuner(object):
         acc_crit = crit.Accuracy(requires_grad = False)
 
         for x,y in data_loader:
-            self.optimizer.zero_grad()
-
             node_fea_mat = x[0].to(self.factory_kwargs['device'])
             adj_mat = x[1].to(self.factory_kwargs['device'])
             y = y.to(self.factory_kwargs['device'])
@@ -218,6 +216,7 @@ class Tuner(object):
             loss.backward()
             nn.utils.clip_grad_norm_(self.model.parameters(), self.max_norm)
             self.optimizer.step()
+            self.optimizer.zero_grad()
 
             # Accumulate
             acc = acc_crit(output, y)

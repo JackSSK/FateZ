@@ -82,69 +82,70 @@ class Model(nn.Module):
         self.n_layer_set = n_layer_set
         self.factory_kwargs = {'device': device, 'dtype': dtype}
 
-        model_dict = OrderedDict([])
+        model = list()
         # May take dropout layer out later
-        model_dict.update({f'dp0': nn.Dropout(p=dropout, inplace=True)})
+        model.append((nn.Dropout(p=dropout, inplace=True), 'x -> x'))
 
         if self.n_layer_set == 1:
-            model_dict.update({f'conv0':gnn.GATConv(
+            layer = gnn.GATConv(
                 in_channels = d_model,
                 out_channels = en_dim,
                 heads = nhead,
                 dropout = dropout,
                 concat = concat,
                 **kwargs
-            )})
+            )
+            model.append((layer, 'x, edge_index, edge_attr -> x'))
 
-        elif self.n_layer_set >= 1:
-            model_dict.update({f'conv0':gnn.GATConv(
+        elif self.n_layer_set > 1:
+            layer = gnn.GATConv(
                 in_channels = d_model,
                 out_channels = n_hidden,
                 heads = nhead,
                 dropout = dropout,
                 concat = concat,
                 **kwargs
-            )})
-            model_dict.update({f'relu0': nn.ReLU(inplace = True)})
+            )
+            model.append((layer, 'x, edge_index, edge_attr -> x'))
+            model.append(nn.ReLU(inplace = True))
 
             # Adding layer set
             for i in range(self.n_layer_set - 2):
-                model_dict.update({f'conv{i+1}':gnn.GATConv(
+                layer = gnn.GATConv(
                     in_channels = n_hidden,
                     out_channels = n_hidden,
                     heads = nhead,
                     dropout = dropout,
                     concat = concat,
                     **kwargs
-                )})
-                model_dict.update({f'relu{i+1}': nn.ReLU(inplace = True)})
+                )
+                model.append((layer, 'x, edge_index, edge_attr -> x'))
+                model.append(nn.ReLU(inplace = True))
 
             # Adding last layer
-            model_dict.update({f'conv-1': gnn.GATConv(
+            layer = gnn.GATConv(
                 in_channels = n_hidden,
                 out_channels = en_dim,
                 heads = nhead,
                 dropout = dropout,
                 concat = concat,
                 **kwargs
-            )})
+            )
+            model.append((layer, 'x, edge_index, edge_attr -> x'))
 
         else:
             raise Exception('Why are we still here? Just to suffer.')
 
-        self.model = nn.Sequential(model_dict).to(self.factory_kwargs['device'])
+        self.model = gnn.Sequential('x, edge_index, edge_attr', model)
+        self.model = self.model.to(self.factory_kwargs['device'])
 
     def forward(self, fea_mats, adj_mats):
-        answer = list()
         assert len(fea_mats) == len(adj_mats)
-        for i in range(len(fea_mats)):
-            # Process batch data
-            edge_index, edge_weight = self._get_index_weight(adj_mats[i])
-            rep = self._feed_model(fea_mats[i], edge_index, edge_weight)
-            # Only take encoded presentations of TFs
-            answer.append(rep[:adj_mats[i].shape[0],:])
-        answer = torch.stack(answer, 0)
-        return answer
+        # Process batch data
+        edge_index, edge_weight = self._get_index_weight(adj_mats)
+        print(edge_index.shape, edge_weight.shape)
+        rep = self.model(fea_mats, edge_index, edge_weight)
+        return rep
 
     def explain(self, fea_mat, adj_mat, reduce = 'sum'):
         """
@@ -212,19 +213,6 @@ class Model(nn.Module):
         x = lib.Adj_Mat(adj_mat.to(self.factory_kwargs['device']))
         return x.get_index_value()
 
-    def _feed_model(self, fea_mat, edge_index, edge_weight):
-        """
-        Feed in data to the model.
-        """
-        x = fea_mat.to(self.factory_kwargs['device'])
-        # Feed into model
-        for i, layer in enumerate(self.model):
-            if re.search(r'torch_geometric.nn.', str(type(layer))):
-                x = layer(x, edge_index, edge_weight)
-            else:
-                x = layer(x)
-        return x
-
 
 
 class Modelv2(Model):
@@ -251,12 +239,12 @@ class Modelv2(Model):
         self.n_layer_set = n_layer_set
         self.factory_kwargs = {'device': device, 'dtype': dtype}
 
-        model_dict = OrderedDict([])
+        model = list()
         # May take dropout layer out later
-        model_dict.update({f'dp0': nn.Dropout(p=dropout, inplace=True)})
+        model.append((nn.Dropout(p=dropout, inplace=True), 'x -> x'))
 
         if self.n_layer_set == 1:
-            model_dict.update({f'conv0':gnn.GATv2Conv(
+            layer = gnn.GATv2Conv(
                 in_channels = d_model,
                 out_channels = en_dim,
                 heads = nhead,
@@ -264,10 +252,11 @@ class Modelv2(Model):
                 edge_dim = edge_dim,
                 concat = concat,
                 **kwargs
-            )})
+            )
+            model.append((layer, 'x, edge_index, edge_attr -> x'))
 
-        elif self.n_layer_set >= 1:
-            model_dict.update({f'conv0':gnn.GATv2Conv(
+        elif self.n_layer_set > 1:
+            layer = gnn.GATv2Conv(
                 in_channels = d_model,
                 out_channels = n_hidden,
                 heads = nhead,
@@ -275,12 +264,13 @@ class Modelv2(Model):
                 edge_dim = edge_dim,
                 concat = concat,
                 **kwargs
-            )})
-            model_dict.update({f'relu0': nn.ReLU(inplace = True)})
+            )
+            model.append((layer, 'x, edge_index, edge_attr -> x'))
+            model.append(nn.ReLU(inplace = True))
 
             # Adding layer set
             for i in range(self.n_layer_set - 2):
-                model_dict.update({f'conv{i+1}':gnn.GATv2Conv(
+                layer = gnn.GATv2Conv(
                     in_channels = n_hidden,
                     out_channels = n_hidden,
                     heads = nhead,
@@ -288,11 +278,12 @@ class Modelv2(Model):
                     edge_dim = edge_dim,
                     concat = concat,
                     **kwargs
-                )})
-                model_dict.update({f'relu{i+1}': nn.ReLU(inplace = True)})
+                )
+                model.append((layer, 'x, edge_index, edge_attr -> x'))
+                model.append(nn.ReLU(inplace = True))
 
             # Adding last layer
-            model_dict.update({f'conv-1': gnn.GATv2Conv(
+            layer = gnn.GATv2Conv(
                 in_channels = n_hidden,
                 out_channels = en_dim,
                 heads = nhead,
@@ -300,12 +291,14 @@ class Modelv2(Model):
                 edge_dim = edge_dim,
                 concat = concat,
                 **kwargs
-            )})
+            )
+            model.append((layer, 'x, edge_index, edge_attr -> x'))
 
         else:
             raise Exception('Why are we still here? Just to suffer.')
 
-        self.model = nn.Sequential(model_dict).to(self.factory_kwargs['device'])
+        self.model = gnn.Sequential('x, edge_index, edge_attr', model)
+        self.model = self.model.to(self.factory_kwargs['device'])
 
 
 
@@ -638,34 +631,42 @@ class ModelvD(nn.Module):
 
 
 if __name__ == '__main__':
-    # from torch_geometric.datasets import TUDataset
-    # dataset = TUDataset(root='/tmp/ENZYMES', name='ENZYMES')
-    # data = dataset[0]
-    # train_dataset = dataset[:5]
-
     import fatez as fz
-    device = 'cuda'
+    from torch_geometric.datasets import TUDataset
+    from torch_geometric.loader import DataLoader
+    from torch_geometric.data import Data
+
+    dataset = TUDataset(root='/tmp/MUTAG', name='MUTAG')
+
+    test_dataset = dataset[10:20]
+    train_loader = DataLoader(dataset[:10], batch_size = 2, shuffle = True)
+    sample = dataset[0]
+
+    device = 'cpu'
     faker = fz.test.Faker(device = 'cpu').make_data_loader()
-    model = ModelvD(
-        d_model = 2, n_layer_set = 1, en_dim = 3, edge_dim = 1, device = device
+    gatmodel = Model(
+        d_model = 7, n_layer_set = 1, en_dim = 3, edge_dim = 4, device = device
     )
+
+    for step, data, in enumerate(train_loader):
+        print(step, data)
+        print(data.num_graphs)
+        x = data[0].x
+        ei = data[0].edge_index
+        ea = data[0].edge_attr
+        sample = Data(x = x, edge_index = ei, edge_attr = ea)
+        print(sample)
+        result = gatmodel.model(data.x, data.edge_index, data.edge_attr)
+        print(data.y)
+        print(data.batch)
+        print(result)
+        break
+
     # Process data in GPU
-    for x, y in faker:
-        result = model(x[0], x[1])
-        # exp = model.explain(fea[0], adj[0])
-        break
-    print(result.shape)
-    print(result.device)
-    # print(exp.shape)
-
-
-    # Switching into CPU mode
-    model.switch_device('cpu')
-    # Process data in CPU
-    for x, y in faker:
-        result = model(x[0], x[1])
-        # exp = model.explain(fea[0], adj[0])
-        break
-    print(result.shape)
-    print(result.device)
+    # for x, y in faker:
+    #     result = gatmodel(x[0], x[1])
+    #     # exp = model.explain(fea[0], adj[0])
+    #     break
+    # print(result.shape)
+    # print(result.device)
     # print(exp.shape)
