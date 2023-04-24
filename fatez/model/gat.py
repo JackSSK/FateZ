@@ -223,6 +223,11 @@ class Model(nn.Module):
         x = lib.Adj_Mat(adj_mat.to(self.factory_kwargs['device']))
         return x.get_index_value()
 
+    def _get_regulon_exp(self, rep, adj_mat):
+        """
+        ToDo: Use Adj mat to pool(?) node reps to generate regulon reps
+        """
+        return
 
 
 class Modelv2(Model):
