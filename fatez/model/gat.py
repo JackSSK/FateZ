@@ -144,9 +144,12 @@ class Model(nn.Module):
         assert len(fea_mats) == len(adj_mats)
         # Process batch data
         for i in range(len(fea_mats)):
-            edge_index, edge_weight = self._get_index_weight(adj_mats[i])
-            rep = self.model(fea_mats[i], edge_index, edge_weight)
-            answer.append(rep)
+            x = fea_mats[i].to(self.factory_kwargs['device'])
+            adj = adj_mats[i].to(self.factory_kwargs['device'])
+            edge_index, edge_weight = self._get_index_weight(adj)
+            rep = self.model(x, edge_index, edge_weight)
+            # Only taking regulon representations
+            answer.append(rep[:adj.shape[0],:])
         answer = torch.stack(answer, 0)
         return answer
 
@@ -637,41 +640,42 @@ class ModelvD(nn.Module):
 
 
 
-if __name__ == '__main__':
-    import fatez as fz
-    from torch_geometric.datasets import TUDataset
-    from torch_geometric.loader import DataLoader
-    from torch_geometric.data import Data
-
-    dataset = TUDataset(root='/tmp/MUTAG', name='MUTAG')
-
-    test_dataset = dataset[10:20]
-    train_loader = DataLoader(dataset[:10], batch_size = 2, shuffle = True)
-    sample = dataset[0]
-
-    device = 'cpu'
-    faker = fz.test.Faker(device = 'cpu').make_data_loader()
-    gatmodel = Model(
-        d_model = 7, n_layer_set = 1, en_dim = 3, edge_dim = 4, device = device
-    )
-
-    for step, data, in enumerate(train_loader):
-        print(step, data)
-        x = data[0].x
-        ei = data[0].edge_index
-        ea = data[0].edge_attr
-        sample = Data(x = x, edge_index = ei, edge_attr = ea)
-        print(sample)
-        result = gatmodel.model(data.x, data.edge_index, data.edge_attr)
-        break
-
-    gatmodel = Modelv2(
-        d_model = 2, n_layer_set = 1, en_dim = 3, edge_dim = 1, device = device
-    )
-    # Process data in GPU
-    for x, y in faker:
-        result = gatmodel(x[0], x[1])
-        exp = gatmodel.explain(x[0][0], x[1][0])
-        break
-    print(result.shape)
-    print(exp)
+# if __name__ == '__main__':
+#     import fatez as fz
+#     from torch_geometric.datasets import TUDataset
+#     from torch_geometric.loader import DataLoader
+#     from torch_geometric.data import Data
+#
+#     dataset = TUDataset(root='/tmp/MUTAG', name='MUTAG')
+#
+#     test_dataset = dataset[10:20]
+#     train_loader = DataLoader(dataset[:10], batch_size = 2, shuffle = True)
+#     sample = dataset[0]
+#
+#
+#     gatmodel = Model(
+#         d_model = 7, n_layer_set = 1, en_dim = 3, edge_dim = 4, device = 'cpu'
+#     )
+#
+#     for step, data, in enumerate(train_loader):
+#         print(step, data)
+#         x = data[0].x
+#         ei = data[0].edge_index
+#         ea = data[0].edge_attr
+#         sample = Data(x = x, edge_index = ei, edge_attr = ea)
+#         print(sample)
+#         result = gatmodel.model(data.x, data.edge_index, data.edge_attr)
+#         break
+#
+#     device = 'cuda'
+#     faker = fz.test.Faker(device = device).make_data_loader()
+#     gatmodel = Modelv2(
+#         d_model = 2, n_layer_set = 1, en_dim = 3, edge_dim = 1, device = device
+#     )
+#     # Process data in GPU
+#     for x, y in faker:
+#         result = gatmodel(x[0].to(device), x[1].to(device))
+#         exp = gatmodel.explain(x[0][0].to(device), x[1][0].to(device))
+#         break
+#     print(result.shape)
+#     print(exp)

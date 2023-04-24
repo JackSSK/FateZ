@@ -271,7 +271,10 @@ class Faker(object):
         for x, y in data_loader:
             # Explain GAT to obtain adj explanations
             for i in range(len(x[0])):
-                adj_explain+=tuner.model.gat.explain(x[0][i], x[1][i]).to('cpu')
+                adj_explain+=tuner.model.gat.explain(
+                    x[0][i].to(self.factory_kwargs['device']),
+                    x[1][i].to(self.factory_kwargs['device']),
+                ).to('cpu')
 
             node_exp, vars = explain.shap_values(
                 [i.to(self.factory_kwargs['device']).to_dense() for i in x],
@@ -287,7 +290,7 @@ class Faker(object):
 
         return trainer.model, tuner.model
 
-if __name__ == '__main__':
-    a = Faker(batch_size = 4, simpler_samples = False, device = 'cuda')
-    # models = a.test_gat()
-    models = a.test_full_model(quiet = False)
+# if __name__ == '__main__':
+#     a = Faker(batch_size = 4, simpler_samples = True, device = 'cuda')
+#     # models = a.test_gat()
+#     models = a.test_full_model(quiet = False)
