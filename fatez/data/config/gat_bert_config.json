@@ -11,7 +11,7 @@
         }
     },
     "gnn": {
-        "type": "GATVD",
+        "type": "GATV2",
         "params": {
             "d_model": 2,
             "en_dim": 4,

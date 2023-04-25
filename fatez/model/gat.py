@@ -228,13 +228,19 @@ class Model(nn.Module):
         """
         ToDo: Use Adj mat to pool(?) node reps to generate regulon reps
         """
-
+        pooling_data = list()
+        answer = rep[:len(adj_mat),:]
+        device = self.factory_kwargs['device']
+        # Get pooling data based on adj mat
         for i in range(len(adj_mat)):
-            batch = torch.zeros(len(rep), dtype=torch.int64)
-            for x in adj_mat[i].coalesce().indices()[0]: batch[x]+=1
-            result = gnn.pool.global_add_pool(rep, batch = batch)[1]
-            print(i, result)
-        return rep
+            batch = torch.zeros(len(rep), dtype=torch.int64).to(device)
+            for ind,x in enumerate(adj_mat[i]): batch[ind] += int(x!=0)
+            pooling_data.append(gnn.pool.global_add_pool(rep, batch = batch)[1])
+        # Product pooling data to according node(TF) representations
+        assert len(answer) == len(pooling_data)
+        for i,data in enumerate(pooling_data):
+            answer[i] *= data
+        return answer
 
 
 class Modelv2(Model):
@@ -652,11 +658,11 @@ class ModelvD(nn.Module):
 
 
 
-if __name__ == '__main__':
-    import fatez as fz
-    from torch_geometric.datasets import TUDataset
-    from torch_geometric.loader import DataLoader
-    from torch_geometric.data import Data
+# if __name__ == '__main__':
+#     import fatez as fz
+#     from torch_geometric.datasets import TUDataset
+#     from torch_geometric.loader import DataLoader
+#     from torch_geometric.data import Data
 
     # dataset = TUDataset(root='/tmp/MUTAG', name='MUTAG')
     #
@@ -679,15 +685,15 @@ if __name__ == '__main__':
     #     result = gatmodel.model(data.x, data.edge_index, data.edge_attr)
     #     break
 
-    device = 'cpu'
-    faker = fz.test.Faker(device = device).make_data_loader()
-    gatmodel = Modelv2(
-        d_model = 2, n_layer_set = 1, en_dim = 3, edge_dim = 1, device = device
-    )
-    # Process data in GPU
-    for x, y in faker:
-        result = gatmodel(x[0].to(device), x[1].to(device))
-        exp = gatmodel.explain(x[0][0].to(device), x[1][0].to(device))
-        break
-    print(result.shape)
-    print(exp)
+    # device = 'cpu'
+    # faker = fz.test.Faker(device = device).make_data_loader()
+    # gatmodel = Modelv2(
+    #     d_model = 2, n_layer_set = 1, en_dim = 3, edge_dim = 1, device = device
+    # )
+    # # Process data in GPU
+    # for x, y in faker:
+    #     result = gatmodel(x[0].to(device), x[1].to(device))
+    #     exp = gatmodel.explain(x[0][0].to(device), x[1][0].to(device))
+    #     break
+    # print(result.shape)
+    # print(exp)
