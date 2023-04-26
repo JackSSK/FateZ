@@ -229,7 +229,6 @@ class Model(nn.Module):
         ToDo: Use Adj mat to pool(?) node reps to generate regulon reps
         """
         pooling_data = list()
-        answer = rep[:len(adj_mat),:]
         device = self.factory_kwargs['device']
         # Get pooling data based on adj mat
         for i in range(len(adj_mat)):
@@ -237,6 +236,7 @@ class Model(nn.Module):
             for ind,x in enumerate(adj_mat[i]): batch[ind] += int(x!=0)
             pooling_data.append(gnn.pool.global_add_pool(rep, batch = batch)[1])
         # Product pooling data to according node(TF) representations
+        answer = rep[:len(adj_mat),:]
         assert len(answer) == len(pooling_data)
         for i,data in enumerate(pooling_data):
             answer[i] *= data
