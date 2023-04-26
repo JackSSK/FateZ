@@ -4,6 +4,7 @@ This file contains basic objects for storing data.
 
 author: jy
 """
+import re
 import torch
 from torch.utils.data import Dataset
 from torch_geometric.data import Data
@@ -14,10 +15,12 @@ class FateZ_Dataset(Dataset):
     """
 	Basic Dataset object for DataLoader
 	"""
-    def __init__(self, samples, labels):
-        assert len(samples) == len(labels)
+    def __init__(self, samples, labels = None):
         self.samples = samples
-        self.labels = labels
+        if labels is not None:
+            self.labels = labels
+        elif re.search(r'torch_geometric.data', str(type(self.samples[0]))):
+            self.labels = [x.y for x in samples]
 
     def __len__(self):
         return len(self.samples)

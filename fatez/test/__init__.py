@@ -8,10 +8,13 @@ Need to revise explainary mechanism if using graph embedder
 author: jy
 """
 import sys
+import tracemalloc
+from pkg_resources import resource_filename
+from collections import OrderedDict
 import shap
 import torch
 import torch.nn as nn
-from torch_geometric.data import Data
+import torch_geometric.data as pyg_d
 from torch.utils.data import DataLoader
 import fatez
 import fatez.lib as lib
@@ -27,9 +30,6 @@ import fatez.process.fine_tuner as fine_tuner
 import fatez.process.pre_trainer as pre_trainer
 import fatez.model.criterion as crit
 import fatez.model.position_embedder as pe
-from pkg_resources import resource_filename
-from collections import OrderedDict
-
 
 def make_template_grn_jjy():
     mm10_gff = gff.Reader('E:\\public/gencode.vM25.basic.annotation.gff3.gz')
@@ -103,7 +103,7 @@ class Faker(object):
         self.simpler_samples = simpler_samples
         self.factory_kwargs = {'device': device, 'dtype': dtype,}
 
-    def make_data_loader(self, sparse_data = True):
+    def make_data_loader(self, pyg_data = False):
         """
         Generate random data with given parameters and
         set up a PyTorch DataLoader.
@@ -130,26 +130,34 @@ class Faker(object):
             adj_m[:,-2:] *= 0
             return fea_m, adj_m
 
-        def append_sample(samples, fea_m, adj_m):
-            if sparse_data:
-                samples.append([fea_m.to_sparse(), lib.Adj_Mat(adj_m).sparse])
+        def append_sample(samples, fea_m, adj_m, label):
+            if pyg_data:
+                inds, attrs = lib.Adj_Mat(adj_m).get_index_value()
+                samples.append(
+                    pyg_d.Data(
+                        x = fea_m,
+                        edge_index = inds,
+                        edge_attr = attrs,
+                        y = label,
+                        shape = adj_m.shape,
+                    )
+                )
             else:
-                # Dense version
-                samples.append([fea_m, adj_m])
+                samples.append([fea_m.to_sparse(), lib.Adj_Mat(adj_m).sparse])
 
         # Prepare type_0 samples
         for i in range(len(t0_labels)):
             fea_m, adj_m = rand_sample()
             fea_m[-1] += 9
             adj_m[:,-1] += 9
-            append_sample(samples, fea_m, adj_m)
+            append_sample(samples, fea_m, adj_m, label = 0)
 
         # Prepare type_1 samples
         for i in range(len(t1_labels)):
             fea_m, adj_m = rand_sample()
             fea_m[-1] += 1
             adj_m[:,-1] += 1
-            append_sample(samples, fea_m, adj_m)
+            append_sample(samples, fea_m, adj_m, label = 1)
 
         return DataLoader(
             lib.FateZ_Dataset(samples = samples, labels = labels),
@@ -174,7 +182,12 @@ class Faker(object):
         suppressor = process.Quiet_Mode()
         # Initialize
         device = self.factory_kwargs['device']
+        # tracemalloc.start()
         data_loader = self.make_data_loader()
+        # first_size, first_peak = tracemalloc.get_traced_memory()
+        # tracemalloc.reset_peak()
+        # print(f"{first_size=}, {first_peak=}")
+
         if config is None: config = self.config
         graph_embedder = pe.Skip()
         gat_model = gat.Set(
@@ -201,11 +214,10 @@ class Faker(object):
             loss.backward()
         print(f'\tGAT Green.\n')
 
-
-        """
-        Need to revise explainary mechanism if using graph embedder
-        """
-        gat_explain = gat_model.explain(input[0][0], input[1][0])
+        gat_explain = gat_model.explain(
+            graph_embedder(input[0][0].to(device), adj=input[1][0].to(device)),
+            input[1][0].to(device)
+        )
         # print(gat_explain)
         explain = shap.GradientExplainer(decision, out_gat)
         shap_values = explain.shap_values(out_gat)
@@ -267,6 +279,7 @@ class Faker(object):
         bg_data = [a for a, _ in bg_data][0]
         bg_data = [a.to(self.factory_kwargs['device']) for a in bg_data]
         explain = explainer.Gradient(tuner.model, bg_data)
+        # explain = shap.GradientExplainer(tuner.model, bg_data)
 
         for x, y in data_loader:
             # Explain GAT to obtain adj explanations
@@ -292,5 +305,5 @@ class Faker(object):
 
 # if __name__ == '__main__':
 #     a = Faker(batch_size = 4, simpler_samples = False, device = 'cuda')
-#     # models = a.test_gat()
-#     models = a.test_full_model(quiet = False)
+    # models = a.test_gat()
+    # models = a.test_full_model(quiet = False)
