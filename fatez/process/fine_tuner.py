@@ -18,7 +18,7 @@ import fatez.model.bert as bert
 import fatez.model.transformer as transformer
 import fatez.model.position_embedder as pe
 import fatez.model.criterion as crit
-import fatez.process as process
+
 
 
 def Set(config:dict = None, factory_kwargs:dict = None, prev_model = None,):
@@ -27,7 +27,6 @@ def Set(config:dict = None, factory_kwargs:dict = None, prev_model = None,):
     """
     if prev_model is None:
         return Tuner(
-            input_sizes = config['input_sizes'],
             gat = gat.Set(config['gnn'], config['input_sizes'], factory_kwargs),
             encoder = transformer.Encoder(**config['encoder'],**factory_kwargs),
             graph_embedder = pe.Set(
@@ -41,7 +40,6 @@ def Set(config:dict = None, factory_kwargs:dict = None, prev_model = None,):
         )
     else:
         return Tuner(
-            input_sizes = config['input_sizes'],
             gat = prev_model.gat,
             encoder = prev_model.bert_model.encoder,
             graph_embedder = prev_model.graph_embedder,
@@ -69,13 +67,9 @@ class Model(nn.Module):
         self.bert_model = bert_model
 
     def forward(self, fea_mats, adj_mats):
-        print('Prior graph_embedder')
         output = self.graph_embedder(fea_mats, adj = adj_mats)
-        print('Passed graph_embedder, moving to gat')
         output = self.gat(output, adj_mats)
-        print('Passed GAT, moving to rep_embedder and transformer encoders')
         output = self.bert_model(output)
-        print('Clear')
         return output
 
     def get_gat_output(self, fea_mats, adj_mats,):
@@ -99,7 +93,6 @@ class Tuner(object):
     """
     def __init__(self,
         # Models to take
-        input_sizes:list = None,
         gat = None,
         encoder:transformer.Encoder = None,
         graph_embedder = pe.Skip(),
@@ -131,7 +124,6 @@ class Tuner(object):
         dtype:str = None,
         ):
         super(Tuner, self).__init__()
-        self.input_sizes = input_sizes
         self.factory_kwargs = {'device': device, 'dtype': dtype}
         self.n_class = n_class
         self.model = Model(
@@ -187,11 +179,7 @@ class Tuner(object):
         # if with_cuda and torch.cuda.device_count() > 1:
         #     self.model = nn.DataParallel(self.model, device_ids = cuda_devices)
 
-    def train(self, data_loader, report_batch:bool = False, quiet:bool = True):
-        # Suppress std out if in quiet mode
-        suppressor = process.Quiet_Mode()
-        if quiet: suppressor.on()
-
+    def train(self, data_loader, report_batch:bool = False,):
         # save_gat_out:bool = False
         self.model.train()
         self.model.to(self.factory_kwargs['device'])
@@ -230,17 +218,10 @@ class Tuner(object):
         report.append([loss_all.item() / nbatch, acc_all / nbatch])
         report = pd.DataFrame(report)
         report.columns = ['Loss', 'ACC',]
-
-        if quiet: suppressor.off()
         return report
 
-    def test(self, data_loader, report_batch = False, quiet:bool = True):
-        suppressor = process.Quiet_Mode()
-        # Suppress std out if in quiet mode
-        if quiet: suppressor.on()
-
+    def test(self, data_loader, report_batch = False):
         self.model.eval()
-        self.model.to(self.factory_kwargs['device'])
         nbatch = len(data_loader)
         report = list()
         loss_all, acc_all, auroc_all = 0, 0, 0
@@ -255,6 +236,7 @@ class Tuner(object):
                     x[0].to(self.factory_kwargs['device']),
                     x[1].to(self.factory_kwargs['device'])
                 )
+
                 # Batch specific
                 loss = self.criterion(output, y).item()
                 acc = acc_crit(output, y)
@@ -271,21 +253,13 @@ class Tuner(object):
         report.append([loss_all / nbatch, acc_all / nbatch, auroc_all / nbatch])
         report = pd.DataFrame(report)
         report.columns = ['Loss', 'ACC', 'AUROC']
-
-        if quiet: suppressor.off()
         return report
-
-    def switch_device(self, device:str = 'cpu'):
-        self.factory_kwargs['device'] = device
-        self.model = self.model.to(device)
-        self.model.gat.switch_device(device)
-        return
 
     def __set_classifier(self,
         n_dim:int = 4,
         n_class:int = 2,
         clf_type:str = 'MLP',
-        clf_params:dict = {'n_hidden': 2, 'n_layer_set': 2},
+        clf_params:dict = {'n_hidden': 2},
         ):
         """
         Set up classifier model accordingly.
