@@ -422,6 +422,30 @@ class Preprocessor():
         self.pseudo_network[key] = {'rna': rna_cell_use, 'atac': atac_cell_use}
 
 
+    def format_grp(self, grp):
 
+        path = resource_filename(
+            __name__, '../data/' + 'mouse' + '/Transfac201803_MotifTFsF.txt.gz'
+        )
+        ### load tfs
+        tf_motifs = transfac.Reader(path=path).get_tfs()
+        tf_all = list(tf_motifs.keys())
+        tf_all = list(np.intersect1d(tf_all, self.gff_gene))
+
+        ### add tf zero matrix
+        tf_diff = list(np.setdiff1d(tf_all, list(grp.index)))
+        zero_mt = pd.DataFrame(np.zeros((len(tf_diff),len(grp.columns))))
+        zero_mt.index = tf_diff
+        zero_mt.columns = list(grp.columns)
+        grp = pd.concat(grp,zero_mt)
+
+        ### add gene zero matrix
+        gene_diff = list(np.setdiff1d(self.gff_gene, list(grp.columns)))
+        zero_mt = pd.DataFrame(np.zeros((len(tf_all), len(gene_diff))))
+        zero_mt.index = list(grp.index)
+        zero_mt.columns = gene_diff
+        grp = pd.concat(grp, zero_mt,axis=1)
+
+        return grp
 
 
