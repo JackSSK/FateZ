@@ -103,7 +103,7 @@ class Faker(object):
         self.simpler_samples = simpler_samples
         self.factory_kwargs = {'device': device, 'dtype': dtype,}
 
-    def make_data_loader(self, pyg_data = False):
+    def make_data_loader(self,):
         """
         Generate random data with given parameters and
         set up a PyTorch DataLoader.
@@ -112,12 +112,7 @@ class Faker(object):
             torch.utils.data.DataLoader
         """
         assert self.config['fine_tuner']['n_class'] == 2
-
         samples = list()
-        # Prepare labels
-        t0_labels = torch.zeros(int(self.n_sample/2), dtype=torch.long)
-        t1_labels = torch.ones(self.n_sample - len(t0_labels), dtype=torch.long)
-        labels = torch.cat((t0_labels, t1_labels), -1)
 
         def rand_sample():
             dtype = self.factory_kwargs['dtype']
@@ -131,38 +126,33 @@ class Faker(object):
             return fea_m, adj_m
 
         def append_sample(samples, fea_m, adj_m, label):
-            if pyg_data:
-                inds, attrs = lib.Adj_Mat(adj_m).get_index_value()
-                samples.append(
-                    pyg_d.Data(
-                        x = fea_m,
-                        edge_index = inds,
-                        edge_attr = attrs,
-                        y = label,
-                        shape = adj_m.shape,
-                    )
+            inds, attrs = lib.Adj_Mat(adj_m).get_index_value()
+            samples.append(
+                pyg_d.Data(
+                    x = fea_m.to_sparse(),
+                    edge_index = inds,
+                    edge_attr = attrs,
+                    y = label,
+                    shape = adj_m.shape,
                 )
-            else:
-                samples.append([fea_m.to_sparse(), lib.Adj_Mat(adj_m).sparse])
+            )
 
         # Prepare type_0 samples
-        for i in range(len(t0_labels)):
+        for i in range(int(self.n_sample / 2)):
             fea_m, adj_m = rand_sample()
             fea_m[-1] += 9
             adj_m[:,-1] += 9
             append_sample(samples, fea_m, adj_m, label = 0)
 
         # Prepare type_1 samples
-        for i in range(len(t1_labels)):
+        for i in range(self.n_sample - int(self.n_sample / 2)):
             fea_m, adj_m = rand_sample()
             fea_m[-1] += 1
             adj_m[:,-1] += 1
             append_sample(samples, fea_m, adj_m, label = 1)
 
         return DataLoader(
-            lib.FateZ_Dataset(samples = samples, labels = labels),
-            batch_size = self.batch_size,
-            shuffle = True
+            lib.FateZ_Dataset(samples), batch_size=self.batch_size, shuffle=True
         )
 
     def test_gat(self, config:dict = None, decision = None):
@@ -305,5 +295,5 @@ class Faker(object):
 
 # if __name__ == '__main__':
 #     a = Faker(batch_size = 4, simpler_samples = False, device = 'cuda')
-    # models = a.test_gat()
-    # models = a.test_full_model(quiet = False)
+#     models = a.test_gat()
+#     models = a.test_full_model(quiet = False)

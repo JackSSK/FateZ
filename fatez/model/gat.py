@@ -209,7 +209,7 @@ class Model(nn.Module):
         return lib.Adj_Mat(
             indices = edge_index,
             values = F.softmax(alpha.detach().squeeze(-1), dim=-1),
-            size = adj_mat.shape
+            shape = adj_mat.shape[:2]
         ).to_dense()
 
     def switch_device(self, device = 'cpu'):
