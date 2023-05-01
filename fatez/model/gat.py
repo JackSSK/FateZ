@@ -553,11 +553,12 @@ class ModelvD(nn.Module):
         :param adj_mats: torch.Tensor
             Adjacent matrices. (Based on GRPs)
         """
+        device = self.factory_kwargs['device']
         answer = list()
         assert len(fea_mats) == len(adj_mats)
         for i in range(len(fea_mats)):
-            x = fea_mats[i].to_dense().to(self.factory_kwargs['device'])
-            adj_mat = adj_mats[i].to_dense().to(self.factory_kwargs['device'])
+            x, adj_mat = self._load_mats(fea_mats[i], adj_mats[i], device)
+            # Dropout layer first
             x = F.dropout(x, self.dropout, training = self.training)
             # Multi-head attention mechanism
             if self.attentions != None:
@@ -579,8 +580,7 @@ class ModelvD(nn.Module):
         fake_adj_mat = torch.ones_like(adj_mat)
         """
         device = self.factory_kwargs['device']
-        fea_mat = fea_mat.to(device).to_dense()
-        adj_mat = adj_mat.to(device).to_dense()
+        fea_mat, adj_mat = self._load_mats(fea_mat, adj_mat, device)
 
         att_explain = None
         last_explain = None
@@ -649,6 +649,12 @@ class ModelvD(nn.Module):
         self.last = self.last.to(device)
         return
 
+    def _load_mats(self, fea_mat, adj_mat, device):
+        fea_mat = fea_mat.to(device).to_dense()
+        shape = adj_mat.shape
+        if len(shape) > 2: shape = shape[:2]
+        adj_mat = adj_mat.to(device).to_dense().reshape(shape)
+        return fea_mat, adj_mat
 
 
 # if __name__ == '__main__':
