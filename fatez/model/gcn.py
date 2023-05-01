@@ -14,9 +14,11 @@ import torch.nn.functional as F
 from collections import OrderedDict
 from torch_geometric.data import Data
 import fatez.lib as lib
+import fatez.model.gat as gat
 
 
-class Model(nn.Module):
+
+class Model(gat.Module):
     """
     A simple GCN using torch_geometric operator.
     """
@@ -32,74 +34,44 @@ class Model(nn.Module):
         ):
         # Initialization
         super().__init__()
+        self.d_model = d_model
+        self.en_dim = en_dim
         self.n_layer_set = n_layer_set
         self.factory_kwargs = {'device': device, 'dtype': dtype}
 
-        model_dict = OrderedDict([])
+        model = list()
         # May take dropout layer out later
-        model_dict.update({f'dp0': nn.Dropout(p=dropout, inplace=True)})
+        model.append((nn.Dropout(p=dropout, inplace=True), 'x -> x'))
 
         if self.n_layer_set == 1:
-            model_dict.update({
-                f'conv0':gnn.GCNConv(in_channels=d_model, out_channels=en_dim)
-            })
+            layer = gnn.GCNConv(in_channels=d_model, out_channels=en_dim)
+            model.append((layer, 'x, edge_index, edge_attr -> x'))
 
         elif self.n_layer_set >= 1:
-            model_dict.update({f'conv0':gnn.GCNConv(d_model, n_hidden)})
-            model_dict.update({f'relu0': nn.ReLU(inplace = True)})
+            layer = gnn.GCNConv(d_model, n_hidden)
+            model.append((layer, 'x, edge_index, edge_attr -> x'))
+            model.append(nn.ReLU(inplace = True))
 
             # Adding Conv blocks
             for i in range(self.n_layer_set - 2):
-                model_dict.update({f'conv{i+1}':gnn.GCNConv(n_hidden,n_hidden)})
-                model_dict.update({f'relu{i+1}': nn.ReLU(inplace = True)})
+                layer = gnn.GCNConv(n_hidden,n_hidden)
+                model.append((layer, 'x, edge_index, edge_attr -> x'))
+                model.append(nn.ReLU(inplace = True))
 
             # Adding last layer
-            model_dict.update({f'conv-1': gnn.GCNConv(n_hidden, en_dim)})
+            layer = gnn.GCNConv(n_hidden, en_dim)
+            model.append((layer, 'x, edge_index, edge_attr -> x'))
 
         else:
             raise Exception('Why are we still here? Just to suffer.')
 
-        self.model = nn.Sequential(model_dict).to(self.factory_kwargs['device'])
-
-
-    def forward(self, fea_mats, adj_mats):
-        answer = list()
-        assert len(fea_mats) == len(adj_mats)
-        for i in range(len(fea_mats)):
-            # Process batch data
-            edge_index, edge_weight = self._get_index_weight(adj_mats[i])
-            rep = self._feed_model(fea_mats[i], edge_index, edge_weight)
-            # Only take encoded presentations of TFs
-            answer.append(rep[:adj_mats[i].shape[0],:])
-        answer = torch.stack(answer, 0)
-        return answer
+        self.model = gnn.Sequential('x, edge_index, edge_attr', model)
+        self.model = self.model.to(self.factory_kwargs['device'])
 
     def explain(self, fea_mat, adj_mat,):
         return
 
-    def switch_device(self, device:str = 'cpu'):
-        self.factory_kwargs['device'] = device
-        self.model = self.model.to(device)
 
-    def _get_index_weight(self, adj_mat):
-        """
-        Make edge index and edge weight matrices based on given adjacent matrix.
-        """
-        x = lib.Adj_Mat(adj_mat.to(self.factory_kwargs['device']))
-        return x.get_index_value()
-
-    def _feed_model(self, fea_mat, edge_index, edge_weight):
-        """
-        Feed in data to the model.
-        """
-        x = fea_mat.to(self.factory_kwargs['device'])
-        # Feed into model
-        for i, layer in enumerate(self.model):
-            if re.search(r'torch_geometric.nn.', str(type(layer))):
-                x = layer(x, edge_index, edge_weight)
-            else:
-                x = layer(x)
-        return x
 
 
 

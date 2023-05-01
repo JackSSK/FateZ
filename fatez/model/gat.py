@@ -2,12 +2,6 @@
 """
 This file contains Graph Attention Network (GAT) related objects.
 
-ToDo:
-Would JAX help on speeding up model training?
-Added back the GAT implementation with dense matrices, maybe a reimplementation
-in JAX could help, but probably we shall wait till GRN preprocess part fixed and
-tested.
-
 author: jy
 """
 import re
@@ -17,8 +11,6 @@ import torch.nn as nn
 import torch_geometric.nn as gnn
 import torch.optim as optim
 import torch.nn.functional as F
-from collections import OrderedDict
-from torch_geometric.data import Data
 # from torch_geometric.explain import Explainer, AttentionExplainer
 from torch_geometric.nn.conv.message_passing import MessagePassing
 import fatez.lib as lib
@@ -243,6 +235,7 @@ class Model(nn.Module):
         return answer
 
 
+
 class Modelv2(Model):
     """
     A simple GAT using torch_geometric operator.
@@ -330,143 +323,140 @@ class Modelv2(Model):
 
 
 
-def _prepare_attentions(e_values, adj_mat, device = 'cpu'):
-    """
-    Calculate attention values for every GRP.
-
-    :param e_values:torch.Tensor = None
-        Weighted matrix.
-
-    :param adj_mat:torch.Tensor = None
-        Adjacent matrix. (Based on GRPs)
-    """
-    # Basically, this is a matrix of negative infinite with e_values.shape
-    # neg_inf = torch.zeros_like(e_values)
-    # neg_inf = neg_inf.masked_fill(neg_inf == 0, float('-inf'))
-    # Left confirmed GRPs only.
-    attention = torch.where(adj_mat != 0, e_values, torch.zeros_like(e_values))
-    # Multiply GRP coefficient to the attention values
-    attention = np.multiply(
-        attention.detach().cpu().numpy(),
-        adj_mat.detach().cpu()
-    ).to(device)
-    # Change 0s to neg inf now
-    attention = attention.masked_fill(attention == 0, float(-9e15))
-    attention = F.softmax(attention, dim = 1)
-    return attention
-
-
-
-class Graph_Attention_Layer(nn.Module):
-    """
-    Simple graph attention layer for GAT.
-    """
-    def __init__(self,
-        d_model:int = None,
-        out_dim:int = None,
-        lr:float = 0.005,
-        weight_decay:float = 5e-4,
-        gain:float = 1.414,
-        dropout:float = 0.2,
-        alpha:float = 0.2,
-        concat:bool = True,
-        device:str = 'cpu',
-        dtype:str = None,
-        ):
-        """
-        :param d_model:int = None
-            Input feature dimension.
-
-        :param out_dim:int = None
-            Output feature dimension.
-
-        :param lr:float = 0.005
-            Learning rate.
-
-        :param weight_decay:float = 5e-4
-            Weight decay (L2 loss on parameters).
-
-        :param dropout:float = 0.2
-            Dropout rate.
-
-        :param alpha:float = 0.2
-            Alpha value for the LeakyRelu layer.
-
-        :param concat:bool = True
-            Whether concatenating with other layers.
-            Note: False for last layer.
-
-        :param dtype:str = None
-            Data type of values in matrices.
-            Note: torch default using float32, numpy default using float64
-        """
-        super(Graph_Attention_Layer, self).__init__()
-        self.dropout = dropout
-        self.d_model = d_model
-        self.out_dim = out_dim
-        self.alpha = alpha
-        self.concat = concat
-        # Set up parameters
-        self.weights = nn.Parameter(
-            torch.empty(size = (d_model, out_dim), device=device, dtype=dtype)
-        )
-        self.a_values = nn.Parameter(
-            torch.empty(size = (2 * out_dim, 1), device=device, dtype=dtype)
-        )
-        nn.init.xavier_uniform_(self.weights.data, gain = gain)
-        nn.init.xavier_uniform_(self.a_values.data, gain = gain)
-
-        self.leaky_relu = nn.LeakyReLU(self.alpha)
-        self.optimizer = optim.Adam(
-            self.parameters(),
-            lr = lr,
-            weight_decay = weight_decay
-        )
-        self.factory_kwargs = {'device': device, 'dtype': dtype}
-
-    def forward(self, input, adj_mat):
-        """
-        :param input:torch.Tensor = None
-            Input matrix. (Genes)
-
-        :param adj_mat:torch.Tensor = None
-            Adjacent matrix. (Based on GRPs)
-        """
-        device = self.factory_kwargs['device']
-        # Multiply hs to ensure output dimension == out_dim
-        # The Weighted matrix: w_h.shape == (N, out_feature)
-        w_h = torch.mm(input, self.weights)
-
-        # Now we calculate weights for GRPs according to input matrix & weights.
-        n_regulons = adj_mat.size()[0]
-        # w_h1.shape (n_regulons, 1) and w_h2.shape (N, 1)
-        w_h1 = torch.matmul(w_h[:n_regulons,:], self.a_values[:self.out_dim, :])
-        w_h2 = torch.matmul(w_h, self.a_values[self.out_dim:, :])
-        # broadcast add: e_values.shape (n_regulons, N)
-        e_values = self.leaky_relu(w_h1 + w_h2.T)
-
-        # Then we apply e_values to calculate attention
-        attention = _prepare_attentions(e_values, adj_mat, device = device)
-        attention = F.dropout(attention, self.dropout, training = self.training)
-        result = torch.matmul(attention, w_h)
-
-        if self.concat:
-            # if this layer is not last layer,
-            return F.elu(result)
-        else:
-            # if this layer is last layer,
-            return result
-
-    def switch_device(self, device:str = 'cpu'):
-        self.factory_kwargs['device'] = device
-
-
-
 class ModelvD(nn.Module):
     """
     A typical GAT but using dense matrix instead of sparse.
     This shall be used if the PyG sparse version is just too slow.
     """
+
+    def _prepare_attentions(e_values, adj_mat, device = 'cpu'):
+        """
+        Calculate attention values for every GRP.
+
+        :param e_values:torch.Tensor = None
+            Weighted matrix.
+
+        :param adj_mat:torch.Tensor = None
+            Adjacent matrix. (Based on GRPs)
+        """
+        # Basically, this is a matrix of negative infinite with e_values.shape
+        # neg_inf = torch.zeros_like(e_values)
+        # neg_inf = neg_inf.masked_fill(neg_inf == 0, float('-inf'))
+        # Left confirmed GRPs only.
+        attention = torch.where(adj_mat != 0, e_values, torch.zeros_like(e_values))
+        # Multiply GRP coefficient to the attention values
+        attention = np.multiply(
+            attention.detach().cpu().numpy(),
+            adj_mat.detach().cpu()
+        ).to(device)
+        # Change 0s to neg inf now
+        attention = attention.masked_fill(attention == 0, float(-9e15))
+        attention = F.softmax(attention, dim = 1)
+        return attention
+
+    class Graph_Attention_Layer(nn.Module):
+        """
+        Simple graph attention layer for GAT.
+        """
+        def __init__(self,
+            d_model:int = None,
+            out_dim:int = None,
+            lr:float = 0.005,
+            weight_decay:float = 5e-4,
+            gain:float = 1.414,
+            dropout:float = 0.2,
+            alpha:float = 0.2,
+            concat:bool = True,
+            device:str = 'cpu',
+            dtype:str = None,
+            ):
+            """
+            :param d_model:int = None
+                Input feature dimension.
+
+            :param out_dim:int = None
+                Output feature dimension.
+
+            :param lr:float = 0.005
+                Learning rate.
+
+            :param weight_decay:float = 5e-4
+                Weight decay (L2 loss on parameters).
+
+            :param dropout:float = 0.2
+                Dropout rate.
+
+            :param alpha:float = 0.2
+                Alpha value for the LeakyRelu layer.
+
+            :param concat:bool = True
+                Whether concatenating with other layers.
+                Note: False for last layer.
+
+            :param dtype:str = None
+                Data type of values in matrices.
+                Note: torch default using float32, numpy default using float64
+            """
+            super(Graph_Attention_Layer, self).__init__()
+            self.dropout = dropout
+            self.d_model = d_model
+            self.out_dim = out_dim
+            self.alpha = alpha
+            self.concat = concat
+            # Set up parameters
+            self.weights = nn.Parameter(
+                torch.empty(size = (d_model, out_dim), device=device, dtype=dtype)
+            )
+            self.a_values = nn.Parameter(
+                torch.empty(size = (2 * out_dim, 1), device=device, dtype=dtype)
+            )
+            nn.init.xavier_uniform_(self.weights.data, gain = gain)
+            nn.init.xavier_uniform_(self.a_values.data, gain = gain)
+
+            self.leaky_relu = nn.LeakyReLU(self.alpha)
+            self.optimizer = optim.Adam(
+                self.parameters(),
+                lr = lr,
+                weight_decay = weight_decay
+            )
+            self.factory_kwargs = {'device': device, 'dtype': dtype}
+
+        def forward(self, input, adj_mat):
+            """
+            :param input:torch.Tensor = None
+                Input matrix. (Genes)
+
+            :param adj_mat:torch.Tensor = None
+                Adjacent matrix. (Based on GRPs)
+            """
+            device = self.factory_kwargs['device']
+            # Multiply hs to ensure output dimension == out_dim
+            # The Weighted matrix: w_h.shape == (N, out_feature)
+            w_h = torch.mm(input, self.weights)
+
+            # Now we calculate weights for GRPs according to input matrix & weights.
+            n_regulons = adj_mat.size()[0]
+            # w_h1.shape (n_regulons, 1) and w_h2.shape (N, 1)
+            w_h1 = torch.matmul(w_h[:n_regulons,:], self.a_values[:self.out_dim, :])
+            w_h2 = torch.matmul(w_h, self.a_values[self.out_dim:, :])
+            # broadcast add: e_values.shape (n_regulons, N)
+            e_values = self.leaky_relu(w_h1 + w_h2.T)
+
+            # Then we apply e_values to calculate attention
+            attention = _prepare_attentions(e_values, adj_mat, device = device)
+            attention = F.dropout(attention, self.dropout, training = self.training)
+            result = torch.matmul(attention, w_h)
+
+            if self.concat:
+                # if this layer is not last layer,
+                return F.elu(result)
+            else:
+                # if this layer is last layer,
+                return result
+
+        def switch_device(self, device:str = 'cpu'):
+            self.factory_kwargs['device'] = device
+
     def __init__(self,
         d_model:int = None,
         n_hidden:int = 1,
@@ -670,18 +660,11 @@ class ModelvD(nn.Module):
     # train_loader = DataLoader(dataset[:10], batch_size = 2, shuffle = True)
     # sample = dataset[0]
     #
-    #
     # gatmodel = Model(
     #     d_model = 7, n_layer_set = 1, en_dim = 3, edge_dim = 4, device = 'cpu'
     # )
     #
     # for step, data, in enumerate(train_loader):
-    #     print(step, data)
-    #     x = data[0].x
-    #     ei = data[0].edge_index
-    #     ea = data[0].edge_attr
-    #     sample = Data(x = x, edge_index = ei, edge_attr = ea)
-    #     print(sample)
     #     result = gatmodel.model(data.x, data.edge_index, data.edge_attr)
     #     break
 
