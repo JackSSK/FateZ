@@ -67,11 +67,6 @@ def test_grn():
     for id, rec in toy_new.grps.items():
         print(rec.reg_source.symbol)
 
-# if __name__ == '__main__':
-#     make_template_grn()
-#     test_grn()
-
-
 
 
 class Faker(object):
@@ -95,9 +90,6 @@ class Faker(object):
             self.config = JSON.decode(resource_filename(__name__, path))
         else:
             self.config = model_config
-
-        n_features = self.config['input_sizes'][0][-1]
-
         self.n_sample = n_sample
         self.batch_size = batch_size
         self.simpler_samples = simpler_samples
@@ -118,9 +110,11 @@ class Faker(object):
             dtype = self.factory_kwargs['dtype']
             fea_m = torch.randn(self.config['input_sizes'][0][1:], dtype=dtype)
             adj_m = torch.randn(self.config['input_sizes'][1][1:], dtype=dtype)
+            # Zero all features if making simple samples
             if self.simpler_samples:
                 fea_m = fea_m * 0 + 1
                 adj_m = adj_m * 0 + 1
+            # Take last two features as testing features
             fea_m[-2:] *= 0
             adj_m[:,-2:] *= 0
             return fea_m, adj_m
@@ -218,11 +212,7 @@ class Faker(object):
         print(f'\tExplainer Green.\n')
         return gat_model
 
-    def test_full_model(self,
-        config:dict = None,
-        epoch:int = 50,
-        quiet:bool = True
-        ):
+    def test_full_model(self, config:dict=None, epoch:int=50, quiet:bool=True):
         """
         Function to test whether FateZ is performing properly or not.
 
