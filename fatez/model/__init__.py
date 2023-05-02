@@ -30,12 +30,8 @@ def Save(model, file_path:str = 'a.model', device:str = 'cpu',):
     :param device: device to load model
     """
     model_type = str(type(model))
-
     if (re.search(r'torch.nn.modules.', model_type) or
-        re.search(r'fatez.*.Model', model_type) or
-        re.search(r'fatez.model.bert.', model_type) or
-        re.search(r'fatez.model.gat.Sparse_Model', model_type) or
-        re.search(r'fatez.model.gat.GAT', model_type)
+        re.search(r'fatez.*.Model*', model_type)
         ):
         torch.save(model.cpu(), file_path)
     else:

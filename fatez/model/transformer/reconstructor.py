@@ -1,11 +1,9 @@
 #!/usr/bin/env python3
 """
-BERT modeling
+Reconstructor for BERT-based model.
 
 author: jy, nkmtmsys
 """
-
-import torch
 import torch.nn as nn
 import fatez.model.mlp as mlp
 import fatez.model.transformer as transformer
@@ -13,9 +11,9 @@ import fatez.model.position_embedder as pe
 
 
 
-class Pre_Train_Model(nn.Module):
+class Reconstructor(nn.Module):
     """
-    The model for pre-training process.
+    Reconstructor of Node feature matrix (and Adjacent matrix)
     """
     def __init__(self,
         rep_embedder = pe.Skip(),
@@ -27,6 +25,9 @@ class Pre_Train_Model(nn.Module):
         **kwargs
         ):
         """
+        :param rep_embedder: = position_embedder.Skip
+            Positional embedding method for GNN-encoded representations.
+
         :param encoder:transformer.Encoder = None
             The Encoder to build pre-train model with.
 
@@ -35,8 +36,12 @@ class Pre_Train_Model(nn.Module):
 
         :param n_dim_adj:int = None
             The output dimension for reconstructing adj mat.
+
+        :param train_adj:bool = False
+            Whether reconstructing adjacent matrices or not.
         """
-        super(Pre_Train_Model, self).__init__()
+        super(Reconstructor, self).__init__()
+        self.rep_embedder = rep_embedder
         self.encoder = encoder
         self.recon_node = mlp.Model(
             type = 'RECON',
@@ -56,8 +61,6 @@ class Pre_Train_Model(nn.Module):
                 dtype = dtype
             )
 
-        self.rep_embedder = rep_embedder
-
     def forward(self, input, mask = None):
         output = self.rep_embedder(input)
         embed_rep = self.encoder(output, mask)
@@ -69,33 +72,3 @@ class Pre_Train_Model(nn.Module):
             adj_mat = None
 
         return node_mat, adj_mat
-
-
-
-class Fine_Tune_Model(nn.Module):
-    """
-    The model for fine-tuning process.
-    """
-    def __init__(self,
-        rep_embedder = pe.Skip(),
-        encoder:transformer.Encoder = None,
-        classifier = None,
-        **kwargs
-        ):
-        """
-        :param encoder:transformer.Encoder = None
-            The Encoder to build fine-tune model with.
-
-        :param classifier = None
-            The classification model for making predictions.
-        """
-        super(Fine_Tune_Model, self).__init__()
-        self.encoder = encoder
-        self.classifier = classifier
-        self.rep_embedder = rep_embedder
-
-    def forward(self, input, mask = None):
-        output = self.rep_embedder(input)
-        output = self.encoder(output, mask)
-        output = self.classifier(output)
-        return output

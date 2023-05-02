@@ -1,24 +1,17 @@
 #!/usr/bin/env python3
 """
-This file contains Graph Convolutional Networks (GCN) related objects.
+A simple GCN using torch_geometric operator.
 
 author: jy
 """
-import re
-import numpy as np
 import torch
 import torch.nn as nn
 import torch_geometric.nn as gnn
-import torch.optim as optim
-import torch.nn.functional as F
-from collections import OrderedDict
-from torch_geometric.data import Data
-import fatez.lib as lib
-import fatez.model.gat as gat
+from fatez.model.gnn.gat import Model as Template
 
 
 
-class Model(gat.Module):
+class Model(Template):
     """
     A simple GCN using torch_geometric operator.
     """
@@ -73,9 +66,7 @@ class Model(gat.Module):
 
 
 
-
-
-if __name__ == '__main__':
+# if __name__ == '__main__':
     # from torch_geometric.datasets import TUDataset
     # dataset = TUDataset(root='/tmp/ENZYMES', name='ENZYMES')
     # data = dataset[0]

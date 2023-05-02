@@ -1,14 +1,8 @@
 #!/usr/bin/env python3
 """
-Modules for positional embedding.
-Both trainable and untrainable methods are here.
+Random Walk Positional Embedding
 
 author: jy
-
-ToDo:
-Randowm Walking PE not done yet.
-Pos Embed before GNN or after GNN not decided yet:
-    Current version embed after GNN since GNN should be pos sensitive
 """
 import torch
 import torch.nn as nn
@@ -16,59 +10,8 @@ import torch.nn as nn
 # import torch_geometric.utils as utils
 
 
-def Set(config:dict=None, input_sizes:list=None, factory_kwargs:dict=None):
-    """
-    Set up positional embedder based on given config.
-    """
-    if config['type'].upper() == 'SKIP':
-        return Skip()
-    elif config['type'].upper() == 'ABS':
-        return Absolute_Encode(**config['params'], **factory_kwargs)
-    elif config['type'] == 'ABS':
-        return
-    else:
-        raise model.Error(f'Unknown rep_embedder type')
 
-
-
-class Skip(nn.Module):
-    """
-    Skip positional encoding.
-    """
-    def __init__(self, **kwargs):
-        super(Skip, self).__init__()
-
-    def forward(self, input, **kwargs):
-        return input
-
-
-
-class Absolute_Encode(nn.Module):
-    """
-    Absolute positional encoding.
-    """
-    def __init__(self,
-        n_embed:int = None,
-        n_dim:int = None,
-        device:str = 'cpu',
-        dtype:type = torch.float32,
-        **kwargs
-        ):
-        super(Absolute_Encode, self).__init__()
-        self.encoder = nn.Embedding(
-            num_embeddings = n_embed,
-            embedding_dim = n_dim,
-            dtype = dtype
-        )
-        self.factory_kwargs = {'device': device, 'dtype': dtype,}
-
-    def forward(self, x, fea_ind:int = 1, **kwargs):
-        d = x.to_dense()
-        return d + self.encoder(torch.arange(d.shape[fea_ind], device=d.device))
-
-
-
-class RW_Encode(object):
+class Embedder(object):
     def __init__(self, dim, use_edge_attr=False, normalization=None, **kwargs):
         """
         Random walk PE from SAT. Not adjusted yet!
