@@ -22,7 +22,6 @@ class Pre_Train_Model(nn.Module):
         encoder:transformer.Encoder = None,
         n_dim_node:int = 2,
         n_dim_adj:int = None,
-        train_adj:bool = False,
         dtype:str = None,
         **kwargs
         ):
@@ -47,7 +46,7 @@ class Pre_Train_Model(nn.Module):
         )
         self.recon_adj = None
 
-        if train_adj:
+        if n_dim_adj != None:
             self.recon_adj = mlp.Model(
                 type = 'RECON',
                 d_model = self.encoder.d_model,
