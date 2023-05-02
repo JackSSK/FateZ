@@ -10,11 +10,11 @@ import torch.nn as nn
 import torch.optim as optim
 import pandas as pd
 import fatez.model as model
-import fatez.model.gat as gat
-import fatez.model.bert as bert
+import fatez.model.gnn as gnn
 import fatez.model.transformer as transformer
 import fatez.model.position_embedder as pe
 import fatez.lib as lib
+
 
 
 def Set(config:dict = None, factory_kwargs:dict = None, prev_model = None,):
@@ -24,7 +24,7 @@ def Set(config:dict = None, factory_kwargs:dict = None, prev_model = None,):
     if prev_model is None:
         return Trainer(
             input_sizes = config['input_sizes'],
-            gat = gat.Set(config['gnn'], config['input_sizes'], factory_kwargs),
+            gat = gnn.Set(config['gnn'], config['input_sizes'], factory_kwargs),
             encoder = transformer.Encoder(**config['encoder'],**factory_kwargs),
             graph_embedder = pe.Set(
                 config['graph_embedder'], config['input_sizes'], factory_kwargs
@@ -93,7 +93,7 @@ class Model(nn.Module):
         graph_embedder = None,
         gat = None,
         masker:Masker = Masker(ratio = 0.0),
-        bert_model:bert.Pre_Train_Model = None,
+        bert_model:transformer.Reconstructor = None,
         ):
         super(Model, self).__init__()
         self.graph_embedder = graph_embedder
@@ -165,7 +165,7 @@ class Trainer(object):
             gat = gat,
             masker = Masker(**masker_params),
             graph_embedder = graph_embedder,
-            bert_model = bert.Pre_Train_Model(
+            bert_model = transformer.Reconstructor(
                 encoder = encoder,
                 # Will need to take this away if embed before GAT.
                 rep_embedder = rep_embedder,

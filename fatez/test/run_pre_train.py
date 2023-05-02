@@ -11,8 +11,8 @@ import fatez.tool.JSON as JSON
 from fatez.tool import PreprocessIO
 from fatez.tool import model_training
 import fatez.model as model
-import fatez.model.gat as gat
-import fatez.model.bert as bert
+import fatez.model.gnn as gat
+import fatez.model.transformer as transformer
 import fatez.process.fine_tuner as fine_tuner
 import fatez.process.pre_trainer as pre_trainer
 from sklearn.model_selection import train_test_split
@@ -211,7 +211,7 @@ fine-tune traning
 # # You are making a new model with untraiend classficiation MLP
 # # So, even if you test it without save and load, it won't perform well.
 # # Go check line #228-230
-# test = bert.Fine_Tune_Model(test_model.bert_model.encoder, n_class = 2)
+# test = transformer.Classifier(test_model.bert_model.encoder, n_class = 2)
 # model.Save(test, data_save_dir+'bert_fine_tune.model')
 # """
 #

@@ -11,10 +11,9 @@ import pandas as pd
 from torchmetrics import AUROC
 import fatez.model as model
 import fatez.model.mlp as mlp
-import fatez.model.gat as gat
+import fatez.model.gnn as gnn
 import fatez.model.cnn as cnn
 import fatez.model.rnn as rnn
-import fatez.model.bert as bert
 import fatez.model.transformer as transformer
 import fatez.model.position_embedder as pe
 import fatez.model.criterion as crit
@@ -27,7 +26,7 @@ def Set(config:dict = None, factory_kwargs:dict = None, prev_model = None,):
     """
     if prev_model is None:
         return Tuner(
-            gat = gat.Set(config['gnn'], config['input_sizes'], factory_kwargs),
+            gat = gnn.Set(config['gnn'], config['input_sizes'], factory_kwargs),
             encoder = transformer.Encoder(**config['encoder'],**factory_kwargs),
             graph_embedder = pe.Set(
                 config['graph_embedder'], config['input_sizes'], factory_kwargs
@@ -58,7 +57,7 @@ class Model(nn.Module):
     def __init__(self,
         graph_embedder = None,
         gat = None,
-        bert_model:bert.Fine_Tune_Model = None,
+        bert_model:transformer.Classifier = None,
         **kwargs
         ):
         super(Model, self).__init__()
@@ -129,7 +128,7 @@ class Tuner(object):
         self.model = Model(
             gat = gat,
             graph_embedder = graph_embedder,
-            bert_model = bert.Fine_Tune_Model(
+            bert_model = transformer.Classifier(
                 encoder = encoder,
                 # Will need to take this away if embed before GAT.
                 rep_embedder = rep_embedder,

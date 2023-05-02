@@ -15,18 +15,22 @@ class FateZ_Dataset(Dataset):
     """
 	Basic Dataset object for DataLoader
 	"""
-    def __init__(self, samples, labels = None):
+    def __init__(self, samples,):
         self.samples = samples
-        if labels is not None:
-            self.labels = labels
-        elif re.search(r'torch_geometric.data', str(type(self.samples[0]))):
-            self.labels = [x.y for x in samples]
 
     def __len__(self):
         return len(self.samples)
 
     def __getitem__(self, idx):
-        return self.samples[idx], self.labels[idx]
+        shape = self.samples[idx].shape
+        if len(self.samples[idx].shape) == 2:
+            shape = (shape[0], shape[1], 1)
+        adj_mat = Adj_Mat(
+            indices = self.samples[idx].edge_index,
+            values = self.samples[idx].edge_attr,
+            shape = shape
+        ).sparse
+        return [self.samples[idx].x, adj_mat], self.samples[idx].y
 
 
 
@@ -38,13 +42,13 @@ class Adj_Mat(object):
         full_mat:torch.Tensor = None,
         indices:torch.Tensor = None,
         values:torch.Tensor = None,
-        size = None,
+        shape = None,
         sparse_dim:int = 2,
         **kwargs
         ):
         super(Adj_Mat, self).__init__()
         if full_mat is None:
-            self.sparse = torch.sparse_coo_tensor(indices, values, size)
+            self.sparse = torch.sparse_coo_tensor(indices, values, shape)
         elif str(full_mat.layout) == 'torch.strided':
             self.sparse = full_mat.to_sparse(sparse_dim = sparse_dim)
         elif str(full_mat.layout) == 'torch.sparse_coo':
@@ -75,4 +79,4 @@ class Adj_Mat(object):
 #
 #     edge_index = torch.tensor([[0, 1, 1,], [1, 0, 2,]], dtype = torch.long)
 #     edge_weight = torch.tensor([[-1], [2], [1]], dtype=torch.float)
-#     adj_mat = Adj_Mat(indices=edge_index, values=edge_weight, size=(2,3,1))
+#     adj_mat = Adj_Mat(indices=edge_index, values=edge_weight, shape=(2,3,1))
