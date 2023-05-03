@@ -17,7 +17,7 @@
         "params": {
             "d_model": 2,
             "en_dim": 32,
-            "n_hidden": 2,
+            "n_hidden": 16,
             "n_layer_set": 1,
             "nhead": 2
         }

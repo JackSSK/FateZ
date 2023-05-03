@@ -15,7 +15,7 @@ class FateZ_Dataset(Dataset):
     """
 	Basic Dataset object for DataLoader
 	"""
-    def __init__(self, samples,):
+    def __init__(self, samples, **kwargs):
         self.samples = samples
 
     def __len__(self):

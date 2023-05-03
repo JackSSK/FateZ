@@ -13,6 +13,7 @@ loss we can backward
 
 author: jy
 """
+import torch
 from fatez.model.criterion.accuracy import Accuracy
 from fatez.model.criterion.auroc import AUROC
 from fatez.model.criterion.f1 import F1_Score
@@ -47,6 +48,7 @@ def preds_to_scores(preds, scores, device = None):
 
 
 # if __name__ == '__main__':
+#     import torch.nn as nn
 #     # Multiclass case
 #     n_sample = 4
 #     n_dim = 8
