@@ -26,6 +26,7 @@ def Set(config:dict = None, factory_kwargs:dict = None, prev_model = None,):
     """
     if prev_model is None:
         return Tuner(
+            input_sizes = config['input_sizes'],
             gat = gnn.Set(config['gnn'], config['input_sizes'], factory_kwargs),
             encoder = transformer.Encoder(**config['encoder'],**factory_kwargs),
             graph_embedder = pe.Set(
@@ -39,6 +40,7 @@ def Set(config:dict = None, factory_kwargs:dict = None, prev_model = None,):
         )
     else:
         return Tuner(
+            input_sizes = prev_model.input_sizes,
             gat = prev_model.gat,
             encoder = prev_model.bert_model.encoder,
             graph_embedder = prev_model.graph_embedder,
@@ -91,6 +93,8 @@ class Tuner(object):
     The fine-tune processing module.
     """
     def __init__(self,
+        input_sizes:list = None,
+
         # Models to take
         gat = None,
         encoder:transformer.Encoder = None,
@@ -121,8 +125,10 @@ class Tuner(object):
         # factory_kwargs
         device:str = 'cpu',
         dtype:str = None,
+        **kwargs
         ):
         super(Tuner, self).__init__()
+        self.input_sizes = input_sizes
         self.factory_kwargs = {'device': device, 'dtype': dtype}
         self.n_class = n_class
         self.model = Model(

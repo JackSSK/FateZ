@@ -37,7 +37,7 @@ def Set(config:dict = None, factory_kwargs:dict = None, prev_model = None,):
         )
     else:
         return Trainer(
-            input_sizes = config['input_sizes'],
+            input_sizes = prev_model.input_sizes,
             gat = prev_model.gat,
             encoder = prev_model.bert_model.encoder,
             graph_embedder = prev_model.graph_embedder,
@@ -129,8 +129,9 @@ class Trainer(object):
     The pre-train processing module.
     """
     def __init__(self,
-        # Models to take
         input_sizes:list = None,
+
+        # Models to take
         gat = None,
         encoder:transformer.Encoder = None,
         masker_params:dict = {'ratio': 0.15},
@@ -157,6 +158,7 @@ class Trainer(object):
         # factory_kwargs
         device:str = 'cpu',
         dtype:str = None,
+        **kwargs
         ):
         super(Trainer, self).__init__()
         self.input_sizes = input_sizes
@@ -175,6 +177,7 @@ class Trainer(object):
                 **self.factory_kwargs,
             ),
         )
+        self.model = torch.compile(self.model)
 
         # Setting the Adam optimizer with hyper-param
         self.optimizer = optim.AdamW(

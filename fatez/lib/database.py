@@ -22,15 +22,12 @@ class FateZ_Dataset(Dataset):
         return len(self.samples)
 
     def __getitem__(self, idx):
+        sample = self.samples[idx]
         shape = self.samples[idx].shape
         if len(self.samples[idx].shape) == 2:
             shape = (shape[0], shape[1], 1)
-        adj_mat = Adj_Mat(
-            indices = self.samples[idx].edge_index,
-            values = self.samples[idx].edge_attr,
-            shape = shape
-        ).sparse
-        return [self.samples[idx].x, adj_mat], self.samples[idx].y
+        data = [sample.x, sample.edge_index, sample.edge_attr, shape]
+        return data, sample.y
 
 
 
