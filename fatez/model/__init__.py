@@ -31,7 +31,9 @@ def Save(model, file_path:str = 'a.model', device:str = 'cpu',):
     """
     model_type = str(type(model))
     if (re.search(r'torch.nn.modules.', model_type) or
-        re.search(r'fatez.*.Model*', model_type)
+        re.search(r'fatez.*.Model*', model_type) or
+        re.search(r'fatez.*.Trainer*', model_type) or
+        re.search(r'fatez.*.Tuner*', model_type)
         ):
         torch.save(model.cpu(), file_path)
     else:
