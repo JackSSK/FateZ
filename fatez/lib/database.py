@@ -23,10 +23,7 @@ class FateZ_Dataset(Dataset):
 
     def __getitem__(self, idx):
         sample = self.samples[idx]
-        shape = self.samples[idx].shape
-        if len(self.samples[idx].shape) == 2:
-            shape = (shape[0], shape[1], 1)
-        data = [sample.x, sample.edge_index, sample.edge_attr, shape]
+        data = [sample.x, sample.edge_index, sample.edge_attr]
         return data, sample.y
 
 

@@ -19,7 +19,7 @@ class Model(nn.Module):
     A simple GAT using torch_geometric operator.
     """
     def __init__(self,
-        d_model:int = -1,
+        input_size:dict = None,
         n_hidden:int = 3,
         en_dim:int = 2,
         nhead:int = 1,
@@ -31,8 +31,8 @@ class Model(nn.Module):
         **kwargs
         ):
         """
-        :param d_model:int = None
-            Number of each gene's input features.
+        :param input_size:dict = None
+            Key dimensions indicating shapes of input matrices.
 
         :param n_hidden:int = None
             Number of hidden units.
@@ -60,7 +60,7 @@ class Model(nn.Module):
             Note: torch default using float32, numpy default using float64
         """
         super().__init__()
-        self.d_model = d_model
+        self.input_size = input_size
         self.en_dim = en_dim
         self.n_layer_set = n_layer_set
         self.factory_kwargs = {'device': device, 'dtype': dtype}
@@ -71,7 +71,7 @@ class Model(nn.Module):
 
         if self.n_layer_set == 1:
             layer = gnn.GATConv(
-                in_channels = d_model,
+                in_channels = self.input_size['node_attr'],
                 out_channels = en_dim,
                 heads = nhead,
                 dropout = dropout,
@@ -82,7 +82,7 @@ class Model(nn.Module):
 
         elif self.n_layer_set > 1:
             layer = gnn.GATConv(
-                in_channels = d_model,
+                in_channels = self.input_size['node_attr'],
                 out_channels = n_hidden,
                 heads = nhead,
                 dropout = dropout,
@@ -122,15 +122,16 @@ class Model(nn.Module):
         self.model = gnn.Sequential('x, edge_index, edge_attr', model)
         self.model = self.model.to(self.factory_kwargs['device'])
 
-    def forward(self, fea_mats, adj_mats):
+    def forward(self, fea_mats, edge_indices, edge_attrs):
         answer = list()
-        assert len(fea_mats) == len(adj_mats)
         # Process batch data
         for i in range(len(fea_mats)):
-            x = fea_mats[i].to(self.factory_kwargs['device'])
-            adj = adj_mats[i].to(self.factory_kwargs['device'])
-            edge_index, edge_weight = self._get_index_weight(adj)
-            rep = self.model(x, edge_index, edge_weight)
+            rep = self.model(
+                fea_mats[i].to(self.factory_kwargs['device']),
+                edge_indices[i].to(self.factory_kwargs['device']),
+                edge_attrs[i].to(self.factory_kwargs['device']),
+            )
+            print(rep)
             # Only taking regulon representations
             rep = self._get_regulon_exp(rep, adj)
             answer.append(rep[:adj.shape[0],:])
@@ -160,8 +161,8 @@ class Model(nn.Module):
             if isinstance(module, MessagePassing):
                 hook_handles.append(module.register_message_forward_hook(hook))
         # Feed data in to the model.
-        edge_index, edge_weight = self._get_index_weight(adj_mat)
-        rep = self.model(fea_mat, edge_index, edge_weight)
+        edge_index, edge_attr = self._get_index_weight(adj_mat)
+        rep = self.model(fea_mat, edge_index, edge_attr)
         # Remove all the hooks
         del hook_handles
 

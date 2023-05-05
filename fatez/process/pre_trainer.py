@@ -103,7 +103,7 @@ class Model(nn.Module):
 
 
     def forward(self, fea_mats, adj_mats,):
-        output = self.graph_embedder(fea_mats, adj = adj_mats)
+        output = self.graph_embedder(fea_mats, edge_index = edge_index, edge_attr = edge_attr)
         output = self.gat(output, adj_mats)
         output = self.masker.mask(output,)
         output = self.bert_model(output,)
