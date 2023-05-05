@@ -35,7 +35,7 @@ def Save(model, file_path:str = 'a.model', device:str = 'cpu',):
         re.search(r'fatez.*.Trainer*', model_type) or
         re.search(r'fatez.*.Tuner*', model_type)
         ):
-        torch.save(model.to('cpu'), file_path)
+        torch.save(model.cpu(), file_path)
     else:
         raise Error('Not Supporting Save ' + model_type)
     return model.to(device)
