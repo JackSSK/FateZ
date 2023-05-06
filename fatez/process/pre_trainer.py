@@ -102,9 +102,13 @@ class Model(nn.Module):
         self.masker = masker
 
 
-    def forward(self, fea_mats, adj_mats,):
-        output = self.graph_embedder(fea_mats, edge_index = edge_index, edge_attr = edge_attr)
-        output = self.gat(output, adj_mats)
+    def forward(self, fea_mats, edge_index, edge_attr):
+        output = self.graph_embedder(
+            fea_mats,
+            edge_index = edge_index,
+            edge_attr = edge_attr
+        )
+        output = self.gat(output, edge_index, edge_attr)
         output = self.masker.mask(output,)
         output = self.bert_model(output,)
         return output
@@ -171,13 +175,12 @@ class Trainer(object):
                 encoder = encoder,
                 # Will need to take this away if embed before GAT.
                 rep_embedder = rep_embedder,
-                n_dim_node = self.input_sizes[0][-1],
-                n_dim_adj = self.input_sizes[1][-1],
+                mat_sizes = self.input_sizes,
                 train_adj = train_adj,
                 **self.factory_kwargs,
             ),
         )
-        self.model = torch.compile(self.model)
+        # self.model = torch.compile(self.model)
 
         # Setting the Adam optimizer with hyper-param
         self.optimizer = optim.AdamW(
@@ -221,21 +224,21 @@ class Trainer(object):
 
         for x, _ in data_loader:
             node_fea_mat = x[0].to(self.factory_kwargs['device'])
-            adj_mat = x[1].to(self.factory_kwargs['device'])
-            output_node, output_adj = self.model(node_fea_mat, adj_mat)
+            edge_index = x[1].to(self.factory_kwargs['device'])
+            edge_attr = x[2].to(self.factory_kwargs['device'])
+            node_rec, adj_rec = self.model(node_fea_mat, edge_index, edge_attr)
 
             # Get total loss
             node_fea_mat = node_fea_mat.to_dense()
-            loss_node = self.criterion(
-                output_node,
-                torch.split(node_fea_mat, output_node.shape[1], dim = 1)[0]
+            loss = self.criterion(
+                node_rec,
+                torch.split(node_fea_mat, node_rec.shape[1], dim = 1)[0]
             )
-            if output_adj != None:
-                adj_mat = lib.Adj_Mat(adj_mat).to_dense()
-                loss_adj = self.criterion(output_adj, adj_mat)
-                loss = loss_node + loss_adj
-            else:
-                loss = loss_node
+            if adj_rec is not None:
+                loss += self.criterion(
+                    adj_rec,
+                    lib.Adj_Mat(edge_index, edge_attr).to_dense()
+                )
 
             loss.backward()
             nn.utils.clip_grad_norm_(self.model.parameters(), self.max_norm)

@@ -65,9 +65,15 @@ class Faker(object):
         samples = list()
 
         def rand_sample():
-            dtype = self.factory_kwargs['dtype']
-            fea_m = torch.randn(self.config['input_sizes'][0][1:], dtype=dtype)
-            adj_m = torch.randn(self.config['input_sizes'][1][1:], dtype=dtype)
+            sz = self.config['input_sizes']
+            fea_m = torch.randn(
+                (sz['n_node'], sz['node_attr']),
+                dtype = self.factory_kwargs['dtype']
+            )
+            adj_m = torch.randn(
+                (sz['n_reg'], sz['n_node'], sz['edge_attr']),
+                dtype = self.factory_kwargs['dtype']
+            )
             # Zero all features if making simple samples
             if self.simpler_samples:
                 fea_m = fea_m * 0 + 1

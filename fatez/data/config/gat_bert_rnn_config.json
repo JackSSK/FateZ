@@ -3,7 +3,7 @@
         "n_reg": 4,
         "n_node": 10,
         "node_attr": 2,
-        "edge_attr": 1,
+        "edge_attr": 1
     },
     "graph_embedder": {
         "type": "abs",

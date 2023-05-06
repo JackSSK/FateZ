@@ -19,7 +19,7 @@ class Model(nn.Module):
     A simple GAT using torch_geometric operator.
     """
     def __init__(self,
-        input_size:dict = None,
+        input_sizes:dict = None,
         n_hidden:int = 3,
         en_dim:int = 2,
         nhead:int = 1,
@@ -31,7 +31,7 @@ class Model(nn.Module):
         **kwargs
         ):
         """
-        :param input_size:dict = None
+        :param input_sizes:dict = None
             Key dimensions indicating shapes of input matrices.
 
         :param n_hidden:int = None
@@ -60,7 +60,7 @@ class Model(nn.Module):
             Note: torch default using float32, numpy default using float64
         """
         super().__init__()
-        self.input_size = input_size
+        self.input_sizes = input_sizes
         self.en_dim = en_dim
         self.n_layer_set = n_layer_set
         self.factory_kwargs = {'device': device, 'dtype': dtype}
@@ -71,7 +71,7 @@ class Model(nn.Module):
 
         if self.n_layer_set == 1:
             layer = gnn.GATConv(
-                in_channels = self.input_size['node_attr'],
+                in_channels = self.input_sizes['node_attr'],
                 out_channels = en_dim,
                 heads = nhead,
                 dropout = dropout,
@@ -82,7 +82,7 @@ class Model(nn.Module):
 
         elif self.n_layer_set > 1:
             layer = gnn.GATConv(
-                in_channels = self.input_size['node_attr'],
+                in_channels = self.input_sizes['node_attr'],
                 out_channels = n_hidden,
                 heads = nhead,
                 dropout = dropout,
@@ -131,12 +131,9 @@ class Model(nn.Module):
                 edge_indices[i].to(self.factory_kwargs['device']),
                 edge_attrs[i].to(self.factory_kwargs['device']),
             )
-            print(rep)
             # Only taking regulon representations
-            rep = self._get_regulon_exp(rep, adj)
-            answer.append(rep[:adj.shape[0],:])
-        answer = torch.stack(answer, 0)
-        return answer
+            answer.append(self._get_regulon_exp(rep, edge_indices[i]))
+        return torch.stack(answer, 0)
 
     def explain(self, fea_mat, adj_mat, reduce = 'sum'):
         """
@@ -208,19 +205,23 @@ class Model(nn.Module):
         x = lib.Adj_Mat(adj_mat.to(self.factory_kwargs['device']))
         return x.get_index_value()
 
-    def _get_regulon_exp(self, rep, adj_mat):
+    def _get_regulon_exp(self, rep, edge_index):
         """
-        ToDo: Use Adj mat to pool(?) node reps to generate regulon reps
+        Make regulon representations according to node reps and adjacent matrix.
         """
-        pooling_data = list()
         device = self.factory_kwargs['device']
         # Get pooling data based on adj mat
-        for i in range(len(adj_mat)):
+        iter = 0
+        pooling_data = list()
+        for i in range(self.input_sizes['n_reg']):
             batch = torch.zeros(len(rep), dtype=torch.int64).to(device)
-            for ind,x in enumerate(adj_mat[i]): batch[ind] += int(x!=0)
+            while iter < len(edge_index[0]) and edge_index[0][iter] <= i:
+                if edge_index[0][iter] == i:
+                    batch[edge_index[1][iter]] += 1
+                iter += 1
             pooling_data.append(gnn.pool.global_add_pool(rep, batch = batch)[1])
         # Product pooling data to according node(TF) representations
-        answer = rep[:len(adj_mat),:]
+        answer = rep[:self.input_sizes['n_reg'],:]
         assert len(answer) == len(pooling_data)
         for i,data in enumerate(pooling_data):
             answer[i] *= data

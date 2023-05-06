@@ -15,7 +15,7 @@ class Model(Template):
     GAT version 2 implemented with PyG.
     """
     def __init__(self,
-        d_model:int = -1,
+        input_sizes:dict = None,
         n_hidden:int = 3,
         en_dim:int = 2,
         nhead:int = 1,
