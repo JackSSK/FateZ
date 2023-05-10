@@ -23,6 +23,7 @@ import fatez.tool.transfac as transfac
 import fatez.lib.template_grn as tgrn
 import fatez.process.grn_reconstructor as grn_recon
 import warnings
+import concurrent.futures
 from sklearn.preprocessing import MinMaxScaler
 
 
@@ -378,13 +379,44 @@ class Preprocessor():
                             cur_index -= 1
                             break
         self.peak_annotations = grn_recon.Reverse_Peaks_Ann(annotations)
-    def generate_feature_mt(self):
+
+    def generate_feature_mt(self,ncores = 1):
+        if ncores > 1:
+            if ncores <= len(self.rna_mt.obs.index):
+                cell_index = np.around(np.linspace(0, len(self.rna_mt.obs.index)+1,
+                                      num=ncores))
+                start1 = np.delete(cell_index, -1)
+                end1 = np.delete(cell_index, 0)
+                input_index = []
+                for i in range(len(start1)):
+                    input_index.append(str(int(start1[i]))+'-'+str(int(end1[i])))
+                print(input_index)
+                with concurrent.futures.ThreadPoolExecutor(
+                        max_workers=ncores) as executor:
+
+                    futures = [executor.submit(self.__generate_feature_mt, n)
+                               for n in input_index]
+                    results = {}
+                    for future in concurrent.futures.as_completed(futures):
+                        result = future.result()
+                        results.update(result)
+            else:
+                print('core number is larger than cell number')
+        else:
+            input_idx = '0-'+ str(len(self.rna_mt.obs.index))
+            results = self.__generate_feature_mt(input_idx)
+
+        return results
+    def __generate_feature_mt(self,cell_use_idx):
 
         fea_mt_dict = {}
         gff_gene = np.array(list(self.peak_annotations.keys()))
         rna_gene = list(self.rna_mt.var.index)
+        start1 = int(cell_use_idx.split('-')[0])
+        end1 = int(cell_use_idx.split('-')[1])
+        cell_use = list(self.rna_mt.obs.index)[start1:end1]
         atac_count = self.atac_mt.X.todense()
-        for cell in list(self.rna_mt.obs.index):
+        for cell in cell_use:
 
             fea_mt = pd.DataFrame(
                 {
