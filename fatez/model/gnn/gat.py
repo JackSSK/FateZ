@@ -202,8 +202,7 @@ class Model(nn.Module):
         """
         Make edge index and edge weight matrices based on given adjacent matrix.
         """
-        x = lib.Adj_Mat(adj_mat.to(self.factory_kwargs['device']))
-        return x.get_index_value()
+        return lib.Adj_Mat(adj_mat.to(self.factory_kwargs['device'])).unpack()
 
     def _get_regulon_exp(self, rep, edge_index):
         """

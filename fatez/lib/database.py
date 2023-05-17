@@ -34,22 +34,24 @@ class Adj_Mat(object):
     """
     def __init__(self,
         full_mat:torch.Tensor = None,
-        indices:torch.Tensor = None,
-        values:torch.Tensor = None,
-        shape = None,
+        ind:torch.Tensor = None,
+        val:torch.Tensor = None,
+        size = None,
         sparse_dim:int = 2,
         **kwargs
         ):
         super(Adj_Mat, self).__init__()
-        if full_mat is None:
-            self.sparse = torch.sparse_coo_tensor(indices, values, shape)
+        if full_mat is None and len(ind.shape) == 3:
+            t=[torch.sparse_coo_tensor(ind[i],v,size) for i,v in enumerate(val)]
+            self.sparse = torch.stack(t, 0).coalesce()
+        elif full_mat is None and len(ind.shape) == 2:
+            self.sparse =torch.sparse_coo_tensor(ind, val, size).coalesce()
         elif str(full_mat.layout) == 'torch.strided':
-            self.sparse = full_mat.to_sparse(sparse_dim = sparse_dim)
+            self.sparse = full_mat.to_sparse(sparse_dim = sparse_dim).coalesce()
         elif str(full_mat.layout) == 'torch.sparse_coo':
-            self.sparse = full_mat
-        self.sparse = self.sparse.coalesce()
+            self.sparse = full_mat.coalesce()
 
-    def get_index_value(self,):
+    def unpack(self,):
         indices = self.sparse.indices()
         values = self.sparse.values()
         # Reshape value matrix if edges only have single features

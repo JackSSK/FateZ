@@ -37,7 +37,7 @@ def Set(config:dict = None, factory_kwargs:dict = None, prev_model = None,):
         )
     else:
         return Trainer(
-            input_sizes = prev_model.input_sizes,
+            input_sizes = config['input_sizes'],
             gat = prev_model.gat,
             encoder = prev_model.bert_model.encoder,
             graph_embedder = prev_model.graph_embedder,
@@ -235,9 +235,14 @@ class Trainer(object):
                 torch.split(node_fea_mat, node_rec.shape[1], dim = 1)[0]
             )
             if adj_rec is not None:
+                size = self.input_sizes
                 loss += self.criterion(
                     adj_rec,
-                    lib.Adj_Mat(edge_index, edge_attr).to_dense()
+                    lib.Adj_Mat(
+                        ind = edge_index,
+                        val = edge_attr,
+                        size = (size['n_reg'],size['n_node'],size['edge_attr'])
+                    ).to_dense()
                 )
 
             loss.backward()

@@ -84,7 +84,7 @@ class Faker(object):
             return fea_m, adj_m
 
         def append_sample(samples, fea_m, adj_m, label):
-            inds, attrs = lib.Adj_Mat(adj_m).get_index_value()
+            inds, attrs = lib.Adj_Mat(adj_m).unpack()
             samples.append(
                 pyg_d.Data(
                     x = fea_m.to_sparse(),
