@@ -87,7 +87,7 @@ class Faker(object):
             inds, attrs = lib.Adj_Mat(adj_m).unpack()
             samples.append(
                 pyg_d.Data(
-                    x = fea_m.to_sparse(),
+                    x = fea_m,
                     edge_index = inds,
                     edge_attr = attrs,
                     y = label,
@@ -137,7 +137,7 @@ class Faker(object):
         # print(f"{first_size=}, {first_peak=}")
 
         if config is None: config = self.config
-        graph_embedder = pe.Skip()
+        # graph_embedder = pe.Skip()
         gat_model = gnn.Set(
             config['gnn'],
             config['input_sizes'],
@@ -154,17 +154,15 @@ class Faker(object):
         # criterion = crit.Accuracy(requires_grad = True)
 
         # Using data loader to train
-        for input, label in data_loader:
-            output = graph_embedder(input[0], adj = input[1])
-            out_gat = gat_model(output, input[1])
+        for x,y in data_loader:
+            out_gat = gat_model(x[0], x[1], x[2])
             output = decision(out_gat)
-            loss = criterion(output, label.to(device))
+            loss = criterion(output, y.to(device))
             loss.backward()
         print(f'\tGAT Green.\n')
 
         gat_explain = gat_model.explain(
-            graph_embedder(input[0][0].to(device), adj=input[1][0].to(device)),
-            input[1][0].to(device)
+            x[0][-1].to(device), x[1][-1].to(device), x[2][-1].to(device)
         )
         # print(gat_explain)
         explain = shap.GradientExplainer(decision, out_gat)
@@ -216,25 +214,28 @@ class Faker(object):
 
         # Test explain
         suppressor.on()
-        adj_explain = torch.zeros(self.config['input_sizes'][1][1:])
-        node_explain = torch.zeros(self.config['input_sizes'][0][1:])
-
+        size = self.config['input_sizes']
+        adj_explain = torch.zeros((size['n_reg'], size['n_node']))
+        node_explain = torch.zeros((size['n_node'], size['node_attr']))
+        # Make background data
         bg_data = DataLoader(data_loader.dataset, batch_size = self.n_sample)
         bg_data = [a for a, _ in bg_data][0]
         bg_data = [a.to(self.factory_kwargs['device']) for a in bg_data]
-        explain = explainer.Gradient(tuner.model, bg_data)
-        # explain = shap.GradientExplainer(tuner.model, bg_data)
+        # Set explainer
+        explain = shap.GradientExplainer(tuner.model, bg_data)
+        # explain = explainer.Gradient(tuner.model, bg_data)
 
         for x, y in data_loader:
             # Explain GAT to obtain adj explanations
             for i in range(len(x[0])):
-                adj_explain+=tuner.model.gat.explain(
+                adj_explain += tuner.model.gat.explain(
                     x[0][i].to(self.factory_kwargs['device']),
                     x[1][i].to(self.factory_kwargs['device']),
+                    x[2][i].to(self.factory_kwargs['device']),
                 ).to('cpu')
 
             node_exp, vars = explain.shap_values(
-                [i.to(self.factory_kwargs['device']).to_dense() for i in x],
+                [i.to(self.factory_kwargs['device']) for i in x],
                 return_variances = True
             )
             for exp in node_exp[0][0]: node_explain += abs(exp)

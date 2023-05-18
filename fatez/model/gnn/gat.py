@@ -135,7 +135,7 @@ class Model(nn.Module):
             answer.append(self._get_regulon_exp(rep, edge_indices[i]))
         return torch.stack(answer, 0)
 
-    def explain(self, fea_mat, adj_mat, reduce = 'sum'):
+    def explain(self, fea_mat, edge_index, edge_attr, reduce = 'sum'):
         """
         This function will very likely be revised due to developmental stage of
         torch_geometric.
@@ -158,7 +158,6 @@ class Model(nn.Module):
             if isinstance(module, MessagePassing):
                 hook_handles.append(module.register_message_forward_hook(hook))
         # Feed data in to the model.
-        edge_index, edge_attr = self._get_index_weight(adj_mat)
         rep = self.model(fea_mat, edge_index, edge_attr)
         # Remove all the hooks
         del hook_handles
@@ -188,9 +187,9 @@ class Model(nn.Module):
             alpha = alphas[0]
 
         return lib.Adj_Mat(
-            indices = edge_index,
-            values = F.softmax(alpha.detach().squeeze(-1), dim=-1),
-            shape = adj_mat.shape[:2]
+            ind = edge_index,
+            val = F.softmax(alpha.detach().squeeze(-1), dim = -1),
+            size = (self.input_sizes['n_reg'], self.input_sizes['n_node']),
         ).to_dense()
 
     def switch_device(self, device = 'cpu'):
