@@ -113,13 +113,13 @@ class Model(nn.Module):
         output = self.bert_model(output,)
         return output
 
-    def get_gat_output(self, fea_mats, adj_mats,):
+    def get_gat_output(self, fea_mats, edge_index, edge_attr,):
         with torch.no_grad():
             output = self.graph_embedder.eval()(fea_mats, adj = adj_mats)
             output = self.gat.eval()(output, adj_mats)
         return output
 
-    def get_encoder_output(self, fea_mats, adj_mats,):
+    def get_encoder_output(self, fea_mats, edge_index, edge_attr,):
         with torch.no_grad():
             output = self.graph_embedder.eval()(fea_mats, adj = adj_mats)
             output = self.gat.eval()(output, adj_mats)

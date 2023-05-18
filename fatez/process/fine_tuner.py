@@ -67,19 +67,23 @@ class Model(nn.Module):
         self.gat = gat
         self.bert_model = bert_model
 
-    def forward(self, fea_mats, adj_mats):
-        output = self.graph_embedder(fea_mats, adj = adj_mats)
-        output = self.gat(output, adj_mats)
-        output = self.bert_model(output)
+    def forward(self, fea_mats, edge_index, edge_attr):
+        output = self.graph_embedder(
+            fea_mats,
+            edge_index = edge_index,
+            edge_attr = edge_attr
+        )
+        output = self.gat(output, edge_index, edge_attr)
+        output = self.bert_model(output, )
         return output
 
-    def get_gat_output(self, fea_mats, adj_mats,):
+    def get_gat_output(self, fea_mats, edge_index, edge_attr,):
         with torch.no_grad():
             output = self.graph_embedder.eval()(fea_mats, adj = adj_mats)
             output = self.gat.eval()(output, adj_mats)
         return output
 
-    def get_encoder_output(self, fea_mats, adj_mats,):
+    def get_encoder_output(self, fea_mats, edge_index, edge_attr,):
         with torch.no_grad():
             output = self.graph_embedder.eval()(fea_mats, adj = adj_mats)
             output = self.gat.eval()(output, adj_mats)
@@ -198,13 +202,10 @@ class Tuner(object):
 
         for x,y in data_loader:
             node_fea_mat = x[0].to(self.factory_kwargs['device'])
-            adj_mat = x[1].to(self.factory_kwargs['device'])
+            edge_index = x[1].to(self.factory_kwargs['device'])
+            edge_attr = x[2].to(self.factory_kwargs['device'])
             y = y.to(self.factory_kwargs['device'])
-            output = self.model(node_fea_mat, adj_mat)
-            # if save_gat_out:
-            #     out_gat = self.model.get_gat_output(node_fea_mat, adj_mat)
-            #     for ele in out_gat.detach().tolist():
-            #         out_gat_data.append(ele)
+            output = self.model(node_fea_mat, edge_index, edge_attr)
             loss = self.criterion(output, y)
             loss.backward()
             nn.utils.clip_grad_norm_(self.model.parameters(), self.max_norm)
@@ -235,11 +236,11 @@ class Tuner(object):
         auroc = AUROC("multiclass", num_classes = self.n_class)
         with torch.no_grad():
             for x, y in data_loader:
+                node_fea_mat = x[0].to(self.factory_kwargs['device'])
+                edge_index = x[1].to(self.factory_kwargs['device'])
+                edge_attr = x[2].to(self.factory_kwargs['device'])
                 y = y.to(self.factory_kwargs['device'])
-                output = self.model(
-                    x[0].to(self.factory_kwargs['device']),
-                    x[1].to(self.factory_kwargs['device'])
-                )
+                output = self.model(node_fea_mat, edge_index, edge_attr)
 
                 # Batch specific
                 loss = self.criterion(output, y).item()
