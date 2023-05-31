@@ -115,14 +115,18 @@ class Model(nn.Module):
 
     def get_gat_output(self, fea_mats, edge_index, edge_attr,):
         with torch.no_grad():
-            output = self.graph_embedder.eval()(fea_mats, adj = adj_mats)
-            output = self.gat.eval()(output, adj_mats)
+            output = self.graph_embedder.eval()(
+                fea_mats, edge_index = edge_index, edge_attr = edge_attr
+            )
+            output = self.gat.eval()(output, edge_index, edge_attr)
         return output
 
     def get_encoder_output(self, fea_mats, edge_index, edge_attr,):
         with torch.no_grad():
-            output = self.graph_embedder.eval()(fea_mats, adj = adj_mats)
-            output = self.gat.eval()(output, adj_mats)
+            output = self.graph_embedder.eval()(
+                fea_mats, edge_index = edge_index, edge_attr = edge_attr
+            )
+            output = self.gat.eval()(output, edge_index, edge_attr)
             output = self.bert_model.encoder.eval()(output)
         return output
 
@@ -229,20 +233,18 @@ class Trainer(object):
             node_rec, adj_rec = self.model(node_fea_mat, edge_index, edge_attr)
 
             # Get total loss
-            node_fea_mat = node_fea_mat.to_dense()
             loss = self.criterion(
-                node_rec,
-                torch.split(node_fea_mat, node_rec.shape[1], dim = 1)[0]
+                node_rec, torch.split(node_fea_mat, node_rec.shape[1], dim=1)[0]
             )
             if adj_rec is not None:
                 size = self.input_sizes
                 loss += self.criterion(
                     adj_rec,
-                    lib.Adj_Mat(
-                        ind = edge_index,
-                        val = edge_attr,
-                        size = (size['n_reg'],size['n_node'],size['edge_attr'])
-                    ).to_dense()
+                    lib.get_dense(
+                        edge_index,
+                        edge_attr,
+                        (size['n_reg'],size['n_node'],size['edge_attr'])
+                    )
                 )
 
             loss.backward()

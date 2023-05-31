@@ -69,9 +69,7 @@ class Model(nn.Module):
 
     def forward(self, fea_mats, edge_index, edge_attr):
         output = self.graph_embedder(
-            fea_mats,
-            edge_index = edge_index,
-            edge_attr = edge_attr
+            fea_mats, edge_index = edge_index, edge_attr = edge_attr
         )
         output = self.gat(output, edge_index, edge_attr)
         output = self.bert_model(output, )
@@ -79,14 +77,18 @@ class Model(nn.Module):
 
     def get_gat_output(self, fea_mats, edge_index, edge_attr,):
         with torch.no_grad():
-            output = self.graph_embedder.eval()(fea_mats, adj = adj_mats)
-            output = self.gat.eval()(output, adj_mats)
+            output = self.graph_embedder.eval()(
+                fea_mats, edge_index = edge_index, edge_attr = edge_attr
+            )
+            output = self.gat.eval()(output, edge_index, edge_attr)
         return output
 
     def get_encoder_output(self, fea_mats, edge_index, edge_attr,):
         with torch.no_grad():
-            output = self.graph_embedder.eval()(fea_mats, adj = adj_mats)
-            output = self.gat.eval()(output, adj_mats)
+            output = self.graph_embedder.eval()(
+                fea_mats, edge_index = edge_index, edge_attr = edge_attr
+            )
+            output = self.gat.eval()(output, edge_index, edge_attr)
             output = self.bert_model.encoder.eval()(output)
         return output
 

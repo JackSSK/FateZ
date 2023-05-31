@@ -26,8 +26,6 @@ class Model(nn.Module):
         concat:bool = False,
         dropout:float = 0.0,
         n_layer_set:int = 1,
-        device:str = 'cpu',
-        dtype:str = None,
         **kwargs
         ):
         """
@@ -54,16 +52,11 @@ class Model(nn.Module):
 
         :param alpha:float = 0.2
             Alpha value for the LeakyRelu layer.
-
-        :param dtype:str = None
-            The dtype of values in matrices.
-            Note: torch default using float32, numpy default using float64
         """
         super().__init__()
         self.input_sizes = input_sizes
         self.en_dim = en_dim
         self.n_layer_set = n_layer_set
-        self.factory_kwargs = {'device': device, 'dtype': dtype}
 
         model = list()
         # May take dropout layer out later
@@ -120,17 +113,12 @@ class Model(nn.Module):
             raise Exception('Why are we still here? Just to suffer.')
 
         self.model = gnn.Sequential('x, edge_index, edge_attr', model)
-        self.model = self.model.to(self.factory_kwargs['device'])
 
     def forward(self, fea_mats, edge_indices, edge_attrs):
         answer = list()
         # Process batch data
         for i in range(len(fea_mats)):
-            rep = self.model(
-                fea_mats[i].to(self.factory_kwargs['device']),
-                edge_indices[i].to(self.factory_kwargs['device']),
-                edge_attrs[i].to(self.factory_kwargs['device']),
-            )
+            rep = self.model(fea_mats[i], edge_indices[i], edge_attrs[i],)
             # Only taking regulon representations
             answer.append(self._get_regulon_exp(rep, edge_indices[i]))
         return torch.stack(answer, 0)
@@ -186,33 +174,25 @@ class Model(nn.Module):
         else:
             alpha = alphas[0]
 
-        return lib.Adj_Mat(
-            ind = edge_index,
-            val = F.softmax(alpha.detach().squeeze(-1), dim = -1),
-            size = (self.input_sizes['n_reg'], self.input_sizes['n_node']),
-        ).to_dense()
+        return lib.get_dense(
+            edge_index,
+            F.softmax(alpha.detach().squeeze(-1), dim = -1),
+            (self.input_sizes['n_reg'], self.input_sizes['n_node']),
+        )
 
     def switch_device(self, device = 'cpu'):
-        self.factory_kwargs['device'] = device
         self.model = self.model.to(device)
         return
-
-    def _get_index_weight(self, adj_mat):
-        """
-        Make edge index and edge weight matrices based on given adjacent matrix.
-        """
-        return lib.Adj_Mat(adj_mat.to(self.factory_kwargs['device'])).unpack()
 
     def _get_regulon_exp(self, rep, edge_index):
         """
         Make regulon representations according to node reps and adjacent matrix.
         """
-        device = self.factory_kwargs['device']
         # Get pooling data based on adj mat
         iter = 0
         pooling_data = list()
         for i in range(self.input_sizes['n_reg']):
-            batch = torch.zeros(len(rep), dtype=torch.int64).to(device)
+            batch = torch.zeros(len(rep), dtype=torch.int64).to(rep.device)
             while iter < len(edge_index[0]) and edge_index[0][iter] <= i:
                 if edge_index[0][iter] == i:
                     batch[edge_index[1][iter]] += 1

@@ -20,7 +20,6 @@ import fatez.model.gnn as gnn
 import fatez.model.criterion as crit
 import fatez.model.position_embedder as pe
 import fatez.process as process
-import fatez.process.explainer as explainer
 import fatez.process.fine_tuner as fine_tuner
 import fatez.process.pre_trainer as pre_trainer
 
@@ -84,7 +83,7 @@ class Faker(object):
             return fea_m, adj_m
 
         def append_sample(samples, fea_m, adj_m, label):
-            inds, attrs = lib.Adj_Mat(adj_m).unpack()
+            inds, attrs = lib.get_sparse_coo(adj_m)
             samples.append(
                 pyg_d.Data(
                     x = fea_m,
@@ -168,9 +167,6 @@ class Faker(object):
         explain = shap.GradientExplainer(decision, out_gat)
         shap_values = explain.shap_values(out_gat)
         # print(shap_values)
-        explain = explainer.Gradient(decision, out_gat)
-        shap_values = explain.shap_values(out_gat, return_variances = True)
-        # print(shap_values)
         print(f'\tExplainer Green.\n')
         return gat_model
 
@@ -216,15 +212,17 @@ class Faker(object):
         suppressor.on()
         size = self.config['input_sizes']
         adj_explain = torch.zeros((size['n_reg'], size['n_node']))
-        node_explain = torch.zeros((size['n_node'], size['node_attr']))
+        node_explain = torch.zeros((size['n_reg'], size['node_attr']))
         # Make background data
         bg_data = DataLoader(data_loader.dataset, batch_size = self.n_sample)
         bg_data = [a for a, _ in bg_data][0]
         bg_data = [a.to(self.factory_kwargs['device']) for a in bg_data]
         # Set explainer
-        explain = shap.GradientExplainer(tuner.model, bg_data)
-        # explain = explainer.Gradient(tuner.model, bg_data)
-
+        explain = shap.GradientExplainer(
+            tuner.model.bert_model,
+            tuner.model.get_gat_output(bg_data[0], bg_data[1], bg_data[2])
+        )
+        suppressor.off()
         for x, y in data_loader:
             # Explain GAT to obtain adj explanations
             for i in range(len(x[0])):
@@ -235,12 +233,18 @@ class Faker(object):
                 ).to('cpu')
 
             node_exp, vars = explain.shap_values(
-                [i.to(self.factory_kwargs['device']) for i in x],
+                tuner.model.get_gat_output(
+                    x[0].to(self.factory_kwargs['device']),
+                    x[1].to(self.factory_kwargs['device']),
+                    x[2].to(self.factory_kwargs['device'])
+                ),
                 return_variances = True
             )
-            for exp in node_exp[0][0]: node_explain += abs(exp)
+            print('Should be here')
+            print(node_exp[0])
+            for exp in node_exp[0][0]:
+                node_explain += abs(exp)
             break
-        suppressor.off()
 
         print(adj_explain)
         print(torch.sum(node_explain, dim = -1))

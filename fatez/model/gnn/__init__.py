@@ -29,7 +29,7 @@ def Set(config:dict=None, input_sizes:dict=None, factory_kwargs:dict=None):
     if config['type'].upper() == 'GAT':
         return GAT(input_sizes, **config['params'], **factory_kwargs)
     elif config['type'].upper() == 'GATV2':
-        return GATv2(**config['params'], **factory_kwargs)
+        return GATv2(input_sizes, **config['params'], **factory_kwargs)
     elif config['type'].upper() == 'GATVD':
         return GATvD(**config['params'], **factory_kwargs)
     else:

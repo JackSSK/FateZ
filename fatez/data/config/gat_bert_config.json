@@ -13,7 +13,7 @@
         }
     },
     "gnn": {
-        "type": "GAT",
+        "type": "GATv2",
         "params": {
             "en_dim": 4,
             "n_hidden": 4,
