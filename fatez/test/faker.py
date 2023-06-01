@@ -23,8 +23,9 @@ import fatez.process as process
 import fatez.process.explainer as explainer
 import fatez.process.fine_tuner as fine_tuner
 import fatez.process.pre_trainer as pre_trainer
-
-
+import fatez.tool.PreprocessIO as PreprocessIO
+import pandas as pd
+from fatez.process.scale_network import scale_network
 
 
 class Faker(object):
@@ -170,7 +171,61 @@ class Faker(object):
         print(f'\tExplainer Green.\n')
         return gat_model
 
-    def test_full_model(self, config:dict=None, epoch:int=50, quiet:bool=True):
+    def make_data_loader_real(self,data_dir:str = None):
+        """
+        Load real & small data with given parameters and
+        set up a PyTorch DataLoader.
+
+        :return:
+            torch.utils.data.DataLoader
+        """
+        print('Load real data!!!!!')
+        matrix1 = PreprocessIO.input_csv_dict_df(
+            data_dir+'node/',
+            df_type='node')
+        matrix2 = PreprocessIO.input_csv_dict_df(
+            data_dir+'edge/',
+            df_type='edge')
+        edge_label = pd.read_table(
+            data_dir+'label.txt')
+        edge_label.index = edge_label['sample']
+        for i in list(matrix2.keys()):
+            edge = scale_network(matrix2[i])
+            edge = torch.from_numpy(edge)
+            edge = edge.to(torch.float32)
+            matrix2[i] = edge
+
+        samples = []
+        for i in range(len(matrix1)):
+            sample_name = list(matrix1.keys())[i]
+            m1 = torch.from_numpy(matrix1[sample_name].to_numpy()).to(
+                torch.float32)
+            dict_key = sample_name.split('#')[0]
+            label = edge_label['label'][str(sample_name)]
+            edge_name = edge_label.loc[sample_name, 'label']
+            key_use = dict_key + '#' + str(edge_name)
+            m2 = matrix2[key_use]
+            inds, attrs = lib.Adj_Mat(m2).get_index_value()
+            """
+            Then we just append it into a smaples list as usual
+            """
+            samples.append(
+                pyg_d.Data(
+                    x=m1.to_sparse(),
+                    edge_index=inds,
+                    edge_attr=attrs,
+                    y=label,
+                    shape=m2.shape,
+                )
+            )
+        dataloader_use = DataLoader(
+            lib.FateZ_Dataset(samples), batch_size=self.batch_size, shuffle=True
+        )
+
+        return dataloader_use
+
+    def test_full_model(self, config:dict=None, epoch:int=50, quiet:bool=True,
+                        real_data_path = None,test_explain=True):
         """
         Function to test whether FateZ is performing properly or not.
 
@@ -184,13 +239,23 @@ class Faker(object):
         suppressor = process.Quiet_Mode()
         # Initialize
         device = self.factory_kwargs['device']
-        data_loader = self.make_data_loader()
+        """
+        if want to use real test data, just set real_data_path
+        as data path
+        """
+        if real_data_path == None:
+            data_loader = self.make_data_loader()
+        else:
+            data_loader = self.make_data_loader_real(real_data_path)
+            print('real data loading complete')
         if config is None: config = self.config
 
         # Pre-train part
         trainer = pre_trainer.Set(config, self.factory_kwargs)
         for i in range(epoch):
             report = trainer.train(data_loader)
+            print('epoch:'+str(i))
+            print(report)
         print(f'\tPre-Trainer Green.\n')
 
         # Fine tune part
@@ -209,35 +274,36 @@ class Faker(object):
         print(f'\tFine-Tuner Green.\n')
 
         # Test explain
-        suppressor.on()
-        adj_explain = torch.zeros(self.config['input_sizes'][1][1:])
-        node_explain = torch.zeros(self.config['input_sizes'][0][1:])
+        if test_explain:
+            suppressor.on()
+            adj_explain = torch.zeros(self.config['input_sizes'][1][1:])
+            node_explain = torch.zeros(self.config['input_sizes'][0][1:])
 
-        bg_data = DataLoader(data_loader.dataset, batch_size = self.n_sample)
-        bg_data = [a for a, _ in bg_data][0]
-        bg_data = [a.to(self.factory_kwargs['device']) for a in bg_data]
-        explain = explainer.Gradient(tuner.model, bg_data)
-        # explain = shap.GradientExplainer(tuner.model, bg_data)
+            bg_data = DataLoader(data_loader.dataset, batch_size = self.n_sample)
+            bg_data = [a for a, _ in bg_data][0]
+            bg_data = [a.to(self.factory_kwargs['device']) for a in bg_data]
+            explain = explainer.Gradient(tuner.model, bg_data)
+            # explain = shap.GradientExplainer(tuner.model, bg_data)
 
-        for x, y in data_loader:
-            # Explain GAT to obtain adj explanations
-            for i in range(len(x[0])):
-                adj_explain+=tuner.model.gat.explain(
-                    x[0][i].to(self.factory_kwargs['device']),
-                    x[1][i].to(self.factory_kwargs['device']),
-                ).to('cpu')
+            for x, y in data_loader:
+                # Explain GAT to obtain adj explanations
+                for i in range(len(x[0])):
+                    adj_explain+=tuner.model.gat.explain(
+                        x[0][i].to(self.factory_kwargs['device']),
+                        x[1][i].to(self.factory_kwargs['device']),
+                    ).to('cpu')
 
-            node_exp, vars = explain.shap_values(
-                [i.to(self.factory_kwargs['device']).to_dense() for i in x],
-                return_variances = True
-            )
-            for exp in node_exp[0][0]: node_explain += abs(exp)
-            break
-        suppressor.off()
+                node_exp, vars = explain.shap_values(
+                    [i.to(self.factory_kwargs['device']).to_dense() for i in x],
+                    return_variances = True
+                )
+                for exp in node_exp[0][0]: node_explain += abs(exp)
+                break
+            suppressor.off()
 
-        print(adj_explain)
-        print(torch.sum(node_explain, dim = -1))
-        print(f'\tExplainer Green.\n')
+            print(adj_explain)
+            print(torch.sum(node_explain, dim = -1))
+            print(f'\tExplainer Green.\n')
 
         return trainer.model, tuner.model
 
