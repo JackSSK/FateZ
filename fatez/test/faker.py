@@ -211,8 +211,8 @@ class Faker(object):
         # Test explain
         suppressor.on()
         size = self.config['input_sizes']
-        adj_explain = torch.zeros((size['n_reg'], size['n_node']))
-        node_explain = torch.zeros((size['n_reg'], size['node_attr']))
+        adj_exp = torch.zeros((size['n_reg'], size['n_node']))
+        reg_exp = torch.zeros((size['n_reg'],self.config['encoder']['d_model']))
         # Make background data
         bg_data = DataLoader(data_loader.dataset, batch_size = self.n_sample)
         bg_data = [a for a, _ in bg_data][0]
@@ -226,7 +226,7 @@ class Faker(object):
         for x, y in data_loader:
             # Explain GAT to obtain adj explanations
             for i in range(len(x[0])):
-                adj_explain += tuner.model.gat.explain(
+                adj_exp += tuner.model.gat.explain(
                     x[0][i].to(self.factory_kwargs['device']),
                     x[1][i].to(self.factory_kwargs['device']),
                     x[2][i].to(self.factory_kwargs['device']),
@@ -240,14 +240,14 @@ class Faker(object):
                 ),
                 return_variances = True
             )
-            print('Should be here')
-            print(node_exp[0])
-            for exp in node_exp[0][0]:
-                node_explain += abs(exp)
+            for exp in node_exp[0]: reg_exp += abs(exp)
             break
 
-        print(adj_explain)
-        print(torch.sum(node_explain, dim = -1))
+        reg_exp = torch.sum(reg_exp, dim = -1)
+        node_exp = torch.matmul(reg_exp, adj_exp.type(reg_exp.dtype))
+        print('Edge Explain:\n', adj_exp, '\n')
+        print('Reg Explain:\n', reg_exp, '\n')
+        print('Node Explain:\n', node_exp, '\n')
         print(f'\tExplainer Green.\n')
 
         return trainer.model, tuner.model
