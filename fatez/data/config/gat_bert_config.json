@@ -1,8 +1,10 @@
 {
-    "input_sizes": [
-        [1, 10, 2],
-        [1, 4, 10]
-    ],
+    "input_sizes": {
+        "n_reg": 4,
+        "n_node": 10,
+        "node_attr": 2,
+        "edge_attr": 1
+    },
     "graph_embedder": {
         "type": "skip",
         "params": {
@@ -11,9 +13,8 @@
         }
     },
     "gnn": {
-        "type": "GATV2",
+        "type": "GAT",
         "params": {
-            "d_model": 2,
             "en_dim": 4,
             "n_hidden": 4,
             "nhead": 2
