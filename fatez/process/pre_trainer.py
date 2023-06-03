@@ -113,7 +113,7 @@ class Model(nn.Module):
         output = self.bert_model(output,)
         return output
 
-    def get_gat_output(self, fea_mats, edge_index, edge_attr,):
+    def get_gat_out(self, fea_mats, edge_index, edge_attr,):
         with torch.no_grad():
             output = self.graph_embedder.eval()(
                 fea_mats, edge_index = edge_index, edge_attr = edge_attr
@@ -121,7 +121,7 @@ class Model(nn.Module):
             output = self.gat.eval()(output, edge_index, edge_attr)
         return output
 
-    def get_encoder_output(self, fea_mats, edge_index, edge_attr,):
+    def get_encoder_out(self, fea_mats, edge_index, edge_attr,):
         with torch.no_grad():
             output = self.graph_embedder.eval()(
                 fea_mats, edge_index = edge_index, edge_attr = edge_attr
@@ -129,6 +129,19 @@ class Model(nn.Module):
             output = self.gat.eval()(output, edge_index, edge_attr)
             output = self.bert_model.encoder.eval()(output)
         return output
+
+    def make_explainer(self, bg_data):
+        return shap.GradientExplainer(
+            self.bert_model,self.get_gat_out(bg_data[0], bg_data[1], bg_data[2])
+        )
+
+    def explain_batch(self, batch, explainer):
+        adj_exp = self.gat.explain_batch(batch)
+        reg_exp, vars = explainer.shap_values(
+            self.get_gat_out(batch[0],batch[1],batch[2]), return_variances=True
+        )
+        return adj_exp, reg_exp, vars
+
 
 
 

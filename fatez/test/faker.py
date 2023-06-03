@@ -64,13 +64,13 @@ class Faker(object):
         samples = list()
 
         def rand_sample():
-            sz = self.config['input_sizes']
+            input_sz = self.config['input_sizes']
             fea_m = torch.randn(
-                (sz['n_node'], sz['node_attr']),
+                (input_sz['n_node'], input_sz['node_attr']),
                 dtype = self.factory_kwargs['dtype']
             )
             adj_m = torch.randn(
-                (sz['n_reg'], sz['n_node'], sz['edge_attr']),
+                (input_sz['n_reg'], input_sz['n_node'], input_sz['edge_attr']),
                 dtype = self.factory_kwargs['dtype']
             )
             # Zero all features if making simple samples
@@ -154,18 +154,15 @@ class Faker(object):
 
         # Using data loader to train
         for x,y in data_loader:
-            out_gat = gat_model(x[0], x[1], x[2])
-            output = decision(out_gat)
+            out = gat_model(x[0], x[1], x[2])
+            output = decision(out)
             loss = criterion(output, y.to(device))
             loss.backward()
         print(f'\tGAT Green.\n')
 
-        gat_explain = gat_model.explain(
-            x[0][-1].to(device), x[1][-1].to(device), x[2][-1].to(device)
-        )
+        gat_explain = gat_model.explain_batch([a.to(device) for a in x])
         # print(gat_explain)
-        explain = shap.GradientExplainer(decision, out_gat)
-        shap_values = explain.shap_values(out_gat)
+        shap_values = shap.GradientExplainer(decision, out).shap_values(out)
         # print(shap_values)
         print(f'\tExplainer Green.\n')
         return gat_model
@@ -188,16 +185,17 @@ class Faker(object):
         if config is None: config = self.config
 
         # Pre-train part
+        if quiet: suppressor.on()
         trainer = pre_trainer.Set(config, self.factory_kwargs)
         for i in range(epoch):
-            report = trainer.train(data_loader)
+            report = trainer.train(data_loader, report_batch = False)
+            print(f'Epoch {i} Loss: {report.iloc[0,0]}')
+        if quiet: suppressor.off()
         print(f'\tPre-Trainer Green.\n')
 
         # Fine tune part
         if quiet: suppressor.on()
-        tuner = fine_tuner.Set(
-            config, self.factory_kwargs, prev_model = trainer.model
-        )
+        tuner = fine_tuner.Set(config, self.factory_kwargs, trainer.model)
         for i in range(epoch):
             report = tuner.train(data_loader, report_batch = False)
             print(f'Epoch {i} Loss: {report.iloc[0,0]}')
@@ -209,38 +207,20 @@ class Faker(object):
         print(f'\tFine-Tuner Green.\n')
 
         # Test explain
-        suppressor.on()
         size = self.config['input_sizes']
         adj_exp = torch.zeros((size['n_reg'], size['n_node']))
         reg_exp = torch.zeros((size['n_reg'],self.config['encoder']['d_model']))
         # Make background data
-        bg_data = DataLoader(data_loader.dataset, batch_size = self.n_sample)
-        bg_data = [a for a, _ in bg_data][0]
-        bg_data = [a.to(self.factory_kwargs['device']) for a in bg_data]
-        # Set explainer
-        explain = shap.GradientExplainer(
-            tuner.model.bert_model,
-            tuner.model.get_gat_output(bg_data[0], bg_data[1], bg_data[2])
-        )
-        suppressor.off()
-        for x, y in data_loader:
-            # Explain GAT to obtain adj explanations
-            for i in range(len(x[0])):
-                adj_exp += tuner.model.gat.explain(
-                    x[0][i].to(self.factory_kwargs['device']),
-                    x[1][i].to(self.factory_kwargs['device']),
-                    x[2][i].to(self.factory_kwargs['device']),
-                ).to('cpu')
+        bg = [a for a,_ in DataLoader(data_loader.dataset, self.n_sample)][0]
+        # Set explainer through taking input data from pseudo-dataloader
+        explain = tuner.model.make_explainer([a.to(device) for a in bg])
 
-            node_exp, vars = explain.shap_values(
-                tuner.model.get_gat_output(
-                    x[0].to(self.factory_kwargs['device']),
-                    x[1].to(self.factory_kwargs['device']),
-                    x[2].to(self.factory_kwargs['device'])
-                ),
-                return_variances = True
-            )
-            for exp in node_exp[0]: reg_exp += abs(exp)
+        for x,_ in data_loader:
+            data = [a.to(device) for a in x]
+            adj_temp, reg_temp, _ = tuner.model.explain_batch(data, explain)
+            adj_exp += adj_temp
+            # Only taking explainations for class 0
+            for exp in reg_temp[0]: reg_exp += abs(exp)
             break
 
         reg_exp = torch.sum(reg_exp, dim = -1)

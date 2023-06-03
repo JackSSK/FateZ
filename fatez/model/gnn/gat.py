@@ -180,6 +180,12 @@ class Model(nn.Module):
             (self.input_sizes['n_reg'], self.input_sizes['n_node']),
         )
 
+    def explain_batch(self, batch,):
+        exp=torch.zeros((self.input_sizes['n_reg'], self.input_sizes['n_node']))
+        for i in range(len(batch[0])):
+            exp += self.explain(batch[0][i],batch[1][i],batch[2][i],).to('cpu')
+        return exp
+
     def switch_device(self, device = 'cpu'):
         self.model = self.model.to(device)
         return
