@@ -33,7 +33,7 @@
     "rep_embedder": {
         "type": "abs",
         "params": {
-            "n_embed": 1104,
+            "n_embed": 1103,
             "n_dim": 32
         }
     },
