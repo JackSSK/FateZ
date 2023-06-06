@@ -5,12 +5,13 @@ This folder contains basic objects for FateZ.
 author: jy
 """
 from fatez.lib.database import FateZ_Dataset
-from fatez.lib.database import Adj_Mat
+from fatez.lib.sparse_mat import get_sparse_coo, get_dense
 
 __all__ = [
-    'Adj_Mat',
-    'FateZ_Dataset',
     'GRN_Basic',
+    'FateZ_Dataset',
+    'get_sparse_coo',
+    'get_dense',
 ]
 
 

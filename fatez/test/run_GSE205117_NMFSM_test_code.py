@@ -61,18 +61,13 @@ for i in range(len(matrix1)):
     # labels.append(label)
     edge_name = edge_label.loc[sample_name,'label']
     key_use  = dict_key+'#'+str(edge_name)
-    m2 = matrix2[key_use]
+    inds, attrs = lib.get_sparse_coo(matrix2[key_use])
     """
     Using PyG Data object
-    First, we need to get indices mat and attr mat of Adj mat ver sparse
-    """
-    inds, attrs = lib.Adj_Mat(m2).get_index_value()
-    """
-    Then we just append it into a smaples list as usual
     """
     samples.append(
         pyg_d.Data(
-            x = m1.to_sparse(),
+            x = m1,
             edge_index = inds,
             edge_attr = attrs,
             y = label,
@@ -99,10 +94,15 @@ data_save_dir = '/storage/peiweikeLab/jiangjunyao/fatez/tune_bert/fine_tune_resu
 dataloader
 """
 X_train,X_test,y_train,y_test = train_test_split(
-    samples,labels,test_size=test_size,train_size = 1-test_size,random_state=0)
+    samples,
+    labels,
+    test_size=test_size,
+    train_size = 1-test_size,
+    random_state=0
+)
 train_dataloader = DataLoader(
-    lib.FateZ_Dataset(samples=X_train),
-    batch_size=batch_size,
+    lib.FateZ_Dataset(samples = X_train),
+    batch_size = batch_size,
     shuffle=True
 )
 

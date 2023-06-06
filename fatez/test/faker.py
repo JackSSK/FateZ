@@ -20,12 +20,10 @@ import fatez.model.gnn as gnn
 import fatez.model.criterion as crit
 import fatez.model.position_embedder as pe
 import fatez.process as process
-import fatez.process.explainer as explainer
 import fatez.process.fine_tuner as fine_tuner
 import fatez.process.pre_trainer as pre_trainer
-import fatez.tool.PreprocessIO as PreprocessIO
-import pandas as pd
-from fatez.process.scale_network import scale_network
+
+
 
 
 class Faker(object):
@@ -66,9 +64,15 @@ class Faker(object):
         samples = list()
 
         def rand_sample():
-            dtype = self.factory_kwargs['dtype']
-            fea_m = torch.randn(self.config['input_sizes'][0][1:], dtype=dtype)
-            adj_m = torch.randn(self.config['input_sizes'][1][1:], dtype=dtype)
+            input_sz = self.config['input_sizes']
+            fea_m = torch.randn(
+                (input_sz['n_node'], input_sz['node_attr']),
+                dtype = self.factory_kwargs['dtype']
+            )
+            adj_m = torch.randn(
+                (input_sz['n_reg'], input_sz['n_node'], input_sz['edge_attr']),
+                dtype = self.factory_kwargs['dtype']
+            )
             # Zero all features if making simple samples
             if self.simpler_samples:
                 fea_m = fea_m * 0 + 1
@@ -79,10 +83,10 @@ class Faker(object):
             return fea_m, adj_m
 
         def append_sample(samples, fea_m, adj_m, label):
-            inds, attrs = lib.Adj_Mat(adj_m).get_index_value()
+            inds, attrs = lib.get_sparse_coo(adj_m)
             samples.append(
                 pyg_d.Data(
-                    x = fea_m.to_sparse(),
+                    x = fea_m,
                     edge_index = inds,
                     edge_attr = attrs,
                     y = label,
@@ -132,7 +136,7 @@ class Faker(object):
         # print(f"{first_size=}, {first_peak=}")
 
         if config is None: config = self.config
-        graph_embedder = pe.Skip()
+        # graph_embedder = pe.Skip()
         gat_model = gnn.Set(
             config['gnn'],
             config['input_sizes'],
@@ -149,83 +153,21 @@ class Faker(object):
         # criterion = crit.Accuracy(requires_grad = True)
 
         # Using data loader to train
-        for input, label in data_loader:
-            output = graph_embedder(input[0], adj = input[1])
-            out_gat = gat_model(output, input[1])
-            output = decision(out_gat)
-            loss = criterion(output, label.to(device))
+        for x,y in data_loader:
+            out = gat_model(x[0], x[1], x[2])
+            output = decision(out)
+            loss = criterion(output, y.to(device))
             loss.backward()
         print(f'\tGAT Green.\n')
 
-        gat_explain = gat_model.explain(
-            graph_embedder(input[0][0].to(device), adj=input[1][0].to(device)),
-            input[1][0].to(device)
-        )
+        gat_explain = gat_model.explain_batch([a.to(device) for a in x])
         # print(gat_explain)
-        explain = shap.GradientExplainer(decision, out_gat)
-        shap_values = explain.shap_values(out_gat)
-        # print(shap_values)
-        explain = explainer.Gradient(decision, out_gat)
-        shap_values = explain.shap_values(out_gat, return_variances = True)
+        shap_values = shap.GradientExplainer(decision, out).shap_values(out)
         # print(shap_values)
         print(f'\tExplainer Green.\n')
         return gat_model
 
-    def make_data_loader_real(self,data_dir:str = None):
-        """
-        Load real & small data with given parameters and
-        set up a PyTorch DataLoader.
-
-        :return:
-            torch.utils.data.DataLoader
-        """
-        print('Load real data!!!!!')
-        matrix1 = PreprocessIO.input_csv_dict_df(
-            data_dir+'node/',
-            df_type='node')
-        matrix2 = PreprocessIO.input_csv_dict_df(
-            data_dir+'edge/',
-            df_type='edge')
-        edge_label = pd.read_table(
-            data_dir+'label.txt')
-        edge_label.index = edge_label['sample']
-        for i in list(matrix2.keys()):
-            edge = scale_network(matrix2[i])
-            edge = torch.from_numpy(edge)
-            edge = edge.to(torch.float32)
-            matrix2[i] = edge
-
-        samples = []
-        for i in range(len(matrix1)):
-            sample_name = list(matrix1.keys())[i]
-            m1 = torch.from_numpy(matrix1[sample_name].to_numpy()).to(
-                torch.float32)
-            dict_key = sample_name.split('#')[0]
-            label = edge_label['label'][str(sample_name)]
-            edge_name = edge_label.loc[sample_name, 'label']
-            key_use = dict_key + '#' + str(edge_name)
-            m2 = matrix2[key_use]
-            inds, attrs = lib.Adj_Mat(m2).get_index_value()
-            """
-            Then we just append it into a smaples list as usual
-            """
-            samples.append(
-                pyg_d.Data(
-                    x=m1.to_sparse(),
-                    edge_index=inds,
-                    edge_attr=attrs,
-                    y=label,
-                    shape=m2.shape,
-                )
-            )
-        dataloader_use = DataLoader(
-            lib.FateZ_Dataset(samples), batch_size=self.batch_size, shuffle=True
-        )
-
-        return dataloader_use
-
-    def test_full_model(self, config:dict=None, epoch:int=50, quiet:bool=True,
-                        real_data_path = None,test_explain=True):
+    def test_full_model(self, config:dict=None, epoch:int=50, quiet:bool=True):
         """
         Function to test whether FateZ is performing properly or not.
 
@@ -239,30 +181,21 @@ class Faker(object):
         suppressor = process.Quiet_Mode()
         # Initialize
         device = self.factory_kwargs['device']
-        """
-        if want to use real test data, just set real_data_path
-        as data path
-        """
-        if real_data_path == None:
-            data_loader = self.make_data_loader()
-        else:
-            data_loader = self.make_data_loader_real(real_data_path)
-            print('real data loading complete')
+        data_loader = self.make_data_loader()
         if config is None: config = self.config
 
         # Pre-train part
+        if quiet: suppressor.on()
         trainer = pre_trainer.Set(config, self.factory_kwargs)
         for i in range(epoch):
-            report = trainer.train(data_loader)
-            print('epoch:'+str(i))
-            print(report)
+            report = trainer.train(data_loader, report_batch = False)
+            print(f'Epoch {i} Loss: {report.iloc[0,0]}')
+        if quiet: suppressor.off()
         print(f'\tPre-Trainer Green.\n')
 
         # Fine tune part
         if quiet: suppressor.on()
-        tuner = fine_tuner.Set(
-            config, self.factory_kwargs, prev_model = trainer.model
-        )
+        tuner = fine_tuner.Set(config, self.factory_kwargs, trainer.model)
         for i in range(epoch):
             report = tuner.train(data_loader, report_batch = False)
             print(f'Epoch {i} Loss: {report.iloc[0,0]}')
@@ -274,40 +207,27 @@ class Faker(object):
         print(f'\tFine-Tuner Green.\n')
 
         # Test explain
-        if test_explain:
-            suppressor.on()
-            adj_explain = torch.zeros(self.config['input_sizes'][1][1:])
-            node_explain = torch.zeros(self.config['input_sizes'][0][1:])
+        size = self.config['input_sizes']
+        adj_exp = torch.zeros((size['n_reg'], size['n_node']))
+        reg_exp = torch.zeros((size['n_reg'],self.config['encoder']['d_model']))
+        # Make background data
+        bg = [a for a,_ in DataLoader(data_loader.dataset, self.n_sample)][0]
+        # Set explainer through taking input data from pseudo-dataloader
+        explain = tuner.model.make_explainer([a.to(device) for a in bg])
 
-            bg_data = DataLoader(data_loader.dataset, batch_size = self.n_sample)
-            bg_data = [a for a, _ in bg_data][0]
-            bg_data = [a.to(self.factory_kwargs['device']) for a in bg_data]
-            explain = explainer.Gradient(tuner.model, bg_data)
-            # explain = shap.GradientExplainer(tuner.model, bg_data)
+        for x,_ in data_loader:
+            data = [a.to(device) for a in x]
+            adj_temp, reg_temp, _ = tuner.model.explain_batch(data, explain)
+            adj_exp += adj_temp
+            # Only taking explainations for class 0
+            for exp in reg_temp[0]: reg_exp += abs(exp)
+            break
 
-            for x, y in data_loader:
-                # Explain GAT to obtain adj explanations
-                for i in range(len(x[0])):
-                    adj_explain+=tuner.model.gat.explain(
-                        x[0][i].to(self.factory_kwargs['device']),
-                        x[1][i].to(self.factory_kwargs['device']),
-                    ).to('cpu')
-
-                node_exp, vars = explain.shap_values(
-                    [i.to(self.factory_kwargs['device']).to_dense() for i in x],
-                    return_variances = True
-                )
-                for exp in node_exp[0][0]: node_explain += abs(exp)
-                break
-            suppressor.off()
-
-            print(adj_explain)
-            print(torch.sum(node_explain, dim = -1))
-            print(f'\tExplainer Green.\n')
+        reg_exp = torch.sum(reg_exp, dim = -1)
+        node_exp = torch.matmul(reg_exp, adj_exp.type(reg_exp.dtype))
+        print('Edge Explain:\n', adj_exp, '\n')
+        print('Reg Explain:\n', reg_exp, '\n')
+        print('Node Explain:\n', node_exp, '\n')
+        print(f'\tExplainer Green.\n')
 
         return trainer.model, tuner.model
-
-# if __name__ == '__main__':
-#     a = Faker(batch_size = 4, simpler_samples = False, device = 'cuda')
-#     models = a.test_gat()
-#     models = a.test_full_model(quiet = False)

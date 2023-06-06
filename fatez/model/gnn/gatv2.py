@@ -15,23 +15,19 @@ class Model(Template):
     GAT version 2 implemented with PyG.
     """
     def __init__(self,
-        d_model:int = -1,
+        input_sizes:dict = None,
         n_hidden:int = 3,
         en_dim:int = 2,
         nhead:int = 1,
         concat:bool = False,
         dropout:float = 0.0,
-        edge_dim:int = 1,
         n_layer_set:int = 1,
-        device:str = 'cpu',
-        dtype:str = None,
         **kwargs
         ):
-        super().__init__()
-        self.d_model = d_model
+        super().__init__(input_sizes)
+        self.input_sizes = input_sizes
         self.en_dim = en_dim
         self.n_layer_set = n_layer_set
-        self.factory_kwargs = {'device': device, 'dtype': dtype}
 
         model = list()
         # May take dropout layer out later
@@ -39,11 +35,11 @@ class Model(Template):
 
         if self.n_layer_set == 1:
             layer = gnn.GATv2Conv(
-                in_channels = d_model,
+                in_channels = self.input_sizes['node_attr'],
                 out_channels = en_dim,
                 heads = nhead,
                 dropout = dropout,
-                edge_dim = edge_dim,
+                edge_dim = self.input_sizes['edge_attr'],
                 concat = concat,
                 **kwargs
             )
@@ -51,11 +47,11 @@ class Model(Template):
 
         elif self.n_layer_set > 1:
             layer = gnn.GATv2Conv(
-                in_channels = d_model,
+                in_channels = self.input_sizes['node_attr'],
                 out_channels = n_hidden,
                 heads = nhead,
                 dropout = dropout,
-                edge_dim = edge_dim,
+                edge_dim = self.input_sizes['edge_attr'],
                 concat = concat,
                 **kwargs
             )
@@ -69,7 +65,7 @@ class Model(Template):
                     out_channels = n_hidden,
                     heads = nhead,
                     dropout = dropout,
-                    edge_dim = edge_dim,
+                    edge_dim = self.input_sizes['edge_attr'],
                     concat = concat,
                     **kwargs
                 )
@@ -82,7 +78,7 @@ class Model(Template):
                 out_channels = en_dim,
                 heads = nhead,
                 dropout = dropout,
-                edge_dim = edge_dim,
+                edge_dim = self.input_sizes['edge_attr'],
                 concat = concat,
                 **kwargs
             )
@@ -92,4 +88,3 @@ class Model(Template):
             raise Exception('Why are we still here? Just to suffer.')
 
         self.model = gnn.Sequential('x, edge_index, edge_attr', model)
-        self.model = self.model.to(self.factory_kwargs['device'])
