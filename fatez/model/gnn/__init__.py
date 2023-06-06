@@ -21,33 +21,15 @@ class Error(Exception):
 
 
 
-def Set(config:dict=None, input_sizes:list=None, factory_kwargs:dict=None):
+def Set(config:dict=None, input_sizes:dict=None, factory_kwargs:dict=None):
     """
     Set up GNN model based on given config.
     """
-    # Get edge dim
-    if len(input_sizes[1]) == 3:
-        edge_dim = 1
-    elif len(input_sizes[1]) == 4:
-        edge_dim = input_sizes[1][-1]
-    else:
-        raise Error('Why are we still here? Just to suffer.')
-    if 'edge_dim' in config['params']:
-        assert config['params']['edge_dim'] == edge_dim
-    else:
-        config['params']['edge_dim'] = edge_dim
-
-    # Get d_model
-    # if 'd_model' in config['params']:
-    #     assert config['params']['d_model'] == input_sizes[0][-1]
-    # else:
-    #     config['params']['d_model'] = input_sizes[0][-1]
-
     # Init models accordingly
     if config['type'].upper() == 'GAT':
-        return GAT(**config['params'], **factory_kwargs)
+        return GAT(input_sizes, **config['params'], **factory_kwargs)
     elif config['type'].upper() == 'GATV2':
-        return GATv2(**config['params'], **factory_kwargs)
+        return GATv2(input_sizes, **config['params'], **factory_kwargs)
     elif config['type'].upper() == 'GATVD':
         return GATvD(**config['params'], **factory_kwargs)
     else:

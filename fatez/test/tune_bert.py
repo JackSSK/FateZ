@@ -70,7 +70,7 @@ for i in range(len(matrix1)):
     Using PyG Data object
     First, we need to get indices mat and attr mat of Adj mat ver sparse
     """
-    inds, attrs = lib.Adj_Mat(m2).get_index_value()
+    inds, attrs = lib.get_sparse_coo(m2)
     """
     Then we just append it into a smaples list as usual
     """

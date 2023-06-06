@@ -47,9 +47,7 @@
 <li class="toctree-l3"><a class="reference internal" href="#Build-model-and-make-some-fake-data-first.">Build model and make some fake data first.</a></li>
 <li class="toctree-l3"><a class="reference internal" href="#Now-we-perform-pre-training-with-no-label.">Now we perform pre-training with no label.</a></li>
 <li class="toctree-l3"><a class="reference internal" href="#Then,-we-can-go-for-fine-tuning-part-with-class-labels.">Then, we can go for fine tuning part with class labels.</a></li>
-<li class="toctree-l3"><a class="reference internal" href="#To-explain-Fine-Tuning-model-in-general.">To explain Fine Tuning model in general.</a></li>
-<li class="toctree-l3"><a class="reference internal" href="#To-explain-the-BERT-part-for-analyzing-importances-of-TFs-only.">To explain the BERT part for analyzing importances of TFs only.</a></li>
-<li class="toctree-l3"><a class="reference internal" href="#To-explain-the-GAT-for-analyzing-GRP-importances.">To explain the GAT for analyzing GRP importances.</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#To-explain-model.">To explain model.</a></li>
 </ul>
 </li>
 </ul>
@@ -363,7 +361,7 @@ div.rendered_html tbody tr:hover {
 <h1>FateZ Explain<a class="headerlink" href="#FateZ-Explain" title="Permalink to this heading"></a></h1>
 <p>This notebook demonstrate how to utilize explanatory methods of FateZ models.</p>
 <div class="nbinput docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[1]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[17]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">os</span>
@@ -374,7 +372,6 @@ div.rendered_html tbody tr:hover {
 <span class="kn">import</span> <span class="nn">fatez.model</span> <span class="k">as</span> <span class="nn">model</span>
 <span class="kn">import</span> <span class="nn">fatez.tool.JSON</span> <span class="k">as</span> <span class="nn">JSON</span>
 <span class="kn">import</span> <span class="nn">fatez.process</span> <span class="k">as</span> <span class="nn">process</span>
-<span class="kn">import</span> <span class="nn">fatez.process.explainer</span> <span class="k">as</span> <span class="nn">explainer</span>
 <span class="kn">import</span> <span class="nn">fatez.process.fine_tuner</span> <span class="k">as</span> <span class="nn">fine_tuner</span>
 <span class="kn">import</span> <span class="nn">fatez.process.pre_trainer</span> <span class="k">as</span> <span class="nn">pre_trainer</span>
 <span class="kn">from</span> <span class="nn">pkg_resources</span> <span class="kn">import</span> <span class="n">resource_filename</span>
@@ -398,7 +395,7 @@ Done
 <div class="section" id="Build-model-and-make-some-fake-data-first.">
 <h2>Build model and make some fake data first.<a class="headerlink" href="#Build-model-and-make-some-fake-data-first." title="Permalink to this heading"></a></h2>
 <div class="nbinput docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[2]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[18]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># Parameters</span>
@@ -436,7 +433,7 @@ Done
 <h2>Now we perform pre-training with no label.<a class="headerlink" href="#Now-we-perform-pre-training-with-no-label." title="Permalink to this heading"></a></h2>
 <p>Here trainer’s <span class="math notranslate nohighlight">\(train\_adj\)</span> is set to False, and the model is NOT reconstructing the adjacency matrices, etc.</p>
 <div class="nbinput docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[3]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[19]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">trainer</span> <span class="o">=</span> <span class="n">pre_trainer</span><span class="o">.</span><span class="n">Set</span><span class="p">(</span><span class="n">config</span><span class="p">,</span> <span class="n">factory_kwargs</span><span class="p">)</span>
@@ -451,22 +448,22 @@ Done
 <div class="output_area docutils container">
 <div class="highlight"><pre>
         Loss
-0   1.565720
-1   2.900557
-2   2.166636
-3   1.762677
-4   2.366010
-5   2.911416
-6   2.797966
-7   1.742560
-8   2.400287
-9   1.946299
-10  2.256013
+0   1.523740
+1   2.056911
+2   2.464677
+3   2.160961
+4   1.769112
+5   2.518550
+6   2.565397
+7   1.717235
+8   2.797816
+9   2.683969
+10  2.225837
 </pre></div></div>
 </div>
 <p>In the case of pre-training with reconstructing adjacency matrices as well.</p>
 <div class="nbinput docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[4]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[20]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">config</span><span class="p">[</span><span class="s1">&#39;pre_trainer&#39;</span><span class="p">][</span><span class="s1">&#39;train_adj&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="kc">True</span>
@@ -482,28 +479,28 @@ Done
 <div class="output_area docutils container">
 <div class="highlight"><pre>
         Loss
-0   2.821428
-1   1.732386
-2   2.861434
-3   2.155074
-4   2.810074
-5   2.665386
-6   1.765009
-7   2.106514
-8   1.699396
-9   2.549504
-10  2.316621
+0   1.895170
+1   1.933711
+2   2.200883
+3   2.626011
+4   2.680342
+5   1.341890
+6   2.156959
+7   2.802052
+8   1.489988
+9   2.411124
+10  2.153813
 </pre></div></div>
 </div>
 </div>
 <div class="section" id="Then,-we-can-go-for-fine-tuning-part-with-class-labels.">
 <h2>Then, we can go for fine tuning part with class labels.<a class="headerlink" href="#Then,-we-can-go-for-fine-tuning-part-with-class-labels." title="Permalink to this heading"></a></h2>
 <div class="nbinput docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[5]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[21]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">tuner</span> <span class="o">=</span> <span class="n">fine_tuner</span><span class="o">.</span><span class="n">Set</span><span class="p">(</span><span class="n">config</span><span class="p">,</span> <span class="n">factory_kwargs</span><span class="p">,</span> <span class="n">prev_model</span> <span class="o">=</span> <span class="n">trainer</span><span class="o">.</span><span class="n">model</span><span class="p">)</span>
-<span class="n">report</span> <span class="o">=</span> <span class="n">tuner</span><span class="o">.</span><span class="n">train</span><span class="p">(</span><span class="n">train_dataloader</span><span class="p">,</span> <span class="n">report_batch</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span> <span class="n">quiet</span> <span class="o">=</span> <span class="kc">True</span><span class="p">)</span>
+<span class="n">report</span> <span class="o">=</span> <span class="n">tuner</span><span class="o">.</span><span class="n">train</span><span class="p">(</span><span class="n">train_dataloader</span><span class="p">,</span> <span class="n">report_batch</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,)</span>
 <span class="nb">print</span><span class="p">(</span><span class="n">report</span><span class="p">)</span>
 </pre></div>
 </div>
@@ -514,55 +511,54 @@ Done
 <div class="output_area docutils container">
 <div class="highlight"><pre>
         Loss  ACC
-0   0.707717  0.0
-1   0.656518  1.0
-2   0.832635  0.0
-3   0.608765  1.0
-4   0.518559  1.0
-5   0.511055  1.0
-6   0.960859  0.0
-7   0.875309  0.0
-8   0.917681  0.0
-9   0.931165  0.0
-10  0.752026  0.4
+0   0.493794  1.0
+1   0.446725  1.0
+2   1.043058  0.0
+3   1.076692  0.0
+4   1.044668  0.0
+5   0.486640  1.0
+6   1.019905  0.0
+7   0.943047  0.0
+8   0.482891  1.0
+9   0.489378  1.0
+10  0.752680  0.5
 </pre></div></div>
 </div>
 </div>
-<div class="section" id="To-explain-Fine-Tuning-model-in-general.">
-<h2>To explain Fine Tuning model in general.<a class="headerlink" href="#To-explain-Fine-Tuning-model-in-general." title="Permalink to this heading"></a></h2>
-<p>Note: to make overall conclusion on the contribution of a specific gene, we would need to sum up importance values for every feature dimension (RNA-count, peaks)</p>
+<div class="section" id="To-explain-model.">
+<h2>To explain model.<a class="headerlink" href="#To-explain-model." title="Permalink to this heading"></a></h2>
+<p>Three kinds of explanations are available: 1. edge_explain 2. regulon_explain 3. node_explain</p>
 <div class="nbinput docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[6]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[25]:
 </pre></div>
 </div>
-<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># Suppress debug print outs</span>
-<span class="n">suppressor</span> <span class="o">=</span> <span class="n">process</span><span class="o">.</span><span class="n">Quiet_Mode</span><span class="p">()</span>
-<span class="n">suppressor</span><span class="o">.</span><span class="n">on</span><span class="p">()</span>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">adj_exp</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="n">config</span><span class="p">[</span><span class="s1">&#39;input_sizes&#39;</span><span class="p">][</span><span class="s1">&#39;n_reg&#39;</span><span class="p">],</span> <span class="n">config</span><span class="p">[</span><span class="s1">&#39;input_sizes&#39;</span><span class="p">][</span><span class="s1">&#39;n_node&#39;</span><span class="p">]))</span>
+<span class="n">reg_exp</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="n">config</span><span class="p">[</span><span class="s1">&#39;input_sizes&#39;</span><span class="p">][</span><span class="s1">&#39;n_reg&#39;</span><span class="p">],</span> <span class="n">config</span><span class="p">[</span><span class="s1">&#39;encoder&#39;</span><span class="p">][</span><span class="s1">&#39;d_model&#39;</span><span class="p">]))</span>
 
-<span class="c1"># Get background data</span>
-<span class="n">background_data</span> <span class="o">=</span> <span class="n">DataLoader</span><span class="p">(</span><span class="n">train_dataloader</span><span class="o">.</span><span class="n">dataset</span><span class="p">,</span> <span class="n">batch_size</span> <span class="o">=</span> <span class="n">params</span><span class="p">[</span><span class="s1">&#39;n_sample&#39;</span><span class="p">])</span>
-<span class="n">background_data</span> <span class="o">=</span> <span class="p">[</span><span class="n">a</span> <span class="k">for</span> <span class="n">a</span><span class="p">,</span> <span class="n">_</span> <span class="ow">in</span> <span class="n">background_data</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span>
-<span class="n">background_data</span> <span class="o">=</span> <span class="p">[</span><span class="n">a</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">factory_kwargs</span><span class="p">[</span><span class="s1">&#39;device&#39;</span><span class="p">])</span> <span class="k">for</span> <span class="n">a</span> <span class="ow">in</span> <span class="n">background_data</span><span class="p">]</span>
-<span class="n">explain</span> <span class="o">=</span> <span class="n">explainer</span><span class="o">.</span><span class="n">Gradient</span><span class="p">(</span><span class="n">tuner</span><span class="o">.</span><span class="n">model</span><span class="p">,</span> <span class="n">background_data</span><span class="p">)</span>
-<span class="nb">print</span><span class="p">(</span><span class="s1">&#39;Suppress here?&#39;</span><span class="p">)</span>
-<span class="c1"># vars can be used to estimate how accurate the explanation would be: lower the better</span>
-<span class="k">for</span> <span class="n">input_data</span><span class="p">,</span> <span class="n">_</span> <span class="ow">in</span> <span class="n">train_dataloader</span><span class="p">:</span>
-    <span class="n">input_data</span> <span class="o">=</span> <span class="p">[</span><span class="n">i</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">factory_kwargs</span><span class="p">[</span><span class="s1">&#39;device&#39;</span><span class="p">])</span><span class="o">.</span><span class="n">to_dense</span><span class="p">()</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">input_data</span><span class="p">]</span>
-    <span class="n">gene_shap_values</span><span class="p">,</span> <span class="nb">vars</span> <span class="o">=</span> <span class="n">explain</span><span class="o">.</span><span class="n">shap_values</span><span class="p">(</span><span class="n">input_data</span><span class="p">,</span> <span class="n">return_variances</span> <span class="o">=</span> <span class="kc">True</span><span class="p">)</span>
+<span class="c1"># Make background data</span>
+<span class="n">bg</span> <span class="o">=</span> <span class="p">[</span><span class="n">a</span> <span class="k">for</span> <span class="n">a</span><span class="p">,</span><span class="n">_</span> <span class="ow">in</span> <span class="n">DataLoader</span><span class="p">(</span><span class="n">train_dataloader</span><span class="o">.</span><span class="n">dataset</span><span class="p">,</span> <span class="n">batch_size</span> <span class="o">=</span> <span class="n">params</span><span class="p">[</span><span class="s1">&#39;n_sample&#39;</span><span class="p">])][</span><span class="mi">0</span><span class="p">]</span>
+<span class="c1"># Set explainer through taking input data from pseudo-dataloader</span>
+<span class="n">explain</span> <span class="o">=</span> <span class="n">tuner</span><span class="o">.</span><span class="n">model</span><span class="o">.</span><span class="n">make_explainer</span><span class="p">([</span><span class="n">a</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">factory_kwargs</span><span class="p">[</span><span class="s1">&#39;device&#39;</span><span class="p">])</span> <span class="k">for</span> <span class="n">a</span> <span class="ow">in</span> <span class="n">bg</span><span class="p">])</span>
+
+<span class="k">for</span> <span class="n">x</span><span class="p">,</span><span class="n">_</span> <span class="ow">in</span> <span class="n">train_dataloader</span><span class="p">:</span>
+    <span class="n">data</span> <span class="o">=</span> <span class="p">[</span><span class="n">a</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">factory_kwargs</span><span class="p">[</span><span class="s1">&#39;device&#39;</span><span class="p">])</span> <span class="k">for</span> <span class="n">a</span> <span class="ow">in</span> <span class="n">x</span><span class="p">]</span>
+    <span class="n">adj_temp</span><span class="p">,</span> <span class="n">reg_temp</span><span class="p">,</span> <span class="nb">vars</span> <span class="o">=</span> <span class="n">tuner</span><span class="o">.</span><span class="n">model</span><span class="o">.</span><span class="n">explain_batch</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">explain</span><span class="p">)</span>
+    <span class="n">adj_exp</span> <span class="o">+=</span> <span class="n">adj_temp</span>
+
+    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s1">&#39;Explaining </span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">reg_temp</span><span class="p">)</span><span class="si">}</span><span class="s1"> classes.&#39;</span><span class="p">)</span>
+
+    <span class="c1"># Only the feat mat explanation should be working</span>
+    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s1">&#39;Each class has regulon explain in shape of </span><span class="si">{</span><span class="n">reg_temp</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">shape</span><span class="si">}</span><span class="s1">.</span><span class="se">\n</span><span class="s1">&#39;</span><span class="p">)</span>
+
+    <span class="c1"># Only taking explainations for class 0</span>
+    <span class="k">for</span> <span class="n">exp</span> <span class="ow">in</span> <span class="n">reg_temp</span><span class="p">[</span><span class="mi">0</span><span class="p">]:</span> <span class="n">reg_exp</span> <span class="o">+=</span> <span class="nb">abs</span><span class="p">(</span><span class="n">exp</span><span class="p">)</span>
     <span class="k">break</span>
-<span class="n">suppressor</span><span class="o">.</span><span class="n">off</span><span class="p">()</span>
 
-
-<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s1">&#39;Explaining </span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">gene_shap_values</span><span class="p">)</span><span class="si">}</span><span class="s1"> classes.&#39;</span><span class="p">)</span>
-
-<span class="c1"># Having 2 inputs</span>
-<span class="k">assert</span> <span class="nb">len</span><span class="p">(</span><span class="n">gene_shap_values</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span> <span class="o">==</span> <span class="mi">2</span>
-
-<span class="c1"># Only the feat mat explanation should be working</span>
-<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s1">&#39;Each class has explain in shape of </span><span class="si">{</span><span class="n">gene_shap_values</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">shape</span><span class="si">}</span><span class="s1">.&#39;</span><span class="p">)</span>
-
-<span class="c1"># The adj mat explanation should NOT be working since lacking gradient</span>
-<span class="c1"># print(gene_shap_values[0][1].shape)</span>
+<span class="n">reg_exp</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">reg_exp</span><span class="p">,</span> <span class="n">dim</span> <span class="o">=</span> <span class="o">-</span><span class="mi">1</span><span class="p">)</span>
+<span class="n">node_exp</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">matmul</span><span class="p">(</span><span class="n">reg_exp</span><span class="p">,</span> <span class="n">adj_exp</span><span class="o">.</span><span class="n">type</span><span class="p">(</span><span class="n">reg_exp</span><span class="o">.</span><span class="n">dtype</span><span class="p">))</span>
+<span class="nb">print</span><span class="p">(</span><span class="s1">&#39;Edge Explain:</span><span class="se">\n</span><span class="s1">&#39;</span><span class="p">,</span> <span class="n">adj_exp</span><span class="p">,</span> <span class="s1">&#39;</span><span class="se">\n</span><span class="s1">&#39;</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="s1">&#39;Reg Explain:</span><span class="se">\n</span><span class="s1">&#39;</span><span class="p">,</span> <span class="n">reg_exp</span><span class="p">,</span> <span class="s1">&#39;</span><span class="se">\n</span><span class="s1">&#39;</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="s1">&#39;Node Explain:</span><span class="se">\n</span><span class="s1">&#39;</span><span class="p">,</span> <span class="n">node_exp</span><span class="p">,</span> <span class="s1">&#39;</span><span class="se">\n</span><span class="s1">&#39;</span><span class="p">)</span>
 </pre></div>
 </div>
 </div>
@@ -572,95 +568,25 @@ Done
 <div class="output_area docutils container">
 <div class="highlight"><pre>
 Explaining 2 classes.
-Each class has explain in shape of (1, 10, 2).
-</pre></div></div>
-</div>
-</div>
-<div class="section" id="To-explain-the-BERT-part-for-analyzing-importances-of-TFs-only.">
-<h2>To explain the BERT part for analyzing importances of TFs only.<a class="headerlink" href="#To-explain-the-BERT-part-for-analyzing-importances-of-TFs-only." title="Permalink to this heading"></a></h2>
-<p>Note: similarly, we would want to sum up values across embed dimensions.</p>
-<div class="nbinput docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[17]:
-</pre></div>
-</div>
-<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># We also should accumulate gat_out for every trained input.</span>
-<span class="n">explain</span> <span class="o">=</span> <span class="n">explainer</span><span class="o">.</span><span class="n">Gradient</span><span class="p">(</span>
-    <span class="n">tuner</span><span class="o">.</span><span class="n">model</span><span class="o">.</span><span class="n">bert_model</span><span class="p">,</span>
-    <span class="n">tuner</span><span class="o">.</span><span class="n">model</span><span class="o">.</span><span class="n">get_gat_output</span><span class="p">(</span><span class="n">background_data</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">background_data</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
-<span class="p">)</span>
+Each class has regulon explain in shape of (4, 4).
 
-<span class="c1"># Here I just make 1 gat_out for example</span>
-<span class="n">regulon_shap_values</span><span class="p">,</span> <span class="nb">vars</span> <span class="o">=</span> <span class="n">explain</span><span class="o">.</span><span class="n">shap_values</span><span class="p">(</span>
-    <span class="n">tuner</span><span class="o">.</span><span class="n">model</span><span class="o">.</span><span class="n">get_gat_output</span><span class="p">(</span><span class="n">input_data</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">input_data</span><span class="p">[</span><span class="mi">1</span><span class="p">]),</span>
-    <span class="n">return_variances</span><span class="o">=</span><span class="kc">True</span>
-<span class="p">)</span>
+Edge Explain:
+ tensor([[0.0268, 0.0269, 0.0271, 0.0245, 0.0247, 0.0253, 0.0252, 0.0257, 0.0000,
+         0.0367],
+        [0.0328, 0.0317, 0.0301, 0.0304, 0.0290, 0.0296, 0.0320, 0.0267, 0.0000,
+         0.0273],
+        [0.0282, 0.0253, 0.0250, 0.0250, 0.0254, 0.0252, 0.0271, 0.0290, 0.0000,
+         0.0285],
+        [0.0255, 0.0267, 0.0266, 0.0264, 0.0292, 0.0260, 0.0326, 0.0275, 0.0000,
+         0.0285]])
 
-<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s1">&#39;Explaining </span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">regulon_shap_values</span><span class="p">)</span><span class="si">}</span><span class="s1"> classes.&#39;</span><span class="p">)</span>
-<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s1">&#39;Each class has explain in shape of </span><span class="si">{</span><span class="n">regulon_shap_values</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">shape</span><span class="si">}</span><span class="s1">.&#39;</span><span class="p">)</span>
-</pre></div>
-</div>
-</div>
-<div class="nboutput nblast docutils container">
-<div class="prompt empty docutils container">
-</div>
-<div class="output_area docutils container">
-<div class="highlight"><pre>
-Explaining 2 classes.
-Each class has explain in shape of (1, 4, 4).
-</pre></div></div>
-</div>
-</div>
-<div class="section" id="To-explain-the-GAT-for-analyzing-GRP-importances.">
-<h2>To explain the GAT for analyzing GRP importances.<a class="headerlink" href="#To-explain-the-GAT-for-analyzing-GRP-importances." title="Permalink to this heading"></a></h2>
-<p>The grp_explain here is purely based on the GAT attention weights.</p>
-<div class="nbinput docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[18]:
-</pre></div>
-</div>
-<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">grp_explain</span> <span class="o">=</span> <span class="n">tuner</span><span class="o">.</span><span class="n">model</span><span class="o">.</span><span class="n">gat</span><span class="o">.</span><span class="n">explain</span><span class="p">(</span><span class="n">input_data</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="mi">0</span><span class="p">],</span> <span class="n">input_data</span><span class="p">[</span><span class="mi">1</span><span class="p">][</span><span class="mi">0</span><span class="p">])</span>
-<span class="nb">print</span><span class="p">(</span><span class="n">grp_explain</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span>
+Reg Explain:
+ tensor([0.0036, 0.0017, 0.0130, 0.0060], dtype=torch.float64)
 
-<span class="c1"># Or we can feed in matrices with ones to extract attention weights.</span>
-<span class="n">grp_explain</span> <span class="o">=</span> <span class="n">tuner</span><span class="o">.</span><span class="n">model</span><span class="o">.</span><span class="n">gat</span><span class="o">.</span><span class="n">explain</span><span class="p">(</span>
-    <span class="n">torch</span><span class="o">.</span><span class="n">ones_like</span><span class="p">(</span><span class="n">input_data</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="mi">0</span><span class="p">]),</span>
-    <span class="n">torch</span><span class="o">.</span><span class="n">ones_like</span><span class="p">(</span><span class="n">input_data</span><span class="p">[</span><span class="mi">1</span><span class="p">][</span><span class="mi">0</span><span class="p">])</span>
-<span class="p">)</span>
-<span class="nb">print</span><span class="p">(</span><span class="n">grp_explain</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span>
-</pre></div>
-</div>
-</div>
-<div class="nboutput nblast docutils container">
-<div class="prompt empty docutils container">
-</div>
-<div class="output_area docutils container">
-<div class="highlight"><pre>
-torch.Size([4, 10])
-torch.Size([4, 10])
-</pre></div></div>
-</div>
-<p>Utilizing the importance values of each gene or TF regulon inferred from the calculated shapley values above would be sufficent to obtain importances of each GRP.</p>
-<div class="nbinput docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[19]:
-</pre></div>
-</div>
-<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># Sum up shapley values of each features for every node (gene or TF).</span>
-<span class="n">regulon_importance_values</span> <span class="o">=</span> <span class="n">regulon_shap_values</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="mi">2</span><span class="p">)</span>
-<span class="n">gene_importance_values</span> <span class="o">=</span> <span class="n">gene_shap_values</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="mi">2</span><span class="p">)</span>
-<span class="nb">print</span><span class="p">(</span><span class="n">regulon_importance_values</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span>
-<span class="nb">print</span><span class="p">(</span><span class="n">gene_importance_values</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span>
-<span class="n">grp_explain</span> <span class="o">=</span> <span class="n">grp_explain</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">factory_kwargs</span><span class="p">[</span><span class="s1">&#39;device&#39;</span><span class="p">])</span>
-<span class="n">grp_importance</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">matmul</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">(</span><span class="n">regulon_importance_values</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">factory_kwargs</span><span class="p">[</span><span class="s1">&#39;device&#39;</span><span class="p">]),</span> <span class="n">grp_explain</span><span class="p">)</span>
-<span class="n">grp_importance</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">matmul</span><span class="p">(</span><span class="n">grp_explain</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">(</span><span class="n">gene_importance_values</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">factory_kwargs</span><span class="p">[</span><span class="s1">&#39;device&#39;</span><span class="p">]))</span>
-</pre></div>
-</div>
-</div>
-<div class="nboutput nblast docutils container">
-<div class="prompt empty docutils container">
-</div>
-<div class="output_area docutils container">
-<div class="highlight"><pre>
-(1, 4)
-(1, 10)
+Node Explain:
+ tensor([0.0007, 0.0006, 0.0006, 0.0006, 0.0006, 0.0006, 0.0007, 0.0007, 0.0000,
+        0.0007], dtype=torch.float64)
+
 </pre></div></div>
 </div>
 </div>

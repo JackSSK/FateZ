@@ -19,20 +19,18 @@ class Model(nn.Module):
     A simple GAT using torch_geometric operator.
     """
     def __init__(self,
-        d_model:int = -1,
+        input_sizes:dict = None,
         n_hidden:int = 3,
         en_dim:int = 2,
         nhead:int = 1,
         concat:bool = False,
         dropout:float = 0.0,
         n_layer_set:int = 1,
-        device:str = 'cpu',
-        dtype:str = None,
         **kwargs
         ):
         """
-        :param d_model:int = None
-            Number of each gene's input features.
+        :param input_sizes:dict = None
+            Key dimensions indicating shapes of input matrices.
 
         :param n_hidden:int = None
             Number of hidden units.
@@ -54,16 +52,11 @@ class Model(nn.Module):
 
         :param alpha:float = 0.2
             Alpha value for the LeakyRelu layer.
-
-        :param dtype:str = None
-            The dtype of values in matrices.
-            Note: torch default using float32, numpy default using float64
         """
         super().__init__()
-        self.d_model = d_model
+        self.input_sizes = input_sizes
         self.en_dim = en_dim
         self.n_layer_set = n_layer_set
-        self.factory_kwargs = {'device': device, 'dtype': dtype}
 
         model = list()
         # May take dropout layer out later
@@ -71,7 +64,7 @@ class Model(nn.Module):
 
         if self.n_layer_set == 1:
             layer = gnn.GATConv(
-                in_channels = d_model,
+                in_channels = self.input_sizes['node_attr'],
                 out_channels = en_dim,
                 heads = nhead,
                 dropout = dropout,
@@ -82,7 +75,7 @@ class Model(nn.Module):
 
         elif self.n_layer_set > 1:
             layer = gnn.GATConv(
-                in_channels = d_model,
+                in_channels = self.input_sizes['node_attr'],
                 out_channels = n_hidden,
                 heads = nhead,
                 dropout = dropout,
@@ -120,24 +113,17 @@ class Model(nn.Module):
             raise Exception('Why are we still here? Just to suffer.')
 
         self.model = gnn.Sequential('x, edge_index, edge_attr', model)
-        self.model = self.model.to(self.factory_kwargs['device'])
 
-    def forward(self, fea_mats, adj_mats):
+    def forward(self, fea_mats, edge_indices, edge_attrs):
         answer = list()
-        assert len(fea_mats) == len(adj_mats)
         # Process batch data
         for i in range(len(fea_mats)):
-            x = fea_mats[i].to(self.factory_kwargs['device'])
-            adj = adj_mats[i].to(self.factory_kwargs['device'])
-            edge_index, edge_weight = self._get_index_weight(adj)
-            rep = self.model(x, edge_index, edge_weight)
+            rep = self.model(fea_mats[i], edge_indices[i], edge_attrs[i],)
             # Only taking regulon representations
-            rep = self._get_regulon_exp(rep, adj)
-            answer.append(rep[:adj.shape[0],:])
-        answer = torch.stack(answer, 0)
-        return answer
+            answer.append(self._get_regulon_exp(rep, edge_indices[i]))
+        return torch.stack(answer, 0)
 
-    def explain(self, fea_mat, adj_mat, reduce = 'sum'):
+    def explain(self, fea_mat, edge_index, edge_attr, reduce = 'sum'):
         """
         This function will very likely be revised due to developmental stage of
         torch_geometric.
@@ -160,8 +146,7 @@ class Model(nn.Module):
             if isinstance(module, MessagePassing):
                 hook_handles.append(module.register_message_forward_hook(hook))
         # Feed data in to the model.
-        edge_index, edge_weight = self._get_index_weight(adj_mat)
-        rep = self.model(fea_mat, edge_index, edge_weight)
+        rep = self.model(fea_mat, edge_index, edge_attr)
         # Remove all the hooks
         del hook_handles
 
@@ -189,37 +174,38 @@ class Model(nn.Module):
         else:
             alpha = alphas[0]
 
-        return lib.Adj_Mat(
-            indices = edge_index,
-            values = F.softmax(alpha.detach().squeeze(-1), dim=-1),
-            shape = adj_mat.shape[:2]
-        ).to_dense()
+        return lib.get_dense(
+            edge_index,
+            F.softmax(alpha.detach().squeeze(-1), dim = -1),
+            (self.input_sizes['n_reg'], self.input_sizes['n_node']),
+        )
+
+    def explain_batch(self, batch,):
+        exp=torch.zeros((self.input_sizes['n_reg'], self.input_sizes['n_node']))
+        for i in range(len(batch[0])):
+            exp += self.explain(batch[0][i],batch[1][i],batch[2][i],).to('cpu')
+        return exp
 
     def switch_device(self, device = 'cpu'):
-        self.factory_kwargs['device'] = device
         self.model = self.model.to(device)
         return
 
-    def _get_index_weight(self, adj_mat):
+    def _get_regulon_exp(self, rep, edge_index):
         """
-        Make edge index and edge weight matrices based on given adjacent matrix.
+        Make regulon representations according to node reps and adjacent matrix.
         """
-        x = lib.Adj_Mat(adj_mat.to(self.factory_kwargs['device']))
-        return x.get_index_value()
-
-    def _get_regulon_exp(self, rep, adj_mat):
-        """
-        ToDo: Use Adj mat to pool(?) node reps to generate regulon reps
-        """
-        pooling_data = list()
-        device = self.factory_kwargs['device']
         # Get pooling data based on adj mat
-        for i in range(len(adj_mat)):
-            batch = torch.zeros(len(rep), dtype=torch.int64).to(device)
-            for ind,x in enumerate(adj_mat[i]): batch[ind] += int(x!=0)
+        iter = 0
+        pooling_data = list()
+        for i in range(self.input_sizes['n_reg']):
+            batch = torch.zeros(len(rep), dtype=torch.int64).to(rep.device)
+            while iter < len(edge_index[0]) and edge_index[0][iter] <= i:
+                if edge_index[0][iter] == i:
+                    batch[edge_index[1][iter]] += 1
+                iter += 1
             pooling_data.append(gnn.pool.global_add_pool(rep, batch = batch)[1])
         # Product pooling data to according node(TF) representations
-        answer = rep[:len(adj_mat),:]
+        answer = rep[:self.input_sizes['n_reg'],:]
         assert len(answer) == len(pooling_data)
         for i,data in enumerate(pooling_data):
             answer[i] *= data

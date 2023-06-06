@@ -4,6 +4,7 @@ Fine tune model with labled data.
 
 author: jy, nkmtmsys
 """
+import shap
 import torch
 import torch.nn as nn
 import torch.optim as optim
@@ -26,6 +27,7 @@ def Set(config:dict = None, factory_kwargs:dict = None, prev_model = None,):
     """
     if prev_model is None:
         return Tuner(
+            input_sizes = config['input_sizes'],
             gat = gnn.Set(config['gnn'], config['input_sizes'], factory_kwargs),
             encoder = transformer.Encoder(**config['encoder'],**factory_kwargs),
             graph_embedder = pe.Set(
@@ -39,6 +41,7 @@ def Set(config:dict = None, factory_kwargs:dict = None, prev_model = None,):
         )
     else:
         return Tuner(
+            input_sizes = config['input_sizes'],
             gat = prev_model.gat,
             encoder = prev_model.bert_model.encoder,
             graph_embedder = prev_model.graph_embedder,
@@ -65,24 +68,42 @@ class Model(nn.Module):
         self.gat = gat
         self.bert_model = bert_model
 
-    def forward(self, fea_mats, adj_mats):
-        output = self.graph_embedder(fea_mats, adj = adj_mats)
-        output = self.gat(output, adj_mats)
-        output = self.bert_model(output)
+    def forward(self, fea_mats, edge_index, edge_attr):
+        output = self.graph_embedder(
+            fea_mats, edge_index = edge_index, edge_attr = edge_attr
+        )
+        output = self.gat(output, edge_index, edge_attr)
+        output = self.bert_model(output, )
         return output
 
-    def get_gat_output(self, fea_mats, adj_mats,):
+    def get_gat_out(self, fea_mats, edge_index, edge_attr,):
         with torch.no_grad():
-            output = self.graph_embedder.eval()(fea_mats, adj = adj_mats)
-            output = self.gat.eval()(output, adj_mats)
+            output = self.graph_embedder.eval()(
+                fea_mats, edge_index = edge_index, edge_attr = edge_attr
+            )
+            output = self.gat.eval()(output, edge_index, edge_attr)
         return output
 
-    def get_encoder_output(self, fea_mats, adj_mats,):
+    def get_encoder_out(self, fea_mats, edge_index, edge_attr,):
         with torch.no_grad():
-            output = self.graph_embedder.eval()(fea_mats, adj = adj_mats)
-            output = self.gat.eval()(output, adj_mats)
+            output = self.graph_embedder.eval()(
+                fea_mats, edge_index = edge_index, edge_attr = edge_attr
+            )
+            output = self.gat.eval()(output, edge_index, edge_attr)
             output = self.bert_model.encoder.eval()(output)
         return output
+
+    def make_explainer(self, bg_data):
+        return shap.GradientExplainer(
+            self.bert_model,self.get_gat_out(bg_data[0], bg_data[1], bg_data[2])
+        )
+
+    def explain_batch(self, batch, explainer):
+        adj_exp = self.gat.explain_batch(batch)
+        reg_exp, vars = explainer.shap_values(
+            self.get_gat_out(batch[0],batch[1],batch[2]), return_variances=True
+        )
+        return adj_exp, reg_exp, vars
 
 
 
@@ -91,6 +112,8 @@ class Tuner(object):
     The fine-tune processing module.
     """
     def __init__(self,
+        input_sizes:list = None,
+
         # Models to take
         gat = None,
         encoder:transformer.Encoder = None,
@@ -121,8 +144,10 @@ class Tuner(object):
         # factory_kwargs
         device:str = 'cpu',
         dtype:str = None,
+        **kwargs
         ):
         super(Tuner, self).__init__()
+        self.input_sizes = input_sizes
         self.factory_kwargs = {'device': device, 'dtype': dtype}
         self.n_class = n_class
         self.model = Model(
@@ -192,13 +217,10 @@ class Tuner(object):
 
         for x,y in data_loader:
             node_fea_mat = x[0].to(self.factory_kwargs['device'])
-            adj_mat = x[1].to(self.factory_kwargs['device'])
+            edge_index = x[1].to(self.factory_kwargs['device'])
+            edge_attr = x[2].to(self.factory_kwargs['device'])
             y = y.to(self.factory_kwargs['device'])
-            output = self.model(node_fea_mat, adj_mat)
-            # if save_gat_out:
-            #     out_gat = self.model.get_gat_output(node_fea_mat, adj_mat)
-            #     for ele in out_gat.detach().tolist():
-            #         out_gat_data.append(ele)
+            output = self.model(node_fea_mat, edge_index, edge_attr)
             loss = self.criterion(output, y)
             loss.backward()
             nn.utils.clip_grad_norm_(self.model.parameters(), self.max_norm)
@@ -229,11 +251,11 @@ class Tuner(object):
         auroc = AUROC("multiclass", num_classes = self.n_class)
         with torch.no_grad():
             for x, y in data_loader:
+                node_fea_mat = x[0].to(self.factory_kwargs['device'])
+                edge_index = x[1].to(self.factory_kwargs['device'])
+                edge_attr = x[2].to(self.factory_kwargs['device'])
                 y = y.to(self.factory_kwargs['device'])
-                output = self.model(
-                    x[0].to(self.factory_kwargs['device']),
-                    x[1].to(self.factory_kwargs['device'])
-                )
+                output = self.model(node_fea_mat, edge_index, edge_attr)
 
                 # Batch specific
                 loss = self.criterion(output, y).item()

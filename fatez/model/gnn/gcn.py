@@ -16,7 +16,7 @@ class Model(Template):
     A simple GCN using torch_geometric operator.
     """
     def __init__(self,
-        d_model:int = 1,
+        input_sizes:dict = None,
         n_hidden:int = 3,
         en_dim:int = 2,
         dropout:float = 0.0,
@@ -26,28 +26,30 @@ class Model(Template):
         **kwargs
         ):
         # Initialization
-        super().__init__()
-        self.d_model = d_model
+        super().__init__(input_sizes)
+        self.input_sizes = input_sizes
         self.en_dim = en_dim
         self.n_layer_set = n_layer_set
-        self.factory_kwargs = {'device': device, 'dtype': dtype}
 
         model = list()
         # May take dropout layer out later
         model.append((nn.Dropout(p=dropout, inplace=True), 'x -> x'))
 
         if self.n_layer_set == 1:
-            layer = gnn.GCNConv(in_channels=d_model, out_channels=en_dim)
+            layer = gnn.GCNConv(
+                in_channels = self.input_sizes['node_attr'],
+                out_channels = en_dim
+            )
             model.append((layer, 'x, edge_index, edge_attr -> x'))
 
         elif self.n_layer_set >= 1:
-            layer = gnn.GCNConv(d_model, n_hidden)
+            layer = gnn.GCNConv(self.input_sizes['node_attr'], n_hidden)
             model.append((layer, 'x, edge_index, edge_attr -> x'))
             model.append(nn.ReLU(inplace = True))
 
             # Adding Conv blocks
             for i in range(self.n_layer_set - 2):
-                layer = gnn.GCNConv(n_hidden,n_hidden)
+                layer = gnn.GCNConv(n_hidden, n_hidden)
                 model.append((layer, 'x, edge_index, edge_attr -> x'))
                 model.append(nn.ReLU(inplace = True))
 
@@ -59,7 +61,6 @@ class Model(Template):
             raise Exception('Why are we still here? Just to suffer.')
 
         self.model = gnn.Sequential('x, edge_index, edge_attr', model)
-        self.model = self.model.to(self.factory_kwargs['device'])
 
     def explain(self, fea_mat, adj_mat,):
         return

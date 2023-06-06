@@ -18,8 +18,7 @@ class Reconstructor(nn.Module):
     def __init__(self,
         rep_embedder = pe.Skip(),
         encoder:transformer.Encoder = None,
-        n_dim_node:int = 2,
-        n_dim_adj:int = None,
+        mat_sizes:dict = None,
         train_adj:bool = False,
         dtype:str = None,
         **kwargs
@@ -31,11 +30,8 @@ class Reconstructor(nn.Module):
         :param encoder:transformer.Encoder = None
             The Encoder to build pre-train model with.
 
-        :param n_dim_node:int = 2
-            The output dimension for reconstructing node feature mat.
-
-        :param n_dim_adj:int = None
-            The output dimension for reconstructing adj mat.
+        :param mat_sizes:dict = None
+            Exp
 
         :param train_adj:bool = False
             Whether reconstructing adjacent matrices or not.
@@ -43,11 +39,12 @@ class Reconstructor(nn.Module):
         super(Reconstructor, self).__init__()
         self.rep_embedder = rep_embedder
         self.encoder = encoder
+        self.mat_sizes = mat_sizes
         self.recon_node = mlp.Model(
             type = 'RECON',
             d_model = self.encoder.d_model,
             n_layer_set = 1,
-            n_class = n_dim_node,
+            n_class = self.mat_sizes['node_attr'],
             dtype = dtype
         )
         self.recon_adj = None
@@ -57,9 +54,11 @@ class Reconstructor(nn.Module):
                 type = 'RECON',
                 d_model = self.encoder.d_model,
                 n_layer_set = 1,
-                n_class = n_dim_adj,
+                n_class = self.mat_sizes['n_node'],
                 dtype = dtype
             )
+            if self.mat_sizes['edge_attr'] > 1:
+                print('ToDo: capable to reconstruc multiple edge attrs')
 
     def forward(self, input, mask = None):
         output = self.rep_embedder(input)

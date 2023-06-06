@@ -137,7 +137,7 @@ class Model(nn.Module):
     Note: This implementation only has 1 layer.
     """
     def __init__(self,
-        d_model:int = None,
+        input_sizes:dict = None,
         n_hidden:int = 1,
         en_dim:int = 2,
         nhead:int = None,
@@ -150,8 +150,8 @@ class Model(nn.Module):
         **kwargs
         ):
         """
-        :param d_model:int = None
-            Number of each gene's input features.
+        :param input_sizes:dict = None
+            Key dimensions indicating shapes of input matrices.
 
         :param n_hidden:int = None
             Number of hidden units.
@@ -179,7 +179,7 @@ class Model(nn.Module):
             Note: torch default using float32, numpy default using float64
         """
         super(Model, self).__init__()
-        self.d_model = d_model
+        self.input_sizes = input_sizes
         self.n_hidden = n_hidden
         self.en_dim = en_dim
         self.dropout = dropout
@@ -188,6 +188,7 @@ class Model(nn.Module):
         self.attentions = None
         self.factory_kwargs = {'device': device, 'dtype': dtype}
 
+        d_model = self.input_sizes['node_attr']
         # Add attention heads
         if nhead != None and nhead > 1:
             self.attentions = [

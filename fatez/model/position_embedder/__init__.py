@@ -26,7 +26,7 @@ def Set(config:dict=None, input_sizes:list=None, factory_kwargs:dict=None):
         return Skip()
     elif config['type'].upper() == 'ABS':
         return Absolute_Embed(**config['params'], **factory_kwargs)
-    elif config['type'] == 'ABS':
+    elif config['type'].upper() == 'RW':
         return
     else:
         raise model.Error(f'Unknown rep_embedder type')
