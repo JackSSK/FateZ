@@ -15,7 +15,6 @@
     "gnn": {
         "type": "GATv2",
         "params": {
-            "d_model": 2,
             "en_dim": 3,
             "n_hidden": 2,
             "nhead": 3

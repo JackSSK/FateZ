@@ -1,10 +1,12 @@
 {
     "batch_size": 10,
     "epoch": 100,
-    "input_sizes": [
-        [1, 21846, 2],
-        [1, 1104, 21846]
-    ],
+    "input_sizes": {
+        "n_reg": 1103,
+        "n_node": 21820,
+        "node_attr": 2,
+        "edge_attr": 1
+    },
     "graph_embedder": {
         "type": "skip",
         "params": {
@@ -16,51 +18,51 @@
         "type": "GATVD",
         "params": {
             "d_model": 2,
-            "en_dim": 32,
+            "en_dim": 16,
             "n_hidden": 16,
             "n_layer_set": 1,
-            "nhead": 2
+            "nhead": 4
         }
     },
     "rep_embedder": {
         "type": "abs",
         "params": {
-            "n_embed": 1104,
-            "n_dim": 32
+            "n_embed": 1103,
+            "n_dim": 16
         }
     },
     "encoder": {
-        "d_model": 32,
-        "n_layer": 8,
+        "d_model": 16,
+        "n_layer": 6,
         "nhead": 4,
         "dim_feedforward": 512
     },
     "pre_trainer": {
-        "train_adj": false,
-        "lr": 1e-4,
-        "weight_decay": 1e-3,
+        "train_adj": True,
+        "lr": 0.0001,
+        "weight_decay": 0.0001,
         "sch_T_0": 2,
         "sch_T_mult": 2,
-        "sch_eta_min": 2e-6,
+        "sch_eta_min": 2e-06,
         "masker_params": {
             "ratio": 0.15
         }
     },
     "fine_tuner": {
         "n_class": 2,
-        "lr": 1e-4,
-        "weight_decay": 1e-3,
+        "lr": 0.0001,
+        "weight_decay": 0.0001,
         "sch_T_0": 2,
         "sch_T_mult": 2,
-        "sch_eta_min": 2e-6,
+        "sch_eta_min": 2e-06,
         "clf_type": "CNN_HYB",
-        "clf_params":{
-          "n_layer_set": 1,
-          "conv_kernel_num": 8,
-          "verti_kernel_size": 32,
-          "horiz_kernel_size": 3,
-          "maxpool_kernel_size": 2,
-          "densed_size": 128
+        "clf_params": {
+            "n_layer_set": 1,
+            "conv_kernel_num": 8,
+            "verti_kernel_size": 32,
+            "horiz_kernel_size": 3,
+            "maxpool_kernel_size": 2,
+            "densed_size": 128
         }
     }
 }

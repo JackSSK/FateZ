@@ -231,8 +231,3 @@ class Faker(object):
         print(f'\tExplainer Green.\n')
 
         return trainer.model, tuner.model
-
-# if __name__ == '__main__':
-#     a = Faker(batch_size = 4, simpler_samples = False, device = 'cuda')
-#     models = a.test_gat()
-#     models = a.test_full_model(quiet = False)

@@ -10,7 +10,8 @@ from torch.utils.data import Dataset
 
 class FateZ_Dataset(Dataset):
     """
-	Basic Dataset object for DataLoader
+	Basic Dataset object for DataLoader.
+    Saving data as PyG Data objects.
 	"""
     def __init__(self, samples, **kwargs):
         self.samples = samples
