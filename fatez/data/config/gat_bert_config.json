@@ -29,7 +29,7 @@
     },
     "encoder": {
         "d_model": 4,
-        "n_layer": 1,
+        "n_layer": 2,
         "nhead": 2,
         "dim_feedforward": 512
     },

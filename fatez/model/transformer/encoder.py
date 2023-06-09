@@ -122,32 +122,60 @@ class Encoder(nn.Module):
         why_not_sparsity_fast_path = ''
         str_first_layer = "self.encoder.layers[0]"
         if not isinstance(first_layer, torch.nn.TransformerEncoderLayer):
-            why_not_sparsity_fast_path = f"{str_first_layer} was not TransformerEncoderLayer"
+            why_not_sparsity_fast_path = (
+                f"{str_first_layer} was not TransformerEncoderLayer"
+            )
         elif first_layer.norm_first :
-            why_not_sparsity_fast_path = f"{str_first_layer}.norm_first was True"
+            why_not_sparsity_fast_path = (
+                f"{str_first_layer}.norm_first was True"
+            )
         elif first_layer.training:
-            why_not_sparsity_fast_path = f"{str_first_layer} was in training mode"
+            why_not_sparsity_fast_path = (
+                f"{str_first_layer} was in training mode"
+            )
         elif not first_layer.self_attn.batch_first:
-            why_not_sparsity_fast_path = f" {str_first_layer}.self_attn.batch_first was not True"
+            why_not_sparsity_fast_path = (
+                f" {str_first_layer}.self_attn.batch_first was not True"
+            )
         elif not first_layer.self_attn._qkv_same_embed_dim:
-            why_not_sparsity_fast_path = f"{str_first_layer}.self_attn._qkv_same_embed_dim was not True"
+            why_not_sparsity_fast_path = (
+                f"{str_first_layer}.self_attn._qkv_same_embed_dim was not True"
+            )
         elif not first_layer.activation_relu_or_gelu:
-            why_not_sparsity_fast_path = f" {str_first_layer}.activation_relu_or_gelu was not True"
+            why_not_sparsity_fast_path = (
+                f" {str_first_layer}.activation_relu_or_gelu was not True"
+            )
         elif not (first_layer.norm1.eps == first_layer.norm2.eps) :
-            why_not_sparsity_fast_path = f"{str_first_layer}.norm1.eps was not equal to {str_first_layer}.norm2.eps"
+            why_not_sparsity_fast_path = (
+                f"{str_first_layer}.norm1.eps was not equal to "
+                f"{str_first_layer}.norm2.eps"
+            )
         elif not src.dim() == 3:
-            why_not_sparsity_fast_path = f"input not batched; expected src.dim() of 3 but got {src.dim()}"
+            why_not_sparsity_fast_path = (
+                f"input not batched"
+                f"expected src.dim() of 3 but got {src.dim()}"
+            )
         elif not self.encoder.enable_nested_tensor:
             why_not_sparsity_fast_path = "enable_nested_tensor was not True"
         elif src_key_padding_mask is None:
             why_not_sparsity_fast_path = "src_key_padding_mask was None"
-        elif (((not hasattr(self.encoder, "mask_check")) or self.encoder.mask_check)
-                and not torch._nested_tensor_from_mask_left_aligned(src, src_key_padding_mask.logical_not())):
-            why_not_sparsity_fast_path = "mask_check enabled, and src and src_key_padding_mask was not left aligned"
+        elif ((
+            (not hasattr(self.encoder, "mask_check")) or self.encoder.mask_check
+            )
+            and not torch._nested_tensor_from_mask_left_aligned(
+                src, src_key_padding_mask.logical_not()
+                )
+            ):
+            why_not_sparsity_fast_path = (
+                "mask_check enabled, and src and src_key_padding_mask"
+                " was not left aligned"
+            )
         elif output.is_nested:
             why_not_sparsity_fast_path = "NestedTensor input is not supported"
         elif mask is not None:
-            why_not_sparsity_fast_path = "src_key_padding_mask and mask were both supplied"
+            why_not_sparsity_fast_path = (
+                "src_key_padding_mask and mask were both supplied"
+            )
         elif first_layer.self_attn.num_heads % 2 == 1:
             why_not_sparsity_fast_path = "num_head is odd"
         elif torch.is_autocast_enabled():
@@ -171,10 +199,13 @@ class Encoder(nn.Module):
             )
 
             if torch.overrides.has_torch_function(tensor_args):
-                why_not_sparsity_fast_path = "some Tensor argument has_torch_function"
+                why_not_sparsity_fast_path = (
+                    "some Tensor argument has_torch_function"
+                )
             elif not (src.is_cuda or 'cpu' in str(src.device)):
                 why_not_sparsity_fast_path = "src is neither CUDA nor CPU"
-            elif torch.is_grad_enabled() and any(x.requires_grad for x in tensor_args):
+            elif (torch.is_grad_enabled()
+                and any(x.requires_grad for x in tensor_args)):
                 why_not_sparsity_fast_path = (
                     "grad is enabled and at least one of query or the "
                     "input/output projection weights or biases requires_grad"
@@ -205,13 +236,12 @@ class Encoder(nn.Module):
                     make_causal = True
 
         args = {
-            'src': output,
             'src_mask': mask,
             'is_causal': make_causal,
             'src_key_padding_mask': src_key_padding_mask_for_layers
         }
 
-        return args, convert_to_nested
+        return output, args, convert_to_nested
 
     def normalize(self, src):
         if self.encoder.norm is not None:
