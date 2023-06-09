@@ -69,13 +69,13 @@ class Classifier(nn.Module):
         return out
 
     def deploy_adapter(self,
-            output: torch.Tensor,
+            src: torch.Tensor,
             mask: torch.Tensor = None,
             src_key_padding_mask: torch.Tensor = None,
             is_causal: bool = None,
             ) -> torch.Tensor:
         output, args, convert_to_nested = self.encoder.prepare(
-            output, mask, src_key_padding_mask, is_causal
+            src, mask, src_key_padding_mask, is_causal
         )
         output = self.adapter(output, args, self.encoder.encoder.layers)
         if convert_to_nested: output = output.to_padded_tensor(0.)
