@@ -37,9 +37,11 @@ class Model(nn.Module):
             )
         self.model = nn.Sequential(self.model)
 
-    def forward(self, output, args, encoder_layers):
+    def forward(self, output, args, encoder_layers, freeze_encoder:bool=False):
         for i, mod in enumerate(encoder_layers):
-            with torch.no_grad():
+            if freeze_encoder:
+                with torch.no_grad(): output = mod(output, **args)
+            else:
                 output = mod(output, **args)
             output = self.model[i](output)
         return output
