@@ -213,6 +213,7 @@ class Faker(object):
         # Make background data
         bg = [a for a,_ in DataLoader(data_loader.dataset, self.n_sample)][0]
         # Set explainer through taking input data from pseudo-dataloader
+        tuner.unfreeze_encoder()
         explain = tuner.model.make_explainer([a.to(device) for a in bg])
 
         for x,_ in data_loader:

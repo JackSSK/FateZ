@@ -45,6 +45,7 @@ class Classifier(nn.Module):
         self.factory_kwargs = {'dtype': dtype}
         self.rep_embedder = rep_embedder
         self.encoder = encoder
+        self.freeze_encoder = True
         self.adapter=self._set_adapter(adapter) if adapter is not None else None
         self.classifier = self._set_classifier(
             n_dim = encoder.d_model,
@@ -77,7 +78,12 @@ class Classifier(nn.Module):
         output, args, convert_to_nested = self.encoder.prepare(
             src, mask, src_key_padding_mask, is_causal
         )
-        output = self.adapter(output, args, self.encoder.encoder.layers)
+        output = self.adapter(
+            output,
+            args = args,
+            encoder_layers = self.encoder.encoder.layers,
+            freeze_encoder = self.freeze_encoder,
+        )
         if convert_to_nested: output = output.to_padded_tensor(0.)
         return self.encoder.normalize(output)
 

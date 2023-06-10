@@ -44,6 +44,7 @@ class Reconstructor(nn.Module):
         self.factory_kwargs = {'dtype': dtype}
         self.rep_embedder = rep_embedder
         self.encoder = encoder
+        self.freeze_encoder = False
         self.adapter=self._set_adapter(adapter) if adapter is not None else None
         self.input_sizes = input_sizes
         self.recon_node = mlp.Model(
@@ -94,7 +95,12 @@ class Reconstructor(nn.Module):
         output, args, convert_to_nested = self.encoder.prepare(
             src, mask, src_key_padding_mask, is_causal
         )
-        output = self.adapter(output, args, self.encoder.encoder.layers)
+        output = self.adapter(
+            output,
+            args = args,
+            encoder_layers = self.encoder.encoder.layers,
+            freeze_encoder = self.freeze_encoder,
+        )
         if convert_to_nested: output = output.to_padded_tensor(0.)
         return self.encoder.normalize(output)
 

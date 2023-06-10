@@ -268,3 +268,7 @@ class Tuner(object):
         report = pd.DataFrame(report)
         report.columns = ['Loss', 'ACC', 'AUROC']
         return report
+
+    def unfreeze_encoder(self):
+        self.model.bert_model.freeze_encoder = False
+        return
