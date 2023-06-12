@@ -221,6 +221,7 @@ class Tuner(object):
             edge_attr = x[2].to(self.factory_kwargs['device'])
             y = y.to(self.factory_kwargs['device'])
             output = self.model(node_fea_mat, edge_index, edge_attr)
+            print(output, y)
             loss = self.criterion(output, y)
             loss.backward()
             nn.utils.clip_grad_norm_(self.model.parameters(), self.max_norm)

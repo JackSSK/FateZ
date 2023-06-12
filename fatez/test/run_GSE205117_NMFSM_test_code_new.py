@@ -22,20 +22,29 @@ from sklearn.model_selection import train_test_split
 preprocess
 """
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+# device = 'cpu'
 ## preprocess parameters
 
 ####load node
-matrix1 = PreprocessIO.input_csv_dict_df('D:\\Westlake\\pwk lab\\fatez\\FateZ\\fatez\\data\\real_test1/node/',df_type ='node')
+matrix1 = PreprocessIO.input_csv_dict_df(
+    '../data/real_test1/node/',
+    df_type ='node',
+    order_cell = False,
+)
 
 
 ###load edge
-matrix2 = PreprocessIO.input_csv_dict_df('D:\\Westlake\\pwk lab\\fatez\\FateZ\\fatez\\data\\real_test1/edge/',df_type ='edge')
+matrix2 = PreprocessIO.input_csv_dict_df(
+    '../data/real_test1/edge/',
+    df_type ='edge',
+    order_cell = False,
+)
 gene_num = matrix2[list(matrix2.keys())[0]].columns
 
 
 ###load label
 label_dict = {}
-edge_label = pd.read_table('E:\\public\\public_data\\GSE205117\\NMF_SM\\GSE205117_NMFSM.txt')
+edge_label = pd.read_table('../data/real_test1/GSE205117_NMFSM.txt')
 label_check = edge_label['label'].values
 label_set = list(set(label_check))
 
@@ -118,12 +127,11 @@ model define
 """
 # config_name = sys.argv[1]
 # config = JSON.decode('/storage/peiweikeLab/jiangjunyao/fatez/tune_bert/config/'+config_name)
-config = JSON.decode('D:\\Westlake\\pwk lab\\fatez\\FateZ\\fatez\\data\\config\\gat_bert_config.json')
+config = JSON.decode('../data/config/gat_bert_config.json')
 
-config['input_sizes']['n_reg'] = 1103
-config['rep_embedder']['n_dim'] = 1103
-config['input_sizes']['n_node'] = 21820
-
+config['input_sizes']['n_reg'] = 100
+config['input_sizes']['n_node'] = 100
+config['rep_embedder']['params']['n_embed'] = 100
 
 print(config['input_sizes'])
 
@@ -136,7 +144,9 @@ fine_tuner_model = fine_tuner.Set(config, factory_kwargs)
 early_stop = es.Monitor(tolerance=30, min_delta=0.01)
 for epoch in range(num_epoch):
     print(f"Epoch {epoch+1}\n-------------------------------")
-
+    # for x, y in train_dataloader:
+    #     print(x[0].shape, x[1].shape, x[2].shape, y.shape)
+    #     break
     report_train = fine_tuner_model.train(train_dataloader,report_batch = True)
     print(report_train[-1:])
 
