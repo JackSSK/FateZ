@@ -22,24 +22,32 @@ from sklearn.model_selection import train_test_split
 preprocess
 """
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+# device = 'cpu'
 ## preprocess parameters
 
 ####load node
-matrix1 = PreprocessIO.input_csv_dict_df('/storage/peiweikeLab/jiangjunyao/fatez/tune_bert/fine_tune_node_binrna20_atacnor/GSE205117_NMFSM/',df_type ='node')
+matrix1 = PreprocessIO.input_csv_dict_df(
+    '../data/real_test1/node/',
+    df_type ='node',
+    order_cell = False,
+)
 
 
 ###load edge
-matrix2 = PreprocessIO.input_csv_dict_df('/storage/peiweikeLab/jiangjunyao/fatez/tune_bert/edge/',df_type ='edge')
+matrix2 = PreprocessIO.input_csv_dict_df(
+    '../data/real_test1/edge/',
+    df_type ='edge',
+    order_cell = False,
+)
 gene_num = matrix2[list(matrix2.keys())[0]].columns
 
 
 ###load label
 label_dict = {}
-edge_label = pd.read_table('/storage/peiweikeLab/jiangjunyao/fatez/tune_bert/label/GSE205117_NMFSM.txt')
+edge_label = pd.read_table('../data/real_test1/GSE205117_NMFSM.txt')
 label_check = edge_label['label'].values
 label_set = list(set(label_check))
 
-print(label_set)
 edge_label.index = edge_label['sample']
 ### scale edge
 for i in list(matrix2.keys()):
@@ -71,7 +79,7 @@ for i in range(len(matrix1)):
             edge_index = inds,
             edge_attr = attrs,
             y = label,
-            shape = m2.shape,
+            shape = matrix2[key_use].shape,
         )
     )
 
@@ -83,7 +91,7 @@ hyperparameters
 """
 ###############################
 # General params
-batch_size = 10
+batch_size = 2
 num_epoch = 5
 test_size = 0.3
 
@@ -117,13 +125,13 @@ data_name = 'GSE205117_NMFSM_fine_tune_node_binrna20_atacnor'
 """
 model define
 """
-config_name = sys.argv[1]
-config = JSON.decode('/storage/peiweikeLab/jiangjunyao/fatez/tune_bert/config/'+config_name)
+# config_name = sys.argv[1]
+# config = JSON.decode('/storage/peiweikeLab/jiangjunyao/fatez/tune_bert/config/'+config_name)
+config = JSON.decode('../data/config/gat_bert_config.json')
 
-config['input_sizes'][0][0] = batch_size
-config['input_sizes'][1][0] = batch_size
-config['input_sizes'][1][2] = len(gene_num)
-config['fine_tuner']['n_class'] = len(set(label_check))
+config['input_sizes']['n_reg'] = 100
+config['input_sizes']['n_node'] = 100
+config['rep_embedder']['params']['n_embed'] = 100
 
 print(config['input_sizes'])
 
@@ -136,7 +144,9 @@ fine_tuner_model = fine_tuner.Set(config, factory_kwargs)
 early_stop = es.Monitor(tolerance=30, min_delta=0.01)
 for epoch in range(num_epoch):
     print(f"Epoch {epoch+1}\n-------------------------------")
-
+    # for x, y in train_dataloader:
+    #     print(x[0].shape, x[1].shape, x[2].shape, y.shape)
+    #     break
     report_train = fine_tuner_model.train(train_dataloader,report_batch = True)
     print(report_train[-1:])
 

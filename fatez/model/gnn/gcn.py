@@ -6,7 +6,7 @@ author: jy
 """
 import torch
 import torch.nn as nn
-import torch_geometric.nn as gnn
+import torch_geometric.nn as pyg
 from fatez.model.gnn.gat import Model as Template
 
 
@@ -36,31 +36,31 @@ class Model(Template):
         model.append((nn.Dropout(p=dropout, inplace=True), 'x -> x'))
 
         if self.n_layer_set == 1:
-            layer = gnn.GCNConv(
+            layer = pyg.GCNConv(
                 in_channels = self.input_sizes['node_attr'],
                 out_channels = en_dim
             )
             model.append((layer, 'x, edge_index, edge_attr -> x'))
 
         elif self.n_layer_set >= 1:
-            layer = gnn.GCNConv(self.input_sizes['node_attr'], n_hidden)
+            layer = pyg.GCNConv(self.input_sizes['node_attr'], n_hidden)
             model.append((layer, 'x, edge_index, edge_attr -> x'))
             model.append(nn.ReLU(inplace = True))
 
             # Adding Conv blocks
             for i in range(self.n_layer_set - 2):
-                layer = gnn.GCNConv(n_hidden, n_hidden)
+                layer = pyg.GCNConv(n_hidden, n_hidden)
                 model.append((layer, 'x, edge_index, edge_attr -> x'))
                 model.append(nn.ReLU(inplace = True))
 
             # Adding last layer
-            layer = gnn.GCNConv(n_hidden, en_dim)
+            layer = pyg.GCNConv(n_hidden, en_dim)
             model.append((layer, 'x, edge_index, edge_attr -> x'))
 
         else:
             raise Exception('Why are we still here? Just to suffer.')
 
-        self.model = gnn.Sequential('x, edge_index, edge_attr', model)
+        self.model = pyg.Sequential('x, edge_index, edge_attr', model)
 
     def explain(self, fea_mat, adj_mat,):
         return

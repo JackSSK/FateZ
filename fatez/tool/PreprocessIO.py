@@ -15,9 +15,14 @@ def output_csv_dict_df(matrix_dict, output_path,sample=None):
 
 
 
-def input_csv_dict_df(input_path, order_cell = True ,df_type = 'node'):
+def input_csv_dict_df(
+        input_path,
+        specie = 'mouse',
+        order_cell = True,
+        df_type = 'node'
+        ):
     path = resource_filename(
-        __name__, '../data/' + '/gene_order.txt'
+        __name__, '../data/' + specie + '/gene_order.txt'
     )
     gene_order = pd.read_table(path,header=None)
     file_list = os.listdir(input_path)
