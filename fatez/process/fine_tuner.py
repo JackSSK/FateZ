@@ -110,6 +110,7 @@ class Tuner(object):
             clf_type:str = 'MLP',
             clf_params:dict = {'n_hidden': 2},
             n_class:int = 100,
+            adapter:str = None,
 
             # Adam optimizer settings
             lr:float = 1e-4,
@@ -142,11 +143,12 @@ class Tuner(object):
             gat = gat,
             graph_embedder = graph_embedder,
             bert_model = transformer.Classifier(
-                encoder = encoder,
                 rep_embedder = rep_embedder,
-                n_class = n_class,
+                encoder = encoder,
+                adapter = adapter.upper(),
                 clf_type = clf_type,
                 clf_params = clf_params,
+                n_class = n_class,
                 **self.factory_kwargs
             ),
         )

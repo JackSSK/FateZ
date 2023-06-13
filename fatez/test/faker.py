@@ -6,6 +6,7 @@ author: jy
 """
 import sys
 import tracemalloc
+import warnings
 from pkg_resources import resource_filename
 import shap
 import torch
@@ -32,6 +33,7 @@ class Faker(object):
     """
 
     def __init__(self,
+        warning_filter:str = 'ignore',
         model_config:dict = None,
         n_sample:int = 10,
         batch_size:int = 5,
@@ -40,6 +42,7 @@ class Faker(object):
         dtype:type = torch.float32,
         ):
         super(Faker, self).__init__()
+        self.warning_filter = warning_filter
         if model_config is None:
             path = '../data/config/gat_bert_config.json'
             # path = '../data/config/gat_bert_cnn1d_config.json'
@@ -180,6 +183,7 @@ class Faker(object):
         :return:
             Pre-trainer model
         """
+        warnings.filterwarnings(self.warning_filter)
         print('Testing Full Model.\n')
         suppressor = process.Quiet_Mode()
         # Initialize

@@ -93,7 +93,7 @@ class Classifier(nn.Module):
         """
         n_dim = self.encoder.d_model
         n_layer = len(self.encoder.encoder.layers)
-        if adp_type == 'LORA':
+        if adp_type.upper() == 'LORA':
             return adapter.LoRA(
                 d_model = n_dim,
                 n_layer = n_layer,
