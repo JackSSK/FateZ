@@ -95,7 +95,7 @@ class Model(nn.Module):
     def explain_batch(self, batch, explainer):
         adj_exp = self.gat.explain_batch(batch)
         reg_exp, vars = explainer.shap_values(
-            self.get_gat_out(batch), return_variances = True
+            self.get_gat_out(batch), return_variances=True
         )
         return adj_exp, reg_exp, vars
 
