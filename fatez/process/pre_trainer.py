@@ -184,7 +184,7 @@ class Trainer(object):
                 encoder = encoder,
                 # Will need to take this away if embed before GAT.
                 rep_embedder = rep_embedder,
-                mat_sizes = self.input_sizes,
+                input_sizes = self.input_sizes,
                 train_adj = train_adj,
                 **self.factory_kwargs,
             ),
