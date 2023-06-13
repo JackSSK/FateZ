@@ -90,16 +90,13 @@ class Model(nn.Module):
         return output
 
     def make_explainer(self, bg_data):
-        return shap.GradientExplainer(
-            self.bert_model,
-            self.get_gat_out(bg_data[0], bg_data[1], bg_data[2]),
-        )
+        return shap.GradientExplainer(self.bert_model,self.get_gat_out(bg_data))
 
     def explain_batch(self, batch, explainer):
         adj_exp = self.gat.explain_batch(batch)
         reg_exp, vars = explainer.shap_values(
-            self.get_gat_out(batch[0], batch[1], batch[2]),
-            return_variances = True,
+            self.get_gat_out(batch),
+            return_variances=True
         )
         return adj_exp, reg_exp, vars
 
