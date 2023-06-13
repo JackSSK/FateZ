@@ -7,7 +7,8 @@ author: jy
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-import torch_geometric.nn as gnn
+import torch_geometric.nn as pyg
+from torch_scatter import scatter
 # from torch_geometric.explain import Explainer, AttentionExplainer
 from torch_geometric.nn.conv.message_passing import MessagePassing
 import fatez.lib as lib
@@ -63,7 +64,7 @@ class Model(nn.Module):
         model.append((nn.Dropout(p=dropout, inplace=True), 'x -> x'))
 
         if self.n_layer_set == 1:
-            layer = gnn.GATConv(
+            layer = pyg.GATConv(
                 in_channels = self.input_sizes['node_attr'],
                 out_channels = en_dim,
                 heads = nhead,
@@ -74,7 +75,7 @@ class Model(nn.Module):
             model.append((layer, 'x, edge_index, edge_attr -> x'))
 
         elif self.n_layer_set > 1:
-            layer = gnn.GATConv(
+            layer = pyg.GATConv(
                 in_channels = self.input_sizes['node_attr'],
                 out_channels = n_hidden,
                 heads = nhead,
@@ -87,7 +88,7 @@ class Model(nn.Module):
 
             # Adding layer set
             for i in range(self.n_layer_set - 2):
-                layer = gnn.GATConv(
+                layer = pyg.GATConv(
                     in_channels = n_hidden,
                     out_channels = n_hidden,
                     heads = nhead,
@@ -99,7 +100,7 @@ class Model(nn.Module):
                 model.append(nn.ReLU(inplace = True))
 
             # Adding last layer
-            layer = gnn.GATConv(
+            layer = pyg.GATConv(
                 in_channels = n_hidden,
                 out_channels = en_dim,
                 heads = nhead,
@@ -112,7 +113,7 @@ class Model(nn.Module):
         else:
             raise Exception('Why are we still here? Just to suffer.')
 
-        self.model = gnn.Sequential('x, edge_index, edge_attr', model)
+        self.model = pyg.Sequential('x, edge_index, edge_attr', model)
 
     def forward(self, fea_mats, edge_indices, edge_attrs):
         answer = list()
@@ -203,10 +204,15 @@ class Model(nn.Module):
                 if edge_index[0][iter] == i:
                     batch[edge_index[1][iter]] += 1
                 iter += 1
-            pooling_data.append(gnn.pool.global_add_pool(rep, batch = batch)[1])
+            # scatter in size of 2, related data in [1] and unrelated in [0]
+            scatter = pyg.pool.global_add_pool(rep, batch)
+            if len(scatter) == 1:
+                pooling_data.append(scatter[0] * 0)
+            else:
+                pooling_data.append(scatter[1])
         # Product pooling data to according node(TF) representations
         answer = rep[:self.input_sizes['n_reg'],:]
         assert len(answer) == len(pooling_data)
         for i,data in enumerate(pooling_data):
-            answer[i] *= data
+            answer[i] += data
         return answer
