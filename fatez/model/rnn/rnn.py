@@ -23,7 +23,7 @@ class Model(nn.Module):
         bias:bool = True,
         batch_first:bool = True,
         dropout:float = 0.0,
-        bidirectional:bool = False,
+        bidirectional:bool = True,
         n_class:int = 2,
         **kwargs
         ):

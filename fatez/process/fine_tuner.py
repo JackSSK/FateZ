@@ -10,11 +10,7 @@ import torch.nn as nn
 import torch.optim as optim
 import pandas as pd
 from torchmetrics import AUROC
-import fatez.model as model
-import fatez.model.mlp as mlp
 import fatez.model.gnn as gnn
-import fatez.model.cnn as cnn
-import fatez.model.rnn as rnn
 import fatez.model.transformer as transformer
 import fatez.model.position_embedder as pe
 import fatez.model.criterion as crit
@@ -104,40 +100,41 @@ class Tuner(object):
     The fine-tune processing module.
     """
     def __init__(self,
-        input_sizes:list = None,
+            input_sizes:list = None,
 
-        # Models to take
-        gat = None,
-        encoder:transformer.Encoder = None,
-        graph_embedder = pe.Skip(),
-        rep_embedder = pe.Skip(),
-        clf_type:str = 'MLP',
-        clf_params:dict = {'n_hidden': 2},
-        n_class:int = 100,
+            # Models to take
+            gat = None,
+            encoder:transformer.Encoder = None,
+            graph_embedder = pe.Skip(),
+            rep_embedder = pe.Skip(),
+            clf_type:str = 'MLP',
+            clf_params:dict = {'n_hidden': 2},
+            n_class:int = 100,
+            adapter:str = None,
 
-        # Adam optimizer settings
-        lr:float = 1e-4,
-        betas:set = (0.9, 0.999),
-        weight_decay:float = 0.001,
+            # Adam optimizer settings
+            lr:float = 1e-4,
+            betas:set = (0.9, 0.999),
+            weight_decay:float = 0.001,
 
-        # Max norm of the gradients, to prevent gradients from exploding.
-        max_norm:float = 0.5,
+            # Max norm of the gradients, to prevent gradients from exploding.
+            max_norm:float = 0.5,
 
-        # Scheduler params
-        sch_T_0:int = 2,
-        sch_T_mult:int = 2,
-        sch_eta_min:float = 1e-4 / 50,
+            # Scheduler params
+            sch_T_0:int = 2,
+            sch_T_mult:int = 2,
+            sch_eta_min:float = 1e-4 / 50,
 
-        # Criterion params
-        ignore_index:int = -100,
-        # ignore_index:int = 0, # For NLLLoss
-        reduction:str = 'mean',
+            # Criterion params
+            ignore_index:int = -100,
+            # ignore_index:int = 0, # For NLLLoss
+            reduction:str = 'mean',
 
-        # factory_kwargs
-        device:str = 'cpu',
-        dtype:str = None,
-        **kwargs
-        ):
+            # factory_kwargs
+            device:str = 'cpu',
+            dtype:str = None,
+            **kwargs
+            ):
         super(Tuner, self).__init__()
         self.input_sizes = input_sizes
         self.factory_kwargs = {'device': device, 'dtype': dtype}
@@ -146,15 +143,12 @@ class Tuner(object):
             gat = gat,
             graph_embedder = graph_embedder,
             bert_model = transformer.Classifier(
-                encoder = encoder,
-                # Will need to take this away if embed before GAT.
                 rep_embedder = rep_embedder,
-                classifier = self.__set_classifier(
-                    n_dim = encoder.d_model,
-                    n_class = n_class,
-                    clf_type = clf_type,
-                    clf_params = clf_params,
-                ),
+                encoder = encoder,
+                adapter = adapter.upper(),
+                clf_type = clf_type,
+                clf_params = clf_params,
+                n_class = n_class,
                 **self.factory_kwargs
             ),
         )
@@ -263,63 +257,6 @@ class Tuner(object):
         report.columns = ['Loss', 'ACC', 'AUROC']
         return report
 
-    def __set_classifier(self,
-        n_dim:int = 4,
-        n_class:int = 2,
-        clf_type:str = 'MLP',
-        clf_params:dict = {'n_hidden': 2},
-        ):
-        """
-        Set up classifier model accordingly.
-        """
-        if clf_type.upper() == 'MLP':
-            return mlp.Model(
-                d_model = n_dim,
-                n_class = n_class,
-                **clf_params,
-                **self.factory_kwargs,
-            )
-        elif clf_type.upper() == 'CNN_1D':
-            return cnn.Model_1D(
-                in_channels = n_dim,
-                n_class = n_class,
-                **clf_params,
-                **self.factory_kwargs,
-            )
-        elif clf_type.upper() == 'CNN_2D':
-            return cnn.Model_2D(
-                in_channels = 1,
-                n_class = n_class,
-                **clf_params,
-                **self.factory_kwargs,
-            )
-        elif clf_type.upper() == 'CNN_HYB':
-            return cnn.Model_Hybrid(
-                in_channels = 1,
-                n_class = n_class,
-                **clf_params,
-                **self.factory_kwargs,
-            )
-        elif clf_type.upper() == 'RNN':
-            return rnn.RNN(
-                input_size = n_dim,
-                n_class = n_class,
-                **clf_params,
-                **self.factory_kwargs,
-            )
-        elif clf_type.upper() == 'GRU':
-            return rnn.GRU(
-                input_size = n_dim,
-                n_class = n_class,
-                **clf_params,
-                **self.factory_kwargs,
-            )
-        elif clf_type.upper() == 'LSTM':
-            return rnn.LSTM(
-                input_size = n_dim,
-                n_class = n_class,
-                **clf_params,
-                **self.factory_kwargs,
-            )
-        else:
-            raise model.Error('Unknown Classifier Type:', clf_type)
+    def unfreeze_encoder(self):
+        self.model.bert_model.freeze_encoder = False
+        return
