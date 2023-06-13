@@ -111,12 +111,14 @@ X_train,X_test,y_train,y_test = train_test_split(
 train_dataloader = DataLoader(
     lib.FateZ_Dataset(samples = X_train),
     batch_size = batch_size,
+    collate_fn = lib.collate_fn,
     shuffle=True
 )
 
 test_dataloader = DataLoader(
     lib.FateZ_Dataset(samples=X_test),
     batch_size=batch_size,
+    collate_fn = lib.collate_fn,
     shuffle=True
 )
 data_name = 'GSE205117_NMFSM_fine_tune_node_binrna20_atacnor'

@@ -4,8 +4,16 @@ This file contains basic database objects for storing data.
 
 author: jy
 """
+import torch
 from torch.utils.data import Dataset
 
+def collate_fn(batch):
+    """
+    The collate function for DataLoader to become capable to handle PyG Data.
+    """
+    samples = [ele for ele in batch]
+    labels = torch.tensor([ele.y for ele in batch])
+    return samples, labels
 
 
 class FateZ_Dataset(Dataset):
@@ -22,7 +30,7 @@ class FateZ_Dataset(Dataset):
     def __getitem__(self, idx):
         sample = self.samples[idx]
         data = [sample.x, sample.edge_index, sample.edge_attr]
-        return data, sample.y
+        return self.samples[idx]
 
 
 
