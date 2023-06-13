@@ -34,3 +34,12 @@ def get_dense(inds:torch.Tensor, vals:torch.Tensor, size,):
         return coo.to_dense().reshape(coo.shape[:-1]).to(inds.device)
     else:
         return coo.to_dense().to(inds.device)
+
+def get_dense_adjs(input, size):
+    """
+    Make densed tensors based on Adj matrices in PyG data objects.
+    """
+    answer = list()
+    for ele in input:
+        answer.append(get_dense(ele.edge_index, ele.edge_attr, size))
+    return torch.stack(answer, 0)

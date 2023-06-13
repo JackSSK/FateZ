@@ -4,14 +4,16 @@ This folder contains basic objects for FateZ.
 
 author: jy
 """
-from fatez.lib.database import FateZ_Dataset
-from fatez.lib.sparse_mat import get_sparse_coo, get_dense
+from fatez.lib.database import FateZ_Dataset, collate_fn
+from fatez.lib.sparse_mat import get_sparse_coo, get_dense, get_dense_adjs
 
 __all__ = [
     'GRN_Basic',
     'FateZ_Dataset',
+    'collate_fn',
     'get_sparse_coo',
     'get_dense',
+    'get_dense_adjs',
 ]
 
 

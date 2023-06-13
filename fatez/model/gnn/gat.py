@@ -115,13 +115,13 @@ class Model(nn.Module):
 
         self.model = pyg.Sequential('x, edge_index, edge_attr', model)
 
-    def forward(self, fea_mats, edge_indices, edge_attrs):
+    def forward(self, batch):
         answer = list()
         # Process batch data
-        for i in range(len(fea_mats)):
-            rep = self.model(fea_mats[i], edge_indices[i], edge_attrs[i],)
+        for i,data in enumerate(batch):
+            rep = self.model(data.x, data.edge_index, data.edge_attr,)
             # Only taking regulon representations
-            answer.append(self._get_regulon_exp(rep, edge_indices[i]))
+            answer.append(self._get_regulon_exp(rep, data.edge_index))
         return torch.stack(answer, 0)
 
     def explain(self, fea_mat, edge_index, edge_attr, reduce = 'sum'):
@@ -183,8 +183,8 @@ class Model(nn.Module):
 
     def explain_batch(self, batch,):
         exp=torch.zeros((self.input_sizes['n_reg'], self.input_sizes['n_node']))
-        for i in range(len(batch[0])):
-            exp += self.explain(batch[0][i],batch[1][i],batch[2][i],).to('cpu')
+        for i,data in enumerate(batch):
+            exp += self.explain(data.x,data.edge_index,data.edge_attr).to('cpu')
         return exp
 
     def switch_device(self, device = 'cpu'):
