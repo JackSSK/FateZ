@@ -26,8 +26,21 @@ device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 ## preprocess parameters
 
 ####load node
+# matrix1 = PreprocessIO.input_csv_dict_df(
+#     '../data/real_test1/node/',
+#     df_type ='node',
+#     order_cell = False,
+# )
+#
+#
+# ###load edge
+# matrix2 = PreprocessIO.input_csv_dict_df(
+#     '../data/real_test1/edge/',
+#     df_type ='edge',
+#     order_cell = False,
+# )
 matrix1 = PreprocessIO.input_csv_dict_df(
-    '../data/real_test1/node/',
+    'D:\\Westlake\\pwk lab\\fatez\\test_0613/node1/',
     df_type ='node',
     order_cell = False,
 )
@@ -35,7 +48,7 @@ matrix1 = PreprocessIO.input_csv_dict_df(
 
 ###load edge
 matrix2 = PreprocessIO.input_csv_dict_df(
-    '../data/real_test1/edge/',
+    'D:\\Westlake\\pwk lab\\fatez\\test_0613/edge/',
     df_type ='edge',
     order_cell = False,
 )
@@ -111,12 +124,14 @@ X_train,X_test,y_train,y_test = train_test_split(
 train_dataloader = DataLoader(
     lib.FateZ_Dataset(samples = X_train),
     batch_size = batch_size,
+    collate_fn = lib.collate_fn,
     shuffle=True
 )
 
 test_dataloader = DataLoader(
     lib.FateZ_Dataset(samples=X_test),
     batch_size=batch_size,
+    collate_fn = lib.collate_fn,
     shuffle=True
 )
 data_name = 'GSE205117_NMFSM_fine_tune_node_binrna20_atacnor'
@@ -129,9 +144,9 @@ model define
 # config = JSON.decode('/storage/peiweikeLab/jiangjunyao/fatez/tune_bert/config/'+config_name)
 config = JSON.decode('../data/config/gat_bert_config.json')
 
-config['input_sizes']['n_reg'] = 100
-config['input_sizes']['n_node'] = 100
-config['rep_embedder']['params']['n_embed'] = 100
+config['input_sizes']['n_reg'] = 1103
+config['input_sizes']['n_node'] = 21820
+config['rep_embedder']['params']['n_embed'] = 1103
 
 print(config['input_sizes'])
 

@@ -22,7 +22,7 @@ def input_csv_dict_df(
         df_type = 'node'
         ):
     path = resource_filename(
-        __name__, '../data/' + specie + '/gene_order.txt'
+        __name__, '../data/gene_order.txt'
     )
     gene_order = pd.read_table(path,header=None)
     file_list = os.listdir(input_path)
@@ -35,6 +35,7 @@ def input_csv_dict_df(
         if order_cell:
             if df_type == 'edge':
                 sample = sample.reindex(columns=gene_order[0])
+                sample = sample.reindex(gene_order[0][0:1103])
             elif df_type == 'node':
                 sample = sample.reindex(gene_order[0])
         dict_df[sample_name] = sample

@@ -109,7 +109,10 @@ class Faker(object):
             append_sample(samples, fea_m, adj_m, label = 1)
 
         return DataLoader(
-            lib.FateZ_Dataset(samples), batch_size=self.batch_size, shuffle=True
+            lib.FateZ_Dataset(samples),
+            batch_size=self.batch_size,
+            collate_fn = lib.collate_fn,
+            shuffle=True,
         )
 
     def test_gat(self, config:dict = None, decision = None):
@@ -154,7 +157,7 @@ class Faker(object):
 
         # Using data loader to train
         for x,y in data_loader:
-            out = gat_model(x[0], x[1], x[2])
+            out = gat_model(x)
             output = decision(out)
             loss = criterion(output, y.to(device))
             loss.backward()
@@ -211,7 +214,9 @@ class Faker(object):
         adj_exp = torch.zeros((size['n_reg'], size['n_node']))
         reg_exp = torch.zeros((size['n_reg'],self.config['encoder']['d_model']))
         # Make background data
-        bg = [a for a,_ in DataLoader(data_loader.dataset, self.n_sample)][0]
+        bg = [a for a,_ in DataLoader(
+            data_loader.dataset, self.n_sample, collate_fn = lib.collate_fn,
+            )][0]
         # Set explainer through taking input data from pseudo-dataloader
         tuner.unfreeze_encoder()
         explain = tuner.model.make_explainer([a.to(device) for a in bg])

@@ -102,31 +102,23 @@ class Model(nn.Module):
         self.masker = masker
 
 
-    def forward(self, fea_mats, edge_index, edge_attr):
-        output = self.graph_embedder(
-            fea_mats,
-            edge_index = edge_index,
-            edge_attr = edge_attr
-        )
-        output = self.gat(output, edge_index, edge_attr)
+    def forward(self, input):
+        output = self.graph_embedder(input)
+        output = self.gat(output)
         output = self.masker.mask(output,)
         output = self.bert_model(output,)
         return output
 
-    def get_gat_out(self, fea_mats, edge_index, edge_attr,):
+    def get_gat_out(self, input,):
         with torch.no_grad():
-            output = self.graph_embedder.eval()(
-                fea_mats, edge_index = edge_index, edge_attr = edge_attr
-            )
-            output = self.gat.eval()(output, edge_index, edge_attr)
+            output = self.graph_embedder.eval()(input)
+            output = self.gat.eval()(output)
         return output
 
-    def get_encoder_out(self, fea_mats, edge_index, edge_attr,):
+    def get_encoder_out(self, input,):
         with torch.no_grad():
-            output = self.graph_embedder.eval()(
-                fea_mats, edge_index = edge_index, edge_attr = edge_attr
-            )
-            output = self.gat.eval()(output, edge_index, edge_attr)
+            output = self.graph_embedder.eval()(input)
+            output = self.gat.eval()(output,)
             output = self.bert_model.encoder.eval()(output)
         return output
 
@@ -138,7 +130,7 @@ class Model(nn.Module):
     def explain_batch(self, batch, explainer):
         adj_exp = self.gat.explain_batch(batch)
         reg_exp, vars = explainer.shap_values(
-            self.get_gat_out(batch[0],batch[1],batch[2]), return_variances=True
+            self.get_gat_out(batch), return_variances=True
         )
         return adj_exp, reg_exp, vars
 
@@ -240,23 +232,22 @@ class Trainer(object):
         report = list()
 
         for x, _ in data_loader:
-            node_fea_mat = x[0].to(self.factory_kwargs['device'])
-            edge_index = x[1].to(self.factory_kwargs['device'])
-            edge_attr = x[2].to(self.factory_kwargs['device'])
-            node_rec, adj_rec = self.model(node_fea_mat, edge_index, edge_attr)
+            input = [ele.to(self.factory_kwargs['device']) for ele in x]
+            node_rec, adj_rec = self.model(input)
 
             # Get total loss
-            loss = self.criterion(
-                node_rec, torch.split(node_fea_mat, node_rec.shape[1], dim=1)[0]
-            )
+            origin_nodes = torch.split(
+                torch.stack([ele.x for ele in input], 0),
+                node_rec.shape[1],
+                dim = 1
+            )[0]
+            loss = self.criterion(node_rec, origin_nodes)
             if adj_rec is not None:
                 size = self.input_sizes
                 loss += self.criterion(
                     adj_rec,
-                    lib.get_dense(
-                        edge_index,
-                        edge_attr,
-                        (size['n_reg'],size['n_node'],size['edge_attr'])
+                    lib.get_dense_adjs(
+                        input, (size['n_reg'],size['n_node'],size['edge_attr'])
                     )
                 )
 
