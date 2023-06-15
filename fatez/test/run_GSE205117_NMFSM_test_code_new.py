@@ -155,17 +155,25 @@ print(config['input_sizes'])
 traning
 """
 factory_kwargs = {'device': device, 'dtype': torch.float32, }
-fine_tuner_model = fine_tuner.Set(config, factory_kwargs)
+fine_tuner_model = fine_tuner.Set(config, **factory_kwarg)
 early_stop = es.Monitor(tolerance=30, min_delta=0.01)
 for epoch in range(num_epoch):
     print(f"Epoch {epoch+1}\n-------------------------------")
     # for x, y in train_dataloader:
     #     print(x[0].shape, x[1].shape, x[2].shape, y.shape)
     #     break
-    report_train = fine_tuner_model.train(train_dataloader,report_batch = True)
+    report_train = fine_tuner_model.train(
+        train_dataloader,
+        report_batch = True,
+        device = [0],
+        )
     print(report_train[-1:])
 
-    report_test = fine_tuner_model.test(test_dataloader,report_batch = True)
+    report_test = fine_tuner_model.test(
+        test_dataloader,
+        report_batch = True,
+        device = [0]
+        )
     print(report_test[-1:])
 
     report_train.to_csv(data_save_dir + 'train-'+config_name+'-'+data_name+'.csv',
