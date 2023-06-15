@@ -42,6 +42,7 @@
               <ul class="current">
 <li class="toctree-l1"><a class="reference internal" href="../api.html">API reference</a></li>
 <li class="toctree-l1 current"><a class="reference internal" href="../examples.html">Examples</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="bin_number_tuning.html">You need a title here</a></li>
 <li class="toctree-l2"><a class="reference internal" href="clustering.html">FateZ Clustering</a></li>
 <li class="toctree-l2 current"><a class="current reference internal" href="#">FateZ Explain</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="#Build-model-and-make-some-fake-data-first.">Build model and make some fake data first.</a></li>
@@ -532,7 +533,8 @@ Done
 <div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[25]:
 </pre></div>
 </div>
-<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">adj_exp</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="n">config</span><span class="p">[</span><span class="s1">&#39;input_sizes&#39;</span><span class="p">][</span><span class="s1">&#39;n_reg&#39;</span><span class="p">],</span> <span class="n">config</span><span class="p">[</span><span class="s1">&#39;input_sizes&#39;</span><span class="p">][</span><span class="s1">&#39;n_node&#39;</span><span class="p">]))</span>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># Initializing edge explain matrix and regulon explain matrix</span>
+<span class="n">adj_exp</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="n">config</span><span class="p">[</span><span class="s1">&#39;input_sizes&#39;</span><span class="p">][</span><span class="s1">&#39;n_reg&#39;</span><span class="p">],</span> <span class="n">config</span><span class="p">[</span><span class="s1">&#39;input_sizes&#39;</span><span class="p">][</span><span class="s1">&#39;n_node&#39;</span><span class="p">]))</span>
 <span class="n">reg_exp</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="n">config</span><span class="p">[</span><span class="s1">&#39;input_sizes&#39;</span><span class="p">][</span><span class="s1">&#39;n_reg&#39;</span><span class="p">],</span> <span class="n">config</span><span class="p">[</span><span class="s1">&#39;encoder&#39;</span><span class="p">][</span><span class="s1">&#39;d_model&#39;</span><span class="p">]))</span>
 
 <span class="c1"># Make background data</span>

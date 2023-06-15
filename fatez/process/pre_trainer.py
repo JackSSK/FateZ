@@ -17,23 +17,24 @@ import fatez.lib as lib
 
 
 
-def Set(config:dict = None, factory_kwargs:dict = None, prev_model = None,):
+def Set(config:dict = None, prev_model = None, dtype = None, **kwargs):
     """
     Set up a Trainer object based on given config file (and pre-trained model)
     """
     if prev_model is None:
         return Trainer(
             input_sizes = config['input_sizes'],
-            gat = gnn.Set(config['gnn'], config['input_sizes'], factory_kwargs),
-            encoder = transformer.Encoder(**config['encoder'],**factory_kwargs),
+            gat = gnn.Set(config['gnn'], config['input_sizes'], dtype=dtype),
+            encoder = transformer.Encoder(**config['encoder'],),
             graph_embedder = pe.Set(
-                config['graph_embedder'], config['input_sizes'], factory_kwargs
+                config['graph_embedder'], config['input_sizes'], dtype=dtype
             ),
             rep_embedder = pe.Set(
-                config['rep_embedder'], config['input_sizes'], factory_kwargs
+                config['rep_embedder'], config['input_sizes'], dtype=dtype
             ),
+            dtype = dtype,
             **config['pre_trainer'],
-            **factory_kwargs,
+            **kwargs,
         )
     else:
         return Trainer(
@@ -42,8 +43,9 @@ def Set(config:dict = None, factory_kwargs:dict = None, prev_model = None,):
             encoder = prev_model.bert_model.encoder,
             graph_embedder = prev_model.graph_embedder,
             rep_embedder = prev_model.bert_model.rep_embedder,
+            dtype = dtype,
             **config['pre_trainer'],
-            **factory_kwargs,
+            **kwargs,
         )
 
 
@@ -168,27 +170,26 @@ class Trainer(object):
         # Criterion params
         reduction:str = 'mean',
 
-        # factory_kwargs
-        device:str = 'cpu',
+        # factory kwargs
         dtype:str = None,
         **kwargs
         ):
         super(Trainer, self).__init__()
         self.input_sizes = input_sizes
-        self.factory_kwargs = {'device': device, 'dtype': dtype}
+        self.dtype = dtype
         self.model = Model(
             gat = gat,
             masker = Masker(**masker_params),
             graph_embedder = graph_embedder,
             bert_model = transformer.Reconstructor(
-                encoder = encoder,
-                # Will need to take this away if embed before GAT.
                 rep_embedder = rep_embedder,
-                mat_sizes = self.input_sizes,
+                encoder = encoder,
+                input_sizes = self.input_sizes,
                 train_adj = train_adj,
-                **self.factory_kwargs,
+                dtype = self.dtype,
             ),
         )
+        # Torch 2
         # self.model = torch.compile(self.model)
 
         # Setting the Adam optimizer with hyper-param
@@ -219,23 +220,16 @@ class Trainer(object):
         # Using L1 Loss for criterion
         self.criterion = nn.L1Loss(reduction = reduction)
 
-        # Not supporting parallel training now
-        # # Distributed GPU training if CUDA can detect more than 1 GPU
-        # if with_cuda and torch.cuda.device_count() > 1:
-        #     self.model = nn.DataParallel(self.model, device_ids = cuda_devices)
-
-    def train(self, data_loader, report_batch:bool = False):
-        self.model.train()
-        self.model.to(self.factory_kwargs['device'])
+    def train(self, data_loader, report_batch:bool = False, device = 'cpu'):
+        net, device = self._use_device(device)
+        net.train(True)
         best_loss = 99
         loss_all = 0
         report = list()
 
         for x, _ in data_loader:
-            input = [ele.to(self.factory_kwargs['device']) for ele in x]
-            print('input device')
-            print(input[0].x.device)
-            node_rec, adj_rec = self.model(input)
+            input = [ele.to(device) for ele in x]
+            node_rec, adj_rec = net(input)
 
             # Get total loss
             origin_nodes = torch.split(
@@ -272,8 +266,9 @@ class Trainer(object):
         report.columns = ['Loss', ]
         return report
 
-    def switch_device(self, device:str = 'cpu'):
-        self.factory_kwargs['device'] = device
-        self.model = self.model.to(device)
-        self.model.gat.switch_device(device)
-        return
+    def _use_device(self, device = 'cpu'):
+        if str(type(device)) == "<class 'list'>":
+            net = nn.DataParallel(self.model, device_ids = device)
+            return net, torch.device('cuda:0')
+        elif str(type(device)) == "<class 'str'>":
+            return self.model.to(device), device

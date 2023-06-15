@@ -38,7 +38,9 @@
       ~Encoder.named_children
       ~Encoder.named_modules
       ~Encoder.named_parameters
+      ~Encoder.normalize
       ~Encoder.parameters
+      ~Encoder.prepare
       ~Encoder.register_backward_hook
       ~Encoder.register_buffer
       ~Encoder.register_forward_hook

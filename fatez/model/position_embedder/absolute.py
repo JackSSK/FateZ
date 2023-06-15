@@ -18,7 +18,6 @@ class Embedder(nn.Module):
     def __init__(self,
         n_embed:int = None,
         n_dim:int = None,
-        device:str = 'cpu',
         dtype:type = torch.float32,
         **kwargs
         ):
@@ -28,7 +27,6 @@ class Embedder(nn.Module):
             embedding_dim = n_dim,
             dtype = dtype
         )
-        self.factory_kwargs = {'device': device, 'dtype': dtype,}
-
+        
     def forward(self, x, fea_ind:int = 1, **kwargs):
         return x + self.encoder(torch.arange(x.shape[fea_ind], device=x.device))

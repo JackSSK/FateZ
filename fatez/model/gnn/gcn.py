@@ -21,7 +21,6 @@ class Model(Template):
         en_dim:int = 2,
         dropout:float = 0.0,
         n_layer_set:int = 1,
-        device:str = 'cpu',
         dtype:str = None,
         **kwargs
         ):
@@ -64,19 +63,3 @@ class Model(Template):
 
     def explain(self, fea_mat, adj_mat,):
         return
-
-
-
-# if __name__ == '__main__':
-    # from torch_geometric.datasets import TUDataset
-    # dataset = TUDataset(root='/tmp/ENZYMES', name='ENZYMES')
-    # data = dataset[0]
-    # train_dataset = dataset[:5]
-
-    # import fatez as fz
-    # faker = fz.test.Faker(device = 'cuda').make_data_loader()
-    # gcn = Model(d_model = 2, n_layer_set = 1, en_dim = 3, device = 'cuda')
-    # for x, y in faker:
-    #     result = gcn(x[0].to('cuda'), x[1].to('cuda'))
-    #     break
-    # print(result)

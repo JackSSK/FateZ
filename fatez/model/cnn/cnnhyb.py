@@ -18,6 +18,7 @@ class Model(nn.Module):
     Hybrid CNN using vertical and horizontial 1D kernels.
     """
     def __init__(self,
+        n_features:int = 4,
         in_channels:int = 1,
         n_class:int = 2,
         n_layer_set:int = 1,
@@ -31,6 +32,9 @@ class Model(nn.Module):
         **kwargs
         ):
         """
+        :param n_features:int = None
+            Number of input genes/regulons.
+
         :param in_channels:int = 1
             Feature numbers of input matrix.
             (Should be fixed to 1 since taking representations as 2D matrices.)

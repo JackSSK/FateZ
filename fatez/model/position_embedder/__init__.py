@@ -18,14 +18,14 @@ __all__ = [
     'Absolute_Embed',
 ]
 
-def Set(config:dict=None, input_sizes:list=None, factory_kwargs:dict=None):
+def Set(config:dict=None, input_sizes:list=None, dtype:str = None, **kwargs):
     """
     Set up positional embedder based on given config.
     """
     if config['type'].upper() == 'SKIP':
         return Skip()
     elif config['type'].upper() == 'ABS':
-        return Absolute_Embed(**config['params'], **factory_kwargs)
+        return Absolute_Embed(**config['params'], dtype = dtype)
     elif config['type'].upper() == 'RW':
         return
     else:
