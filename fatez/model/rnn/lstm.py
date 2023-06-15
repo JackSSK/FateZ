@@ -16,7 +16,8 @@ class Model(nn.Module):
     Long-Short-Term Memory
     """
     def __init__(self,
-        input_size:int = None,
+        n_features:int = None,
+        n_dim:int = None,
         hidden_size:int = None,
         num_layers:int = 1,
         bias:bool = True,
@@ -33,7 +34,7 @@ class Model(nn.Module):
         self.bidirectional = bidirectional
         self.dropout = nn.Dropout(p = dropout, inplace = True)
         self.lstm = nn.LSTM(
-            input_size = input_size,
+            input_size = n_dim,
             hidden_size = hidden_size,
             num_layers = num_layers,
             bias = bias,
@@ -42,7 +43,11 @@ class Model(nn.Module):
             bidirectional = bidirectional,
             proj_size = proj_size,
         )
-        self.decision = nn.Linear(self.hidden_size, n_class)
+        self.fc = nn.Flatten(start_dim = 1, end_dim = -1)
+        densed_size = hidden_size
+        self.dense = nn.Linear(n_features * hidden_size, densed_size)
+        self.relu = nn.ReLU(inplace = True)
+        self.decision = nn.Linear(densed_size, n_class)
 
     def forward(self, input):
         # input needs to be: (batch_size, seq, input_size)
@@ -58,6 +63,9 @@ class Model(nn.Module):
         c0 = c0.to(input.device)
         out, states = self.lstm(input, (h0, c0))
         # out: tensor of shape (batch_size, seq_length, hidden_size)
+        out = self.fc(out)
+        out = self.dense(out)
+        out = self.relu(out)
+        out = self.decision(out)
         # Decode the hidden state of the last time step
-        out = F.softmax(self.decision(out[:, -1, :]), dim = 1)
-        return out
+        return F.softmax(out, dim = 1)

@@ -21,9 +21,7 @@ import numpy as np
 """
 preprocess
 """
-device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
-## preprocess parameters
-print(device)
+
 ####load node
 #matrix1 = PreprocessIO.input_csv_dict_df('/storage/peiweikeLab/jiangjunyao/fatez/tune_bert/fine_tune_node_bin20/GSE205117_NMFSM/',df_type ='node')
 matrix1 = PreprocessIO.input_csv_dict_df('/storage/peiweikeLab/jiangjunyao/fatez/tune_bert/node1/',df_type ='node')
@@ -132,20 +130,30 @@ for i in range(1):
     """
     traning
     """
-    factory_kwargs = {'device': device, 'dtype': torch.float32, }
-    trainer = pre_trainer.Set(config, factory_kwargs)
-    trainer.model = nn.DataParallel(trainer.model)
+    trainer = pre_trainer.Set(config, dtype = torch.float32,)
+
+    """
+    If using cuda:0 and cuda:1
+    """
+    device = [0, 1]
+
     early_stop = es.Monitor(tolerance=30, min_delta=0.01)
     for epoch in range(num_epoch):
         print(f"Epoch {epoch+1}\n-------------------------------")
 
-        report_train = trainer.train(train_dataloader, report_batch = False)
+        report_train = trainer.train(
+            train_dataloader,
+            report_batch = False,
+            device = device
+            )
 
         print(report_train[-1:])
 
-
-        report_train.to_csv(data_save_dir + 'train-'+config_name+'-'+data_name+'.csv',
-                            mode='a',header=False)
+        report_train.to_csv(
+            data_save_dir + 'train-'+config_name+'-'+data_name+'.csv',
+            mode='a',
+            header=False
+        )
 
 
 if data_save:

@@ -175,7 +175,12 @@ class Faker(object):
         print(f'\tExplainer Green.\n')
         return gat_model
 
-    def test_full_model(self, config:dict=None, epoch:int=50, quiet:bool=True):
+    def test_full_model(self,
+        config:dict = None,
+        train_epoch:int = 20,
+        tune_epoch:int = 10,
+        quiet:bool = True
+        ):
         """
         Function to test whether FateZ is performing properly or not.
 
@@ -196,7 +201,7 @@ class Faker(object):
         # Pre-train part
         if quiet: suppressor.on()
         trainer = pre_trainer.Set(config, **self.factory_kwargs)
-        for i in range(epoch):
+        for i in range(train_epoch):
             report = trainer.train(data_loader,report_batch=False,device=device)
             print(f'Epoch {i} Loss: {report.iloc[0,0]}')
         if quiet: suppressor.off()
@@ -205,7 +210,7 @@ class Faker(object):
         # Fine tune part
         if quiet: suppressor.on()
         tuner = fine_tuner.Set(config, trainer.model, **self.factory_kwargs)
-        for i in range(epoch):
+        for i in range(tune_epoch):
             report = tuner.train(data_loader, report_batch=False, device=device)
             print(f'Epoch {i} Loss: {report.iloc[0,0]}')
         # Test fine tune model

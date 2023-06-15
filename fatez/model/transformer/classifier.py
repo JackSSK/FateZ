@@ -169,7 +169,7 @@ class Classifier(nn.Module):
         elif clf_type.upper() == 'LSTM':
             return rnn.LSTM(
                 n_features = n_features,
-                input_size = n_dim,
+                n_dim = n_dim,
                 n_class = n_class,
                 dtype = self.dtype,
                 **clf_params,
