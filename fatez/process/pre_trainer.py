@@ -189,6 +189,7 @@ class Trainer(object):
                 **self.factory_kwargs,
             ),
         )
+        # self.model = nn.DataParallel(model, device_ids=[0, 1, 2])
         # self.model = torch.compile(self.model)
 
         # Setting the Adam optimizer with hyper-param
@@ -224,9 +225,9 @@ class Trainer(object):
         # if with_cuda and torch.cuda.device_count() > 1:
         #     self.model = nn.DataParallel(self.model, device_ids = cuda_devices)
 
-    def train(self, data_loader, report_batch:bool = False):
-        self.model.train()
+    def train(self, data_loader, report_batch:bool = False, device:str = None):
         self.model.to(self.factory_kwargs['device'])
+        self.model.train(True)
         best_loss = 99
         loss_all = 0
         report = list()

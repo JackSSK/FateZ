@@ -145,7 +145,7 @@ class Tuner(object):
             bert_model = transformer.Classifier(
                 rep_embedder = rep_embedder,
                 encoder = encoder,
-                adapter = adapter.upper(),
+                adapter = adapter,
                 clf_type = clf_type,
                 clf_params = clf_params,
                 n_class = n_class,

@@ -41,7 +41,7 @@ class Reconstructor(nn.Module):
             Whether reconstructing adjacent matrices or not.
         """
         super(Reconstructor, self).__init__()
-        self.factory_kwargs = {'dtype': dtype}
+        self.dtype = dtype
         self.rep_embedder = rep_embedder
         self.encoder = encoder
         self.freeze_encoder = False
@@ -114,7 +114,7 @@ class Reconstructor(nn.Module):
             return adapter.LoRA(
                 d_model = n_dim,
                 n_layer = n_layer,
-                **self.factory_kwargs,
+                dtype = self.dtype,
             )
         else:
             raise model.Error('Unknown Adapter Type:', adp_type)
