@@ -233,6 +233,8 @@ class Trainer(object):
 
         for x, _ in data_loader:
             input = [ele.to(self.factory_kwargs['device']) for ele in x]
+            print('input device')
+            print(input[0].x.device)
             node_rec, adj_rec = self.model(input)
 
             # Get total loss

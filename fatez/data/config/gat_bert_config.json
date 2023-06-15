@@ -31,7 +31,7 @@
         "d_model": 4,
         "n_layer": 1,
         "nhead": 2,
-        "dim_feedforward": 512
+        "dim_feedforward": 64
     },
     "pre_trainer": {
         "train_adj": true,

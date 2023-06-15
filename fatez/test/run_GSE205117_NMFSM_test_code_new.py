@@ -21,7 +21,7 @@ from sklearn.model_selection import train_test_split
 """
 preprocess
 """
-device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
 # device = 'cpu'
 ## preprocess parameters
 
@@ -157,11 +157,13 @@ traning
 factory_kwargs = {'device': device, 'dtype': torch.float32, }
 fine_tuner_model = fine_tuner.Set(config, factory_kwargs)
 early_stop = es.Monitor(tolerance=30, min_delta=0.01)
+trainer = pre_trainer.Set(config, factory_kwargs)
 for epoch in range(num_epoch):
     print(f"Epoch {epoch+1}\n-------------------------------")
     # for x, y in train_dataloader:
     #     print(x[0].shape, x[1].shape, x[2].shape, y.shape)
     #     break
+    trainer.train(train_dataloader, report_batch=True)
     report_train = fine_tuner_model.train(train_dataloader,report_batch = True)
     print(report_train[-1:])
 
