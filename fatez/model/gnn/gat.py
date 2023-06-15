@@ -37,7 +37,7 @@ class Model(nn.Module):
             Number of hidden units.
 
         :param en_dim:int = 2
-            Number of each gene's encoded features.
+            Number of each gene's encoded representation dimension.
 
         :param nhead:int = None
             Number of attention heads.
@@ -187,9 +187,6 @@ class Model(nn.Module):
             exp += self.explain(data.x,data.edge_index,data.edge_attr).to('cpu')
         return exp
 
-    def switch_device(self, device = 'cpu'):
-        self.model = self.model.to(device)
-        return
 
     def _get_regulon_exp(self, rep, edge_index):
         """

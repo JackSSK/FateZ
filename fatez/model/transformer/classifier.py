@@ -25,6 +25,7 @@ class Classifier(nn.Module):
             rep_embedder = pe.Skip(),
             encoder:transformer.Encoder = None,
             adapter:str = 'LORA',
+            input_sizes:list = None,
             clf_type:str = 'MLP',
             clf_params:dict = {'n_hidden': 2},
             n_class:int = 100,
@@ -38,16 +39,21 @@ class Classifier(nn.Module):
         :param encoder:transformer.Encoder = None
             The Encoder to build fine-tune model with.
 
-        :param classifier = None
-            The classification model for making predictions.
+        :param adapter:str = None
+            Exp
+
+        :param input_sizes:dict = None
+            Exp
         """
         super(Classifier, self).__init__()
-        self.factory_kwargs = {'dtype': dtype}
+        self.dtype = dtype
         self.rep_embedder = rep_embedder
         self.encoder = encoder
         self.freeze_encoder = True
         self.adapter=self._set_adapter(adapter) if adapter is not None else None
+        self.input_sizes = input_sizes
         self.classifier = self._set_classifier(
+            n_features = self.input_sizes['n_reg'],
             n_dim = encoder.d_model,
             n_class = n_class,
             clf_type = clf_type,
@@ -97,12 +103,13 @@ class Classifier(nn.Module):
             return adapter.LoRA(
                 d_model = n_dim,
                 n_layer = n_layer,
-                **self.factory_kwargs,
+                dtype = self.dtype,
             )
         else:
             raise model.Error('Unknown Adapter Type:', adp_type)
 
     def _set_classifier(self,
+            n_features:int = 4,
             n_dim:int = 4,
             n_class:int = 2,
             clf_type:str = 'MLP',
@@ -113,52 +120,59 @@ class Classifier(nn.Module):
         """
         if clf_type.upper() == 'MLP':
             return mlp.Model(
+                n_features = n_features,
                 d_model = n_dim,
                 n_class = n_class,
+                dtype = self.dtype,
                 **clf_params,
-                **self.factory_kwargs,
             )
         elif clf_type.upper() == 'CNN_1D':
             return cnn.Model_1D(
+                n_features = n_features,
                 in_channels = n_dim,
                 n_class = n_class,
+                dtype = self.dtype,
                 **clf_params,
-                **self.factory_kwargs,
             )
         elif clf_type.upper() == 'CNN_2D':
             return cnn.Model_2D(
+                n_features = n_features,
                 in_channels = 1,
                 n_class = n_class,
+                dtype = self.dtype,
                 **clf_params,
-                **self.factory_kwargs,
             )
         elif clf_type.upper() == 'CNN_HYB':
             return cnn.Model_Hybrid(
+                n_features = n_features,
                 in_channels = 1,
                 n_class = n_class,
+                dtype = self.dtype,
                 **clf_params,
-                **self.factory_kwargs,
             )
         elif clf_type.upper() == 'RNN':
             return rnn.RNN(
+                n_features = n_features,
                 input_size = n_dim,
                 n_class = n_class,
+                dtype = self.dtype,
                 **clf_params,
-                **self.factory_kwargs,
             )
         elif clf_type.upper() == 'GRU':
             return rnn.GRU(
+                n_features = n_features,
                 input_size = n_dim,
                 n_class = n_class,
+                dtype = self.dtype,
                 **clf_params,
-                **self.factory_kwargs,
             )
         elif clf_type.upper() == 'LSTM':
             return rnn.LSTM(
+                n_features = n_features,
                 input_size = n_dim,
                 n_class = n_class,
+                dtype = self.dtype,
                 **clf_params,
-                **self.factory_kwargs,
             )
         else:
             raise model.Error('Unknown Classifier Type:', clf_type)

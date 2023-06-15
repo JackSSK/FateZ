@@ -17,23 +17,24 @@ import fatez.model.criterion as crit
 
 
 
-def Set(config:dict = None, factory_kwargs:dict = None, prev_model = None,):
+def Set(config:dict = None, prev_model = None, dtype = None, **kwargs):
     """
     Set up a Tuner object based on given config file (and pre-trained model)
     """
     if prev_model is None:
         return Tuner(
             input_sizes = config['input_sizes'],
-            gat = gnn.Set(config['gnn'], config['input_sizes'], factory_kwargs),
-            encoder = transformer.Encoder(**config['encoder'],**factory_kwargs),
+            gat = gnn.Set(config['gnn'], config['input_sizes'], dtype=dtype),
+            encoder = transformer.Encoder(**config['encoder'],),
             graph_embedder = pe.Set(
-                config['graph_embedder'], config['input_sizes'], factory_kwargs
+                config['graph_embedder'], config['input_sizes'], dtype=dtype
             ),
             rep_embedder = pe.Set(
-                config['rep_embedder'], config['input_sizes'], factory_kwargs
+                config['rep_embedder'], config['input_sizes'], dtype=dtype
             ),
+            dtype = dtype,
             **config['fine_tuner'],
-            **factory_kwargs,
+            **kwargs,
         )
     else:
         return Tuner(
@@ -42,8 +43,9 @@ def Set(config:dict = None, factory_kwargs:dict = None, prev_model = None,):
             encoder = prev_model.bert_model.encoder,
             graph_embedder = prev_model.graph_embedder,
             rep_embedder = prev_model.bert_model.rep_embedder,
+            dtype = dtype,
             **config['fine_tuner'],
-            **factory_kwargs,
+            **kwargs,
         )
 
 
@@ -130,14 +132,13 @@ class Tuner(object):
             # ignore_index:int = 0, # For NLLLoss
             reduction:str = 'mean',
 
-            # factory_kwargs
-            device:str = 'cpu',
+            # factory kwargs
             dtype:str = None,
             **kwargs
             ):
         super(Tuner, self).__init__()
         self.input_sizes = input_sizes
-        self.factory_kwargs = {'device': device, 'dtype': dtype}
+        self.dtype = dtype
         self.n_class = n_class
         self.model = Model(
             gat = gat,
@@ -146,12 +147,15 @@ class Tuner(object):
                 rep_embedder = rep_embedder,
                 encoder = encoder,
                 adapter = adapter,
+                input_sizes = self.input_sizes,
                 clf_type = clf_type,
                 clf_params = clf_params,
                 n_class = n_class,
-                **self.factory_kwargs
+                dtype = self.dtype
             ),
         )
+        # Torch 2
+        # self.model = torch.compile(self.model)
 
         # Setting the Adam optimizer with hyper-param
         self.optimizer = optim.AdamW(
@@ -184,15 +188,9 @@ class Tuner(object):
             reduction = reduction,
         )
 
-        # Not supporting parallel training now
-        # # Distributed GPU training if CUDA can detect more than 1 GPU
-        # if with_cuda and torch.cuda.device_count() > 1:
-        #     self.model = nn.DataParallel(self.model, device_ids = cuda_devices)
-
-    def train(self, data_loader, report_batch:bool = False,):
-        # save_gat_out:bool = False
-        self.model.train()
-        self.model.to(self.factory_kwargs['device'])
+    def train(self, data_loader, report_batch:bool = False, device = 'cpu'):
+        net, device = self._use_device(device)
+        net.train(True)
         nbatch = len(data_loader)
         best_loss = 99
         loss_all, acc_all = 0, 0
@@ -202,9 +200,8 @@ class Tuner(object):
         acc_crit = crit.Accuracy(requires_grad = False)
 
         for x,y in data_loader:
-            input = [ele.to(self.factory_kwargs['device']) for ele in x]
-            y = y.to(self.factory_kwargs['device'])
-            output = self.model(input)
+            y = y.to(device)
+            output = net([ele.to(device) for ele in x])
             loss = self.criterion(output, y)
             loss.backward()
             nn.utils.clip_grad_norm_(self.model.parameters(), self.max_norm)
@@ -224,8 +221,9 @@ class Tuner(object):
         report.columns = ['Loss', 'ACC',]
         return report
 
-    def test(self, data_loader, report_batch = False):
-        self.model.eval()
+    def test(self, data_loader, report_batch:bool = False, device:str = 'cpu'):
+        net, device = self._use_device(device)
+        net.eval()
         nbatch = len(data_loader)
         report = list()
         loss_all, acc_all, auroc_all = 0, 0, 0
@@ -235,9 +233,8 @@ class Tuner(object):
         auroc = AUROC("multiclass", num_classes = self.n_class)
         with torch.no_grad():
             for x, y in data_loader:
-                input = [ele.to(self.factory_kwargs['device']) for ele in x]
-                y = y.to(self.factory_kwargs['device'])
-                output = self.model(input)
+                y = y.to(device)
+                output = net([ele.to(device) for ele in x])
 
                 # Batch specific
                 loss = self.criterion(output, y).item()
@@ -260,3 +257,10 @@ class Tuner(object):
     def unfreeze_encoder(self):
         self.model.bert_model.freeze_encoder = False
         return
+
+    def _use_device(self, device = 'cpu'):
+        if str(type(device)) == "<class 'list'>":
+            net = nn.DataParallel(self.model, device_ids = device)
+            return net, torch.device('cuda:0')
+        elif str(type(device)) == "<class 'str'>":
+            return self.model.to(device), device

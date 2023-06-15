@@ -40,7 +40,7 @@ class Model(nn.Module):
             # dropout = dropout,
             bidirectional = bidirectional
         )
-        self.fc = nn.Linear(self.hidden_size, n_class)
+        self.decision = nn.Linear(self.hidden_size, n_class)
 
     def forward(self, input):
         # input needs to be: (batch_size, seq, input_size)
@@ -51,8 +51,8 @@ class Model(nn.Module):
         else:
             h0 = torch.zeros(2*self.num_layers, input.size(0), self.hidden_size)
         h0 = h0.to(input.device)
-        out, _ = self.gru(input, h0)
+        out, states = self.gru(input, h0)
         # out: tensor of shape (batch_size, seq_length, hidden_size)
         # Decode the hidden state of the last time step
-        out = F.softmax(self.fc(out[:, -1, :]), dim = 1)
+        out = F.softmax(self.decision(out[:, -1, :]), dim = 1)
         return out
