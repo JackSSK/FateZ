@@ -106,9 +106,13 @@ class Model(nn.Module):
 
     def forward(self, input):
         output = self.graph_embedder(input)
+        print('Passed GE.')
         output = self.gat(output)
+        print('Passed GNN.')
         output = self.masker.mask(output,)
+        print('Passed Masker.')
         output = self.bert_model(output,)
+        print('Pre-Trainer Done.')
         return output
 
     def get_gat_out(self, input,):

@@ -68,10 +68,10 @@ class Faker(object):
 
         def rand_sample():
             input_sz = self.config['input_sizes']
-            fea_m = torch.randn(
+            fea_m = abs(torch.randn(
                 (input_sz['n_node'], input_sz['node_attr']),
                 dtype = self.factory_kwargs['dtype']
-            )
+            ))
             adj_m = torch.randn(
                 (input_sz['n_reg'], input_sz['n_node'], input_sz['edge_attr']),
                 dtype = self.factory_kwargs['dtype']
@@ -82,6 +82,7 @@ class Faker(object):
                 adj_m = adj_m * 0 + 1
             # Take last two features as testing features
             fea_m[-2:] *= 0
+            fea_m[-2:] += 1
             adj_m[:,-2:] *= 0
             return fea_m, adj_m
 
@@ -100,14 +101,13 @@ class Faker(object):
         # Prepare type_0 samples
         for i in range(int(self.n_sample / 2)):
             fea_m, adj_m = rand_sample()
-            fea_m[-1] += 9
+            fea_m[-1] += 8
             adj_m[:,-1] += 9
             append_sample(samples, fea_m, adj_m, label = 0)
 
         # Prepare type_1 samples
         for i in range(self.n_sample - int(self.n_sample / 2)):
             fea_m, adj_m = rand_sample()
-            fea_m[-1] += 1
             adj_m[:,-1] += 1
             append_sample(samples, fea_m, adj_m, label = 1)
 

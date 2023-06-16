@@ -74,16 +74,20 @@ class Reconstructor(nn.Module):
             is_causal: bool = None,
             ) -> torch.Tensor:
         out = self.rep_embedder(src)
+        print('Passed RE.')
+        print(self.adapter, out, mask, src_key_padding_mask, is_causal)
         if self.adapter is None:
             out = self.encoder(out, mask, src_key_padding_mask, is_causal)
         else:
             out=self.deploy_adapter(out, mask, src_key_padding_mask, is_causal)
+        print('Passed encoder.')
         node_mat = self.recon_node(out)
+        print('Passed Node Recon.')
         if self.recon_adj != None:
             adj_mat = self.recon_adj(out)
         else:
             adj_mat = None
-
+        print('Passed Adj Recon.')
         return node_mat, adj_mat
 
     def deploy_adapter(self,
