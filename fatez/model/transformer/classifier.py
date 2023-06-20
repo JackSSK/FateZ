@@ -118,61 +118,25 @@ class Classifier(nn.Module):
         """
         Set up classifier model accordingly.
         """
+        args = {
+            'n_features': n_features,
+            'n_dim': n_dim,
+            'n_class': n_class,
+            'dtype': self.dtype,
+        }
         if clf_type.upper() == 'MLP':
-            return mlp.Model(
-                n_features = n_features,
-                d_model = n_dim,
-                n_class = n_class,
-                dtype = self.dtype,
-                **clf_params,
-            )
+            return mlp.Model(d_model = n_dim, **args, **clf_params,)
         elif clf_type.upper() == 'CNN_1D':
-            return cnn.Model_1D(
-                n_features = n_features,
-                in_channels = n_dim,
-                n_class = n_class,
-                dtype = self.dtype,
-                **clf_params,
-            )
+            return cnn.Model_1D(**args, **clf_params,)
         elif clf_type.upper() == 'CNN_2D':
-            return cnn.Model_2D(
-                n_features = n_features,
-                in_channels = 1,
-                n_class = n_class,
-                dtype = self.dtype,
-                **clf_params,
-            )
+            return cnn.Model_2D(**args, **clf_params,)
         elif clf_type.upper() == 'CNN_HYB':
-            return cnn.Model_Hybrid(
-                n_features = n_features,
-                in_channels = 1,
-                n_class = n_class,
-                dtype = self.dtype,
-                **clf_params,
-            )
+            return cnn.Model_Hybrid(**args, **clf_params,)
         elif clf_type.upper() == 'RNN':
-            return rnn.RNN(
-                n_features = n_features,
-                input_size = n_dim,
-                n_class = n_class,
-                dtype = self.dtype,
-                **clf_params,
-            )
+            return rnn.RNN(**args, **clf_params,)
         elif clf_type.upper() == 'GRU':
-            return rnn.GRU(
-                n_features = n_features,
-                input_size = n_dim,
-                n_class = n_class,
-                dtype = self.dtype,
-                **clf_params,
-            )
+            return rnn.GRU(**args, **clf_params,)
         elif clf_type.upper() == 'LSTM':
-            return rnn.LSTM(
-                n_features = n_features,
-                n_dim = n_dim,
-                n_class = n_class,
-                dtype = self.dtype,
-                **clf_params,
-            )
+            return rnn.LSTM(**args, **clf_params,)
         else:
             raise model.Error('Unknown Classifier Type:', clf_type)

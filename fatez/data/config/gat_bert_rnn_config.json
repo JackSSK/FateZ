@@ -6,7 +6,7 @@
         "edge_attr": 1
     },
     "graph_embedder": {
-        "type": "abs",
+        "type": "skip",
         "params": {
             "n_embed": 10,
             "n_dim": 2
@@ -15,23 +15,23 @@
     "gnn": {
         "type": "GATv2",
         "params": {
-            "en_dim": 3,
-            "n_hidden": 2,
-            "nhead": 3
+            "en_dim": 4,
+            "n_hidden": 4,
+            "nhead": 2
         }
     },
     "rep_embedder": {
         "type": "ABS",
         "params": {
             "n_embed": 4,
-            "n_dim": 3
+            "n_dim": 4
         }
     },
     "encoder": {
-        "d_model": 3,
-        "n_layer": 6,
-        "nhead": 3,
-        "dim_feedforward": 3
+        "d_model": 4,
+        "n_layer": 2,
+        "nhead": 2,
+        "dim_feedforward": 64
     },
     "pre_trainer": {
         "n_dim_adj": null,
@@ -41,15 +41,16 @@
     },
     "fine_tuner": {
         "n_class": 2,
-        "clf_type": "RNN",
+        "clf_type": "rnn",
+        "adapter": null,
         "clf_params":{
           "hidden_size": 8,
-          "num_layers": 1,
+          "num_layers": 4,
           "nonlinearity": "tanh",
           "bias": true,
           "batch_first": true,
           "dropout": 0.0,
-          "bidirectional": false
+          "bidirectional": true
         }
     }
 }

@@ -248,7 +248,7 @@ class Tuner(object):
                 loss_all += loss
                 acc_all += acc
                 auroc_all += auc_score
-
+                
         report.append([loss_all / nbatch, acc_all / nbatch, auroc_all / nbatch])
         report = pd.DataFrame(report)
         report.columns = ['Loss', 'ACC', 'AUROC']

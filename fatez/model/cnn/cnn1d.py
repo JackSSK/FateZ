@@ -4,7 +4,6 @@ CNN with 1D kernels implemented with PyTorch.
 
 author: jy, nkmtmsys
 """
-
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
@@ -17,11 +16,12 @@ class Model(nn.Module):
     A 1D CNN model
     """
     def __init__(self,
-        in_channels:int = 1,
+        n_features:int = 4,
+        n_dim:int = 1,
         n_class:int = 2,
         n_layer_set:int = 1,
         conv_kernel_num:int = 32,
-        conv_kernel_size:int = 4,
+        conv_kernel_size:int = 2,
         pool_kernel_size:int = 2,
         densed_size:int = 32,
         data_shape = None,
@@ -29,7 +29,7 @@ class Model(nn.Module):
         **kwargs
         ):
         """
-        :param in_channels:int = 1
+        :param n_dim:int = 1
             Feature numbers of input matrix.
             (Dimensions of latent space representations.)
 
@@ -57,6 +57,7 @@ class Model(nn.Module):
             The dtype for parameters in layers.
         """
         super().__init__()
+        self.n_features = n_features
         self.n_layer_set = n_layer_set
         self.conv_kernel_num = conv_kernel_num
         self.conv_kernel_size = conv_kernel_size
@@ -65,7 +66,7 @@ class Model(nn.Module):
 
         model_dict = OrderedDict([
             ('conv0', nn.Conv1d(
-                in_channels = in_channels,
+                in_channels = n_dim,
                 out_channels = conv_kernel_num,
                 kernel_size = conv_kernel_size,
                 dtype = dtype,
@@ -73,6 +74,7 @@ class Model(nn.Module):
             ('relu0', nn.ReLU(inplace = True)),
             ('pool0', nn.MaxPool1d(kernel_size = pool_kernel_size))
         ])
+        fc_size=self._cal_fc_size(n_features,conv_kernel_size,pool_kernel_size)
 
         # Adding Conv blocks
         for i in range(self.n_layer_set - 1):
@@ -88,10 +90,14 @@ class Model(nn.Module):
             model_dict.update({
                 f'pool{i+1}': nn.MaxPool1d(kernel_size = pool_kernel_size)
             })
+            fc_size=self._cal_fc_size(fc_size,conv_kernel_size,pool_kernel_size)
 
         # Adding FC, dense, and decision layers
         model_dict.update({f'fc': nn.Flatten(start_dim = 1, end_dim = -1)})
-        model_dict.update({f'dense': nn.LazyLinear(densed_size, dtype = dtype)})
+        fc_size *= conv_kernel_num
+        model_dict.update(
+            {f'dense': nn.Linear(fc_size, densed_size, dtype=dtype)}
+            )
         model_dict.update({f'relu_last': nn.ReLU(inplace = True)})
         model_dict.update(
             {f'decide': nn.Linear(densed_size, n_class, dtype = dtype)}
@@ -99,7 +105,7 @@ class Model(nn.Module):
 
         self.model = nn.Sequential(model_dict)
 
-    def forward(self, input, debug:bool = False):
+    def forward(self, input, debug:bool = True):
         reshaped = self.reshape(input)
         if debug:
             print(reshaped.shape)
@@ -131,3 +137,11 @@ class Model(nn.Module):
         Make channel the second dim
         """
         return input.permute(*order)
+
+    def _cal_fc_size(self, n_fea, kernel_size, n_pool, padding=0, stride=1,):
+        """
+        Calculate the output size of a layer set.
+        """
+        conv = ((n_fea - kernel_size + (2 * padding)) / stride) + 1
+        pool = ((conv - n_pool + (2 * padding)) / n_pool) + 1
+        return int(pool)

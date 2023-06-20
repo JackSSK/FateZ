@@ -5,7 +5,6 @@ implemented with PyTorch.
 
 author: jy, nkmtmsys
 """
-
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
@@ -19,12 +18,13 @@ class Model(nn.Module):
     """
     def __init__(self,
         n_features:int = 4,
+        n_dim:int = 4,
         in_channels:int = 1,
         n_class:int = 2,
         n_layer_set:int = 1,
         conv_kernel_num:int = 32,
-        horiz_kernel_size:int = 4,
-        verti_kernel_size:int = 4,
+        horiz_kernel_size:int = 3,
+        verti_kernel_size:int = 3,
         pool_kernel_size:int = 2,
         densed_size:int = 32,
         data_shape = None,
@@ -34,6 +34,9 @@ class Model(nn.Module):
         """
         :param n_features:int = None
             Number of input genes/regulons.
+
+        :param n_dim:int = None
+            Exp
 
         :param in_channels:int = 1
             Feature numbers of input matrix.
@@ -70,6 +73,8 @@ class Model(nn.Module):
             The dtype for parameters in layers.
         """
         super().__init__()
+        self.n_features = n_features
+        self.n_dim = n_dim
         self.n_layer_set = n_layer_set
         self.conv_kernel_num = conv_kernel_num
         self.horiz_kernel_size = horiz_kernel_size
@@ -87,6 +92,11 @@ class Model(nn.Module):
             ('relu0', nn.ReLU(inplace = True)),
             ('pool0', nn.MaxPool2d((1, pool_kernel_size)))
         ])
+        horiz_size = self._cal_fc_size(
+            n_dim,
+            horiz_kernel_size,
+            pool_kernel_size
+            )*n_features
 
         model_verti = OrderedDict([
             ('conv0', nn.Conv2d(
@@ -98,6 +108,11 @@ class Model(nn.Module):
             ('relu0', nn.ReLU(inplace = True)),
             ('pool0', nn.MaxPool2d((pool_kernel_size, 1)))
         ])
+        verti_size = self._cal_fc_size(
+            n_features,
+            horiz_kernel_size,
+            pool_kernel_size
+            )*n_dim
 
         for i in range(n_layer_set - 1):
             # Adding layer set to vertical model
@@ -115,12 +130,17 @@ class Model(nn.Module):
             model_horiz.update({
                 f'pool{i+1}': nn.MaxPool2d((1, pool_kernel_size))
             })
+            horiz_size = self._cal_fc_size(
+                horiz_size,
+                horiz_kernel_size,
+                pool_kernel_size
+                )*n_features
 
             # Adding layer set to horizontial model
             model_verti.update({
                 f'conv{i+1}': nn.Conv2d(
                     in_channels = conv_kernel_num,
-                    out_channels = conv_kernel_num,
+                    out_channels = verti_size,
                     kernel_size = (verti_kernel_size, 1),
                     # Shrinking Kerenel size
                     # (int(verti_kernel_size / pow(pool_kernel_size, i+1)), 1),
@@ -131,15 +151,21 @@ class Model(nn.Module):
             model_verti.update({
                 f'pool{i+1}': nn.MaxPool2d((pool_kernel_size, 1))
             })
+            verti_size = self._cal_fc_size(
+                verti_size,
+                horiz_kernel_size,
+                pool_kernel_size
+                )*n_dim
 
         # Add Fully-Connect layers
         model_horiz.update({f'fc': nn.Flatten(start_dim = 1, end_dim = -1)})
         model_verti.update({f'fc': nn.Flatten(start_dim = 1, end_dim = -1)})
+        fc_size = (horiz_size *conv_kernel_num) + (verti_size *conv_kernel_num)
 
         self.model_horiz = nn.Sequential(model_horiz)
         self.model_verti = nn.Sequential(model_verti)
         self.decision = nn.Sequential(OrderedDict([
-            ('dense', nn.LazyLinear(densed_size, dtype = dtype)),
+            ('dense', nn.Linear(fc_size, densed_size, dtype = dtype)),
             ('relu_last', nn.ReLU(inplace = True)),
             ('decide', nn.Linear(densed_size, n_class, dtype = dtype))
         ]))
@@ -183,3 +209,11 @@ class Model(nn.Module):
                 input,
                 (input.shape[0], 1, input.shape[1], input.shape[2])
             )
+
+    def _cal_fc_size(self, n_fea, kernel_size, n_pool, padding=0, stride=1,):
+        """
+        Calculate the output size of a layer set.
+        """
+        conv = ((n_fea - kernel_size + (2 * padding)) / stride) + 1
+        pool = ((conv - n_pool + (2 * padding)) / n_pool) + 1
+        return int(pool)
