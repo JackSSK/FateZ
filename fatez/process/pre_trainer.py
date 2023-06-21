@@ -15,7 +15,6 @@ import fatez.model.transformer as transformer
 import fatez.model.position_embedder as pe
 import fatez.lib as lib
 
-DEVICE = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
 
 
 def Set(config:dict = None, prev_model = None, dtype = None, **kwargs):
@@ -274,7 +273,6 @@ class Trainer(object):
     def use_device(self, device = 'cpu'):
         if str(type(device)) == "<class 'list'>":
             net = nn.DataParallel(self.model, device_ids = device)
-            self.model.to(torch.device('cuda:0'))
-            return net, torch.device('cuda:0')
+            return net.cuda(), 'cuda'
         elif str(type(device)) == "<class 'str'>":
             return self.model.to(device), device
