@@ -225,7 +225,7 @@ class Trainer(object):
         self.criterion = nn.L1Loss(reduction = reduction)
 
     def train(self, data_loader, report_batch:bool = False, device = 'cpu'):
-        net, device = self._use_device(device)
+        net, device = self.use_device(device)
         net.train(True)
         best_loss = 99
         loss_all = 0
@@ -270,7 +270,7 @@ class Trainer(object):
         report.columns = ['Loss', ]
         return report
 
-    def _use_device(self, device = 'cpu'):
+    def use_device(self, device = 'cpu'):
         if str(type(device)) == "<class 'list'>":
             net = nn.DataParallel(self.model, device_ids = device)
             return net, torch.device('cuda:0')

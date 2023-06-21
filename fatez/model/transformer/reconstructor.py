@@ -75,7 +75,6 @@ class Reconstructor(nn.Module):
             ) -> torch.Tensor:
         out = self.rep_embedder(src)
         print('Passed RE.')
-        print(self.adapter, out, mask, src_key_padding_mask, is_causal)
         if self.adapter is None:
             out = self.encoder(out, mask, src_key_padding_mask, is_causal)
         else:

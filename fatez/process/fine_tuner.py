@@ -189,7 +189,7 @@ class Tuner(object):
         )
 
     def train(self, data_loader, report_batch:bool = False, device = 'cpu'):
-        net, device = self._use_device(device)
+        net, device = self.use_device(device)
         net.train(True)
         nbatch = len(data_loader)
         best_loss = 99
@@ -222,7 +222,7 @@ class Tuner(object):
         return report
 
     def test(self, data_loader, report_batch:bool = False, device:str = 'cpu'):
-        net, device = self._use_device(device)
+        net, device = self.use_device(device)
         net.eval()
         nbatch = len(data_loader)
         report = list()
@@ -258,7 +258,7 @@ class Tuner(object):
         self.model.bert_model.freeze_encoder = False
         return
 
-    def _use_device(self, device = 'cpu'):
+    def use_device(self, device = 'cpu'):
         if str(type(device)) == "<class 'list'>":
             net = nn.DataParallel(self.model, device_ids = device)
             return net, torch.device('cuda:0')
