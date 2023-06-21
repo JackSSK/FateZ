@@ -273,6 +273,7 @@ class Trainer(object):
     def use_device(self, device = 'cpu'):
         if str(type(device)) == "<class 'list'>":
             net = nn.DataParallel(self.model, device_ids = device)
+            self.model = self.model.to(torch.device('cuda:0'))
             return net, torch.device('cuda:0')
         elif str(type(device)) == "<class 'str'>":
             return self.model.to(device), device
