@@ -50,7 +50,8 @@
 <li class="toctree-l3"><a class="reference internal" href="#The-model-will-be-architecturally-similar-with-a-pretrainer">The model will be architecturally similar with a pretrainer</a></li>
 <li class="toctree-l3"><a class="reference internal" href="#However,-the-training-part-will-be-littel-bit-different">However, the training part will be littel bit different</a></li>
 <li class="toctree-l3"><a class="reference internal" href="#In-the-case-of-tuning-unlabeled-data,-which-does-not-have-pertubation-results…">In the case of tuning unlabeled data, which does not have pertubation results…</a></li>
-<li class="toctree-l3"><a class="reference internal" href="#Then-we-shall-just-use-worker-object-to-make-predictions.">Then we shall just use worker object to make predictions.</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#Then-we-shall-just-use-trainer-object-to-make-predictions.">Then we shall just use trainer object to make predictions.</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#Cleanup-Env">Cleanup Env</a></li>
 </ul>
 </li>
 </ul>
@@ -364,7 +365,7 @@ div.rendered_html tbody tr:hover {
 <h1>FateZ Multiomic Pertubation Effect Prediction(?)<a class="headerlink" href="#FateZ-Multiomic-Pertubation-Effect-Prediction(?)" title="Permalink to this heading"></a></h1>
 <p>This notebook demonstrate how to implement Pertubation Effect Prediction method with FateZ’s modules.</p>
 <div class="nbinput docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[3]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[1]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">os</span>
@@ -378,12 +379,12 @@ div.rendered_html tbody tr:hover {
 <span class="kn">import</span> <span class="nn">fatez.model</span> <span class="k">as</span> <span class="nn">model</span>
 <span class="kn">import</span> <span class="nn">fatez.tool.JSON</span> <span class="k">as</span> <span class="nn">JSON</span>
 <span class="kn">import</span> <span class="nn">fatez.process</span> <span class="k">as</span> <span class="nn">process</span>
+<span class="kn">import</span> <span class="nn">fatez.process.worker</span> <span class="k">as</span> <span class="nn">worker</span>
 <span class="kn">import</span> <span class="nn">fatez.process.fine_tuner</span> <span class="k">as</span> <span class="nn">fine_tuner</span>
 <span class="kn">import</span> <span class="nn">fatez.process.pre_trainer</span> <span class="k">as</span> <span class="nn">pre_trainer</span>
 <span class="kn">from</span> <span class="nn">pkg_resources</span> <span class="kn">import</span> <span class="n">resource_filename</span>
 
-<span class="n">suppressor</span> <span class="o">=</span> <span class="n">process</span><span class="o">.</span><span class="n">Quiet_Mode</span><span class="p">()</span>
-<span class="nb">print</span><span class="p">(</span><span class="s1">&#39;Done import&#39;</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="s1">&#39;Done Import&#39;</span><span class="p">)</span>
 </pre></div>
 </div>
 </div>
@@ -392,13 +393,13 @@ div.rendered_html tbody tr:hover {
 </div>
 <div class="output_area docutils container">
 <div class="highlight"><pre>
-Done import
+Done Import
 </pre></div></div>
 </div>
 <div class="section" id="Build-model-and-make-some-fake-data-first.">
 <h2>Build model and make some fake data first.<a class="headerlink" href="#Build-model-and-make-some-fake-data-first." title="Permalink to this heading"></a></h2>
 <div class="nbinput docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[5]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[2]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># Parameters</span>
@@ -407,17 +408,20 @@ Done import
     <span class="s1">&#39;batch_size&#39;</span><span class="p">:</span> <span class="mi">2</span><span class="p">,</span>      <span class="c1"># Batch size</span>
 <span class="p">}</span>
 
-<span class="c1"># Load built-in config file</span>
+<span class="c1"># Init worker env</span>
 <span class="n">config</span> <span class="o">=</span> <span class="n">JSON</span><span class="o">.</span><span class="n">decode</span><span class="p">(</span><span class="n">resource_filename</span><span class="p">(</span>
         <span class="vm">__name__</span><span class="p">,</span> <span class="s1">&#39;../../fatez/data/config/gat_bert_config.json&#39;</span>
     <span class="p">)</span>
 <span class="p">)</span>
-
-<span class="n">device</span> <span class="o">=</span> <span class="s1">&#39;cuda&#39;</span>
+<span class="n">suppressor</span> <span class="o">=</span> <span class="n">process</span><span class="o">.</span><span class="n">Quiet_Mode</span><span class="p">()</span>
+<span class="n">device</span> <span class="o">=</span> <span class="p">[</span><span class="mi">0</span><span class="p">]</span>
 <span class="n">dtype</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">float32</span>
+<span class="n">worker</span><span class="o">.</span><span class="n">setup</span><span class="p">(</span><span class="n">device</span><span class="p">)</span>
+
+<span class="nb">print</span><span class="p">(</span><span class="s1">&#39;Done Init&#39;</span><span class="p">)</span>
 
 <span class="c1"># Generate Fake data</span>
-<span class="n">faker</span> <span class="o">=</span> <span class="n">test</span><span class="o">.</span><span class="n">Faker</span><span class="p">(</span><span class="n">model_config</span> <span class="o">=</span> <span class="n">config</span><span class="p">,</span> <span class="o">**</span><span class="n">params</span><span class="p">)</span>
+<span class="n">faker</span> <span class="o">=</span> <span class="n">test</span><span class="o">.</span><span class="n">Faker</span><span class="p">(</span><span class="n">model_config</span> <span class="o">=</span> <span class="n">config</span><span class="p">,</span> <span class="n">dtype</span> <span class="o">=</span> <span class="n">dtype</span><span class="p">,</span> <span class="o">**</span><span class="n">params</span><span class="p">)</span>
 <span class="n">pertubation_dataloader</span> <span class="o">=</span> <span class="n">faker</span><span class="o">.</span><span class="n">make_data_loader</span><span class="p">()</span>
 <span class="n">result_dataloader</span> <span class="o">=</span> <span class="n">faker</span><span class="o">.</span><span class="n">make_data_loader</span><span class="p">()</span>
 
@@ -434,6 +438,7 @@ Done import
 </div>
 <div class="output_area docutils container">
 <div class="highlight"><pre>
+Done Init
 Done Fake Data
 </pre></div></div>
 </div>
@@ -441,10 +446,10 @@ Done Fake Data
 <div class="section" id="The-model-will-be-architecturally-similar-with-a-pretrainer">
 <h2>The model will be architecturally similar with a pretrainer<a class="headerlink" href="#The-model-will-be-architecturally-similar-with-a-pretrainer" title="Permalink to this heading"></a></h2>
 <div class="nbinput docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[6]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[3]:
 </pre></div>
 </div>
-<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">worker</span> <span class="o">=</span> <span class="n">pre_trainer</span><span class="o">.</span><span class="n">Set</span><span class="p">(</span><span class="n">config</span><span class="p">,</span> <span class="n">dtype</span> <span class="o">=</span> <span class="n">dtype</span><span class="p">)</span>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">trainer</span> <span class="o">=</span> <span class="n">pre_trainer</span><span class="o">.</span><span class="n">Set</span><span class="p">(</span><span class="n">config</span><span class="p">,</span> <span class="n">dtype</span> <span class="o">=</span> <span class="n">dtype</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">device</span><span class="p">)</span>
 
 <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;Model Set&#39;</span><span class="p">)</span>
 </pre></div>
@@ -463,14 +468,13 @@ Model Set
 <h2>However, the training part will be littel bit different<a class="headerlink" href="#However,-the-training-part-will-be-littel-bit-different" title="Permalink to this heading"></a></h2>
 <p>This part is modified based on pre_trainer.Trainer.train()</p>
 <div class="nbinput docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[16]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[4]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">report_batch</span> <span class="o">=</span> <span class="kc">False</span>
-<span class="n">size</span> <span class="o">=</span> <span class="n">worker</span><span class="o">.</span><span class="n">input_sizes</span>
+<span class="n">size</span> <span class="o">=</span> <span class="n">trainer</span><span class="o">.</span><span class="n">input_sizes</span>
 
-<span class="n">net</span><span class="p">,</span> <span class="n">device</span> <span class="o">=</span> <span class="n">worker</span><span class="o">.</span><span class="n">use_device</span><span class="p">(</span><span class="n">device</span><span class="p">)</span>
-<span class="n">net</span><span class="o">.</span><span class="n">train</span><span class="p">(</span><span class="kc">True</span><span class="p">)</span>
+<span class="n">trainer</span><span class="o">.</span><span class="n">worker</span><span class="o">.</span><span class="n">train</span><span class="p">(</span><span class="kc">True</span><span class="p">)</span>
 <span class="n">best_loss</span> <span class="o">=</span> <span class="mi">99</span>
 <span class="n">loss_all</span> <span class="o">=</span> <span class="mi">0</span>
 <span class="n">report</span> <span class="o">=</span> <span class="nb">list</span><span class="p">()</span>
@@ -478,15 +482,15 @@ Model Set
 <span class="k">for</span> <span class="n">x</span><span class="p">,</span><span class="n">y</span> <span class="ow">in</span> <span class="n">pertubation_dataloader</span><span class="p">:</span>
 
     <span class="c1"># Prepare input data as always</span>
-    <span class="nb">input</span> <span class="o">=</span> <span class="p">[</span><span class="n">ele</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">device</span><span class="p">)</span> <span class="k">for</span> <span class="n">ele</span> <span class="ow">in</span> <span class="n">x</span><span class="p">]</span>
+    <span class="nb">input</span> <span class="o">=</span> <span class="p">[</span><span class="n">ele</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">trainer</span><span class="o">.</span><span class="n">device</span><span class="p">)</span> <span class="k">for</span> <span class="n">ele</span> <span class="ow">in</span> <span class="n">x</span><span class="p">]</span>
 
     <span class="c1"># Mute some debug outputs</span>
     <span class="n">suppressor</span><span class="o">.</span><span class="n">on</span><span class="p">()</span>
-    <span class="n">node_rec</span><span class="p">,</span> <span class="n">adj_rec</span> <span class="o">=</span> <span class="n">net</span><span class="p">(</span><span class="nb">input</span><span class="p">)</span>
+    <span class="n">node_rec</span><span class="p">,</span> <span class="n">adj_rec</span> <span class="o">=</span> <span class="n">trainer</span><span class="o">.</span><span class="n">worker</span><span class="p">(</span><span class="nb">input</span><span class="p">)</span>
     <span class="n">suppressor</span><span class="o">.</span><span class="n">off</span><span class="p">()</span>
 
     <span class="c1"># Prepare pertubation result data using a seperate dataloader</span>
-    <span class="n">y</span> <span class="o">=</span> <span class="p">[</span><span class="n">result_dataloader</span><span class="o">.</span><span class="n">dataset</span><span class="o">.</span><span class="n">samples</span><span class="p">[</span><span class="n">ele</span><span class="p">]</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">device</span><span class="p">)</span> <span class="k">for</span> <span class="n">ele</span> <span class="ow">in</span> <span class="n">y</span><span class="p">]</span>
+    <span class="n">y</span> <span class="o">=</span> <span class="p">[</span><span class="n">result_dataloader</span><span class="o">.</span><span class="n">dataset</span><span class="o">.</span><span class="n">samples</span><span class="p">[</span><span class="n">ele</span><span class="p">]</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">trainer</span><span class="o">.</span><span class="n">device</span><span class="p">)</span> <span class="k">for</span> <span class="n">ele</span> <span class="ow">in</span> <span class="n">y</span><span class="p">]</span>
     <span class="c1"># Please be noted here that this script is only reconstructing TF parts</span>
     <span class="c1"># To reconstruct whole genome, we can certainly add an additionaly layer which takes adj_rec and node_rec to do the job.</span>
     <span class="n">node_results</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">split</span><span class="p">(</span>
@@ -499,15 +503,15 @@ Model Set
     <span class="p">)</span>
 
     <span class="c1"># Get total loss</span>
-    <span class="n">loss</span> <span class="o">=</span> <span class="n">worker</span><span class="o">.</span><span class="n">criterion</span><span class="p">(</span><span class="n">node_rec</span><span class="p">,</span> <span class="n">node_results</span><span class="p">)</span>
+    <span class="n">loss</span> <span class="o">=</span> <span class="n">trainer</span><span class="o">.</span><span class="n">criterion</span><span class="p">(</span><span class="n">node_rec</span><span class="p">,</span> <span class="n">node_results</span><span class="p">)</span>
     <span class="k">if</span> <span class="n">adj_rec</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
-        <span class="n">loss</span> <span class="o">+=</span> <span class="n">worker</span><span class="o">.</span><span class="n">criterion</span><span class="p">(</span><span class="n">adj_rec</span><span class="p">,</span> <span class="n">adj_results</span><span class="p">)</span>
+        <span class="n">loss</span> <span class="o">+=</span> <span class="n">trainer</span><span class="o">.</span><span class="n">criterion</span><span class="p">(</span><span class="n">adj_rec</span><span class="p">,</span> <span class="n">adj_results</span><span class="p">)</span>
 
     <span class="c1"># Some backward stuffs here</span>
     <span class="n">loss</span><span class="o">.</span><span class="n">backward</span><span class="p">()</span>
-    <span class="n">nn</span><span class="o">.</span><span class="n">utils</span><span class="o">.</span><span class="n">clip_grad_norm_</span><span class="p">(</span><span class="n">worker</span><span class="o">.</span><span class="n">model</span><span class="o">.</span><span class="n">parameters</span><span class="p">(),</span> <span class="n">worker</span><span class="o">.</span><span class="n">max_norm</span><span class="p">)</span>
-    <span class="n">worker</span><span class="o">.</span><span class="n">optimizer</span><span class="o">.</span><span class="n">step</span><span class="p">()</span>
-    <span class="n">worker</span><span class="o">.</span><span class="n">optimizer</span><span class="o">.</span><span class="n">zero_grad</span><span class="p">()</span>
+    <span class="n">nn</span><span class="o">.</span><span class="n">utils</span><span class="o">.</span><span class="n">clip_grad_norm_</span><span class="p">(</span><span class="n">trainer</span><span class="o">.</span><span class="n">model</span><span class="o">.</span><span class="n">parameters</span><span class="p">(),</span> <span class="n">trainer</span><span class="o">.</span><span class="n">max_norm</span><span class="p">)</span>
+    <span class="n">trainer</span><span class="o">.</span><span class="n">optimizer</span><span class="o">.</span><span class="n">step</span><span class="p">()</span>
+    <span class="n">trainer</span><span class="o">.</span><span class="n">optimizer</span><span class="o">.</span><span class="n">zero_grad</span><span class="p">()</span>
 
     <span class="c1"># Accumulate</span>
     <span class="n">best_loss</span> <span class="o">=</span> <span class="nb">min</span><span class="p">(</span><span class="n">best_loss</span><span class="p">,</span> <span class="n">loss</span><span class="o">.</span><span class="n">item</span><span class="p">())</span>
@@ -517,7 +521,7 @@ Model Set
     <span class="k">if</span> <span class="n">report_batch</span><span class="p">:</span> <span class="n">report</span><span class="o">.</span><span class="n">append</span><span class="p">([</span><span class="n">loss</span><span class="o">.</span><span class="n">item</span><span class="p">()])</span>
 
 
-<span class="n">worker</span><span class="o">.</span><span class="n">scheduler</span><span class="o">.</span><span class="n">step</span><span class="p">()</span>
+<span class="n">trainer</span><span class="o">.</span><span class="n">scheduler</span><span class="o">.</span><span class="n">step</span><span class="p">()</span>
 <span class="n">report</span><span class="o">.</span><span class="n">append</span><span class="p">([</span><span class="n">loss_all</span> <span class="o">/</span> <span class="nb">len</span><span class="p">(</span><span class="n">pertubation_dataloader</span><span class="p">)])</span>
 <span class="n">report</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">(</span><span class="n">report</span><span class="p">)</span>
 <span class="n">report</span><span class="o">.</span><span class="n">columns</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;Loss&#39;</span><span class="p">,</span> <span class="p">]</span>
@@ -530,8 +534,8 @@ Model Set
 </div>
 <div class="output_area docutils container">
 <div class="highlight"><pre>
-       Loss
-0  2.730115
+      Loss
+0  1.74781
 </pre></div></div>
 </div>
 </div>
@@ -539,17 +543,17 @@ Model Set
 <h2>In the case of tuning unlabeled data, which does not have pertubation results…<a class="headerlink" href="#In-the-case-of-tuning-unlabeled-data,-which-does-not-have-pertubation-results…" title="Permalink to this heading"></a></h2>
 <p>We shall set another trainer using previous model.</p>
 <div class="nbinput docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[24]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[5]:
 </pre></div>
 </div>
-<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">tuner</span> <span class="o">=</span> <span class="n">pre_trainer</span><span class="o">.</span><span class="n">Set</span><span class="p">(</span><span class="n">config</span><span class="p">,</span> <span class="n">prev_model</span> <span class="o">=</span> <span class="n">worker</span><span class="o">.</span><span class="n">model</span><span class="p">,</span> <span class="n">dtype</span> <span class="o">=</span> <span class="n">dtype</span><span class="p">)</span>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">tuner</span> <span class="o">=</span> <span class="n">pre_trainer</span><span class="o">.</span><span class="n">Set</span><span class="p">(</span><span class="n">config</span><span class="p">,</span> <span class="n">prev_model</span> <span class="o">=</span> <span class="n">trainer</span><span class="o">.</span><span class="n">model</span><span class="p">,</span> <span class="n">dtype</span> <span class="o">=</span> <span class="n">dtype</span><span class="p">,</span> <span class="n">device</span> <span class="o">=</span> <span class="n">device</span><span class="p">)</span>
 
 <span class="c1"># Some new fake data</span>
 <span class="n">tuner_dataloader</span> <span class="o">=</span> <span class="n">faker</span><span class="o">.</span><span class="n">make_data_loader</span><span class="p">()</span>
 
 <span class="c1"># And the tuning process is also based on input reconstruction as pretraining</span>
 <span class="n">suppressor</span><span class="o">.</span><span class="n">on</span><span class="p">()</span>
-<span class="n">report</span> <span class="o">=</span> <span class="n">tuner</span><span class="o">.</span><span class="n">train</span><span class="p">(</span><span class="n">tuner_dataloader</span><span class="p">,</span> <span class="n">report_batch</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span> <span class="n">device</span> <span class="o">=</span> <span class="n">device</span><span class="p">)</span>
+<span class="n">report</span> <span class="o">=</span> <span class="n">tuner</span><span class="o">.</span><span class="n">train</span><span class="p">(</span><span class="n">tuner_dataloader</span><span class="p">,</span> <span class="n">report_batch</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,)</span>
 <span class="n">suppressor</span><span class="o">.</span><span class="n">off</span><span class="p">()</span>
 <span class="nb">print</span><span class="p">(</span><span class="n">report</span><span class="p">)</span>
 </pre></div>
@@ -561,30 +565,29 @@ Model Set
 <div class="output_area docutils container">
 <div class="highlight"><pre>
        Loss
-0  2.118923
+0  2.451723
 </pre></div></div>
 </div>
 </div>
-<div class="section" id="Then-we-shall-just-use-worker-object-to-make-predictions.">
-<h2>Then we shall just use worker object to make predictions.<a class="headerlink" href="#Then-we-shall-just-use-worker-object-to-make-predictions." title="Permalink to this heading"></a></h2>
-<p>Similar with the training block above for worker, but no need to prepare y.</p>
+<div class="section" id="Then-we-shall-just-use-trainer-object-to-make-predictions.">
+<h2>Then we shall just use trainer object to make predictions.<a class="headerlink" href="#Then-we-shall-just-use-trainer-object-to-make-predictions." title="Permalink to this heading"></a></h2>
+<p>Similar with the training block above for trainer, but no need to prepare y.</p>
 <div class="nbinput docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[27]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[6]:
 </pre></div>
 </div>
-<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">net</span><span class="p">,</span> <span class="n">device</span> <span class="o">=</span> <span class="n">worker</span><span class="o">.</span><span class="n">use_device</span><span class="p">(</span><span class="n">device</span><span class="p">)</span>
-<span class="n">net</span><span class="o">.</span><span class="n">train</span><span class="p">(</span><span class="kc">True</span><span class="p">)</span>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">trainer</span><span class="o">.</span><span class="n">model</span><span class="o">.</span><span class="n">eval</span><span class="p">()</span>
 
 <span class="k">for</span> <span class="n">x</span><span class="p">,</span><span class="n">_</span> <span class="ow">in</span> <span class="n">tuner_dataloader</span><span class="p">:</span>
 
     <span class="c1"># Prepare input data as always</span>
-    <span class="nb">input</span> <span class="o">=</span> <span class="p">[</span><span class="n">ele</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">device</span><span class="p">)</span> <span class="k">for</span> <span class="n">ele</span> <span class="ow">in</span> <span class="n">x</span><span class="p">]</span>
+    <span class="nb">input</span> <span class="o">=</span> <span class="p">[</span><span class="n">ele</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">trainer</span><span class="o">.</span><span class="n">device</span><span class="p">)</span> <span class="k">for</span> <span class="n">ele</span> <span class="ow">in</span> <span class="n">x</span><span class="p">]</span>
 
     <span class="c1"># Mute some debug outputs</span>
     <span class="n">suppressor</span><span class="o">.</span><span class="n">on</span><span class="p">()</span>
-    <span class="n">node_rec</span><span class="p">,</span> <span class="n">adj_rec</span> <span class="o">=</span> <span class="n">net</span><span class="p">(</span><span class="nb">input</span><span class="p">)</span>
+    <span class="n">node_rec</span><span class="p">,</span> <span class="n">adj_rec</span> <span class="o">=</span> <span class="n">trainer</span><span class="o">.</span><span class="n">model</span><span class="p">(</span><span class="nb">input</span><span class="p">)</span>
     <span class="n">suppressor</span><span class="o">.</span><span class="n">off</span><span class="p">()</span>
-    <span class="nb">print</span><span class="p">(</span><span class="n">node_rec</span><span class="p">,</span> <span class="n">adj_rec</span><span class="p">)</span>
+    <span class="nb">print</span><span class="p">(</span><span class="n">node_rec</span><span class="o">.</span><span class="n">shape</span><span class="p">,</span> <span class="n">adj_rec</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span>
 </pre></div>
 </div>
 </div>
@@ -593,136 +596,32 @@ Model Set
 </div>
 <div class="output_area docutils container">
 <div class="highlight"><pre>
-tensor([[[-0.1218, -0.0319],
-         [ 0.2913, -0.8462],
-         [ 0.1863, -0.7708],
-         [-0.0997, -0.1563]],
-
-        [[-0.1467,  0.0468],
-         [ 0.5391, -0.9599],
-         [ 0.2706, -0.8496],
-         [-0.1051, -0.0997]]], device=&#39;cuda:0&#39;, grad_fn=&lt;ViewBackward0&gt;) tensor([[[ 0.9759,  0.7606, -0.4116,  0.1393, -0.1631,  0.3622, -0.4710,
-           0.3269, -0.7119,  1.0409],
-         [ 0.6905,  0.9797,  0.8428, -0.2868,  0.7114,  0.6660, -0.4230,
-           1.2142, -0.2275,  1.2271],
-         [ 0.6833,  0.9137,  0.8117, -0.2809,  0.6595,  0.6044, -0.4215,
-           1.2556, -0.3990,  1.1928],
-         [ 0.9935,  0.8441, -0.2341,  0.0878, -0.0140,  0.4077, -0.4854,
-           0.4835, -0.7113,  1.1195]],
-
-        [[ 0.9530,  0.6944, -0.5049,  0.1638, -0.2525,  0.3264, -0.4590,
-           0.2521, -0.7332,  0.9838],
-         [ 0.4754,  0.8820,  0.9961, -0.3643,  0.7589,  0.7388, -0.3493,
-           1.1680,  0.1863,  1.1010],
-         [ 0.6238,  0.9135,  0.9208, -0.3226,  0.7265,  0.6430, -0.4040,
-           1.2958, -0.2709,  1.1820],
-         [ 0.9878,  0.8093, -0.3208,  0.1136, -0.0839,  0.3893, -0.4792,
-           0.4036, -0.7027,  1.0849]]], device=&#39;cuda:0&#39;,
-       grad_fn=&lt;ViewBackward0&gt;)
-tensor([[[-0.1487,  0.0513],
-         [ 0.0456, -0.1958],
-         [ 0.3360, -0.8989],
-         [ 0.3601, -0.8877]],
-
-        [[-0.1212, -0.0307],
-         [ 0.1160, -0.4204],
-         [ 0.3801, -0.9280],
-         [ 0.3390, -0.8809]]], device=&#39;cuda:0&#39;, grad_fn=&lt;ViewBackward0&gt;) tensor([[[ 0.9512,  0.6900, -0.5092,  0.1648, -0.2572,  0.3240, -0.4582,
-           0.2492, -0.7357,  0.9802],
-         [ 0.9423,  0.8446, -0.2512,  0.0880, -0.0232,  0.4611, -0.4631,
-           0.3622, -0.4557,  1.0862],
-         [ 0.5498,  0.8810,  1.0078, -0.3603,  0.7641,  0.6632, -0.3809,
-           1.3263, -0.1690,  1.1465],
-         [ 0.6390,  0.9653,  0.8957, -0.3102,  0.7371,  0.6908, -0.4059,
-           1.2122, -0.1156,  1.2036]],
-
-        [[ 0.9756,  0.7599, -0.4138,  0.1400, -0.1648,  0.3620, -0.4708,
-           0.3243, -0.7104,  1.0400],
-         [ 0.9235,  0.9534,  0.0836, -0.0172,  0.2345,  0.5428, -0.4713,
-           0.6325, -0.4001,  1.1870],
-         [ 0.5049,  0.8616,  1.0555, -0.3815,  0.7841,  0.6768, -0.3664,
-           1.3370, -0.0988,  1.1240],
-         [ 0.6477,  0.9659,  0.8952, -0.3091,  0.7370,  0.6831, -0.4095,
-           1.2271, -0.1522,  1.2088]]], device=&#39;cuda:0&#39;,
-       grad_fn=&lt;ViewBackward0&gt;)
-tensor([[[ 0.0884, -0.6576],
-         [ 0.4476, -0.9476],
-         [-0.1846, -0.0253],
-         [-0.1274, -0.1398]],
-
-        [[ 0.1387, -0.7131],
-         [ 0.4774, -0.9635],
-         [-0.1421, -0.1764],
-         [-0.1231, -0.1000]]], device=&#39;cuda:0&#39;, grad_fn=&lt;ViewBackward0&gt;) tensor([[[ 0.8147,  0.9625,  0.5978, -0.1951,  0.5523,  0.5688, -0.4593,
-           1.1320, -0.5370,  1.2397],
-         [ 0.5384,  0.9173,  1.0032, -0.3581,  0.7798,  0.7158, -0.3740,
-           1.2443,  0.0226,  1.1517],
-         [ 0.9220,  0.6931, -0.3247,  0.1020, -0.1435,  0.3236, -0.4580,
-           0.4472, -0.8300,  1.0048],
-         [ 0.9875,  0.8244, -0.2333,  0.0859, -0.0233,  0.3913, -0.4840,
-           0.5027, -0.7579,  1.1093]],
-
-        [[ 0.7935,  0.9802,  0.6656, -0.2184,  0.6026,  0.5975, -0.4540,
-           1.1602, -0.4627,  1.2484],
-         [ 0.5047,  0.8991,  1.0318, -0.3719,  0.7886,  0.7232, -0.3629,
-           1.2476,  0.0712,  1.1320],
-         [ 0.9695,  0.8225, -0.1439,  0.0549,  0.0302,  0.3911, -0.4824,
-           0.5963, -0.7986,  1.1177],
-         [ 0.9870,  0.8049, -0.3040,  0.1078, -0.0759,  0.3823, -0.4802,
-           0.4320, -0.7366,  1.0866]]], device=&#39;cuda:0&#39;,
-       grad_fn=&lt;ViewBackward0&gt;)
-tensor([[[ 0.1636, -0.7411],
-         [-0.0422, -0.1777],
-         [-0.1802, -0.0324],
-         [ 0.2489, -0.8250]],
-
-        [[ 0.1883, -0.7675],
-         [-0.0207, -0.1558],
-         [-0.1741, -0.0804],
-         [ 0.2452, -0.8210]]], device=&#39;cuda:0&#39;, grad_fn=&lt;ViewBackward0&gt;) tensor([[[ 0.7722,  0.9789,  0.7088, -0.2348,  0.6285,  0.6092, -0.4481,
-           1.1822, -0.4267,  1.2450],
-         [ 0.9848,  0.8582, -0.2405,  0.0897, -0.0106,  0.4332, -0.4806,
-           0.4371, -0.6114,  1.1181],
-         [ 0.9357,  0.7106, -0.3277,  0.1053, -0.1368,  0.3304, -0.4625,
-           0.4428, -0.8233,  1.0183],
-         [ 0.6962,  0.9659,  0.8390, -0.2857,  0.7021,  0.6457, -0.4259,
-           1.2402, -0.2994,  1.2247]],
-
-        [[ 0.7499,  0.9759,  0.7503, -0.2507,  0.6524,  0.6203, -0.4417,
-           1.2025, -0.3905,  1.2401],
-         [ 0.9721,  0.8395, -0.2860,  0.1021, -0.0473,  0.4325, -0.4734,
-           0.3775, -0.5646,  1.0941],
-         [ 0.9385,  0.7384, -0.2538,  0.0830, -0.0781,  0.3460, -0.4669,
-           0.5096, -0.8279,  1.0459],
-         [ 0.7020,  0.9686,  0.8306, -0.2822,  0.6983,  0.6446, -0.4276,
-           1.2354, -0.3047,  1.2272]]], device=&#39;cuda:0&#39;,
-       grad_fn=&lt;ViewBackward0&gt;)
-tensor([[[-0.1183, -0.1285],
-         [ 0.0047, -0.1917],
-         [ 0.3009, -0.8719],
-         [ 0.3402, -0.8726]],
-
-        [[-0.1421, -0.0295],
-         [ 0.0264, -0.2799],
-         [ 0.3119, -0.8748],
-         [ 0.4526, -0.9534]]], device=&#39;cuda:0&#39;, grad_fn=&lt;ViewBackward0&gt;) tensor([[[ 0.9900,  0.8230, -0.2624,  0.0955, -0.0416,  0.3924, -0.4832,
-           0.4688, -0.7369,  1.1039],
-         [ 0.9658,  0.8567, -0.2419,  0.0880, -0.0118,  0.4502, -0.4728,
-           0.4017, -0.5295,  1.1062],
-         [ 0.5750,  0.8843,  0.9719, -0.3458,  0.7436,  0.6487, -0.3888,
-           1.3188, -0.2243,  1.1545],
-         [ 0.6600,  0.9738,  0.8701, -0.2992,  0.7255,  0.6843, -0.4125,
-           1.2036, -0.1466,  1.2133]],
-
-        [[ 0.9730,  0.7525, -0.3957,  0.1334, -0.1575,  0.3531, -0.4713,
-           0.3557, -0.7493,  1.0399],
-         [ 0.9664,  0.9058, -0.1117,  0.0483,  0.0916,  0.4819, -0.4789,
-           0.5115, -0.5184,  1.1524],
-         [ 0.5385,  0.8532,  0.9970, -0.3594,  0.7438,  0.6449, -0.3770,
-           1.3313, -0.2067,  1.1278],
-         [ 0.5272,  0.9105,  1.0178, -0.3644,  0.7855,  0.7166, -0.3706,
-           1.2537,  0.0294,  1.1460]]], device=&#39;cuda:0&#39;,
-       grad_fn=&lt;ViewBackward0&gt;)
+torch.Size([2, 4, 2]) torch.Size([2, 4, 10])
+torch.Size([2, 4, 2]) torch.Size([2, 4, 10])
+torch.Size([2, 4, 2]) torch.Size([2, 4, 10])
+torch.Size([2, 4, 2]) torch.Size([2, 4, 10])
+torch.Size([2, 4, 2]) torch.Size([2, 4, 10])
+</pre></div></div>
+</div>
+</div>
+<div class="section" id="Cleanup-Env">
+<h2>Cleanup Env<a class="headerlink" href="#Cleanup-Env" title="Permalink to this heading"></a></h2>
+<p>Need to clean up environment once finsihed.</p>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[7]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">worker</span><span class="o">.</span><span class="n">cleanup</span><span class="p">(</span><span class="n">device</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="s1">&#39;Clean up worker env.&#39;</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+Clean up worker env.
 </pre></div></div>
 </div>
 </div>
