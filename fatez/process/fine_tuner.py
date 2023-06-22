@@ -14,16 +14,21 @@ import fatez.model.gnn as gnn
 import fatez.model.transformer as transformer
 import fatez.model.position_embedder as pe
 import fatez.model.criterion as crit
+from torch.nn.parallel import DistributedDataParallel as DDP
 
-DEVICE = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
 
-
-def Set(config:dict = None, prev_model = None, dtype = None, **kwargs):
+def Set(
+    config:dict=None,
+    prev_model=None,
+    device:str='cpu',
+    dtype:str=None,
+    **kwargs
+    ):
     """
     Set up a Tuner object based on given config file (and pre-trained model)
     """
     if prev_model is None:
-        return Tuner(
+        net = Tuner(
             input_sizes = config['input_sizes'],
             gat = gnn.Set(config['gnn'], config['input_sizes'], dtype=dtype),
             encoder = transformer.Encoder(**config['encoder'],),
@@ -38,7 +43,7 @@ def Set(config:dict = None, prev_model = None, dtype = None, **kwargs):
             **kwargs,
         )
     else:
-        return Tuner(
+        net = Tuner(
             input_sizes = config['input_sizes'],
             gat = prev_model.gat,
             encoder = prev_model.bert_model.encoder,
@@ -48,6 +53,9 @@ def Set(config:dict = None, prev_model = None, dtype = None, **kwargs):
             **config['fine_tuner'],
             **kwargs,
         )
+    # Setup worker env
+    net.setup(device=device)
+    return net
 
 
 
@@ -134,11 +142,13 @@ class Tuner(object):
             reduction:str = 'mean',
 
             # factory kwargs
+            device:str = 'cpu',
             dtype:str = None,
             **kwargs
             ):
         super(Tuner, self).__init__()
         self.input_sizes = input_sizes
+        self.device = device
         self.dtype = dtype
         self.n_class = n_class
         self.model = Model(
@@ -189,9 +199,8 @@ class Tuner(object):
             reduction = reduction,
         )
 
-    def train(self, data_loader, report_batch:bool = False, device = 'cpu'):
-        net, device = self.use_device(device)
-        net.train(True)
+    def train(self, data_loader, report_batch:bool = False,):
+        self.worker.train(True)
         nbatch = len(data_loader)
         best_loss = 99
         loss_all, acc_all = 0, 0
@@ -201,8 +210,8 @@ class Tuner(object):
         acc_crit = crit.Accuracy(requires_grad = False)
 
         for x,y in data_loader:
-            y = y.to(device)
-            output = net([ele.to(device) for ele in x])
+            y = y.to(self.device)
+            output = self.worker([ele.to(self.device) for ele in x])
             loss = self.criterion(output, y)
             loss.backward()
             nn.utils.clip_grad_norm_(self.model.parameters(), self.max_norm)
@@ -222,9 +231,8 @@ class Tuner(object):
         report.columns = ['Loss', 'ACC',]
         return report
 
-    def test(self, data_loader, report_batch:bool = False, device:str = 'cpu'):
-        net, device = self.use_device(device)
-        net.eval()
+    def test(self, data_loader, report_batch:bool = False,):
+        self.worker.eval()
         nbatch = len(data_loader)
         report = list()
         loss_all, acc_all, auroc_all = 0, 0, 0
@@ -234,8 +242,8 @@ class Tuner(object):
         auroc = AUROC("multiclass", num_classes = self.n_class)
         with torch.no_grad():
             for x, y in data_loader:
-                y = y.to(device)
-                output = net([ele.to(device) for ele in x])
+                y = y.to(self.device)
+                output = self.worker([ele.to(self.device) for ele in x])
 
                 # Batch specific
                 loss = self.criterion(output, y).item()
@@ -259,10 +267,13 @@ class Tuner(object):
         self.model.bert_model.freeze_encoder = False
         return
 
-    def use_device(self, device = 'cpu'):
+    def setup(self, device='cpu',):
         if str(type(device)) == "<class 'list'>":
-            net = nn.DataParallel(self.model, device_ids = device)
-            self.model.to(torch.device('cuda:0'))
-            return net, torch.device('cuda:0')
+            self.device = torch.device('cuda:0')
+            self.model = self.model.to(self.device)
+            self.worker = DDP(self.model, device_ids = device)
         elif str(type(device)) == "<class 'str'>":
-            return self.model.to(device), device
+            self.device = device
+            self.model = self.model.to(self.device)
+            self.worker = self.model
+        return

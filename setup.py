@@ -5,10 +5,10 @@ with open("README.md", "r", encoding="utf-8") as fh:
 
 setuptools.setup(
     name = "FateZ",
-    version = "v0.0.1-alpha1",
+    version = "v0.0.1-alpha2",
     author = "JackSSk",
     author_email = "gyu17@alumni.jh.edu",
-    description = "Ummmmmm, later!",
+    description = "Some people laugh. Some people cry. --PyTorch2.0",
     long_description = long_description,
     long_description_content_type = "text/markdown",
     url = "https://github.com/JackSSK/FateZ",

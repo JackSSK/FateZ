@@ -14,15 +14,22 @@ import fatez.model.gnn as gnn
 import fatez.model.transformer as transformer
 import fatez.model.position_embedder as pe
 import fatez.lib as lib
+from torch.nn.parallel import DistributedDataParallel as DDP
 
 
 
-def Set(config:dict = None, prev_model = None, dtype = None, **kwargs):
+def Set(
+    config:dict=None,
+    prev_model=None,
+    device:str='cpu',
+    dtype:str=None,
+    **kwargs
+    ):
     """
-    Set up a Trainer object based on given config file (and pre-trained model)
+    Set up a Trainer object based on given config file and pre-trained model
     """
     if prev_model is None:
-        return Trainer(
+        net = Trainer(
             input_sizes = config['input_sizes'],
             gat = gnn.Set(config['gnn'], config['input_sizes'], dtype=dtype),
             encoder = transformer.Encoder(**config['encoder'],),
@@ -37,7 +44,7 @@ def Set(config:dict = None, prev_model = None, dtype = None, **kwargs):
             **kwargs,
         )
     else:
-        return Trainer(
+        net = Trainer(
             input_sizes = config['input_sizes'],
             gat = prev_model.gat,
             encoder = prev_model.bert_model.encoder,
@@ -47,6 +54,9 @@ def Set(config:dict = None, prev_model = None, dtype = None, **kwargs):
             **config['pre_trainer'],
             **kwargs,
         )
+    # Setup worker env
+    net.setup(device=device)
+    return net
 
 
 
@@ -175,11 +185,13 @@ class Trainer(object):
         reduction:str = 'mean',
 
         # factory kwargs
+        device:str = 'cpu',
         dtype:str = None,
         **kwargs
         ):
         super(Trainer, self).__init__()
         self.input_sizes = input_sizes
+        self.device = device
         self.dtype = dtype
         self.model = Model(
             gat = gat,
@@ -224,16 +236,15 @@ class Trainer(object):
         # Using L1 Loss for criterion
         self.criterion = nn.L1Loss(reduction = reduction)
 
-    def train(self, data_loader, report_batch:bool = False, device = 'cpu'):
-        net, device = self.use_device(device)
-        net.train(True)
+    def train(self, data_loader, report_batch:bool = False,):
+        self.worker.train(True)
         best_loss = 99
         loss_all = 0
         report = list()
 
         for x, _ in data_loader:
-            input = [ele.to(device) for ele in x]
-            node_rec, adj_rec = net(input)
+            input = [ele.to(self.device) for ele in x]
+            node_rec, adj_rec = self.worker(input)
 
             # Get total loss
             origin_nodes = torch.split(
@@ -263,18 +274,19 @@ class Trainer(object):
             # Some logs
             if report_batch: report.append([loss.item()])
 
-
         self.scheduler.step()
         report.append([loss_all / len(data_loader)])
         report = pd.DataFrame(report)
         report.columns = ['Loss', ]
         return report
 
-    def use_device(self, device = 'cpu'):
+    def setup(self, device='cpu',):
         if str(type(device)) == "<class 'list'>":
-            self.model = nn.DataParallel(
-                self.model.to(torch.device('cuda:0')), device_ids = device
-            )
-            return self.model, 'cuda:0'
+            self.device = torch.device('cuda:0')
+            self.model = self.model.to(self.device)
+            self.worker = DDP(self.model, device_ids = device)
         elif str(type(device)) == "<class 'str'>":
-            return self.model.to(device), device
+            self.device = device
+            self.model = self.model.to(self.device)
+            self.worker = self.model
+        return

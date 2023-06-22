@@ -21,6 +21,7 @@ import fatez.model.gnn as gnn
 import fatez.model.criterion as crit
 import fatez.model.position_embedder as pe
 import fatez.process as process
+import fatez.process.worker as worker
 import fatez.process.fine_tuner as fine_tuner
 import fatez.process.pre_trainer as pre_trainer
 
@@ -192,9 +193,10 @@ class Faker(object):
         """
         # warnings.filterwarnings(self.warning_filter)
         print('Testing Full Model.\n')
-        suppressor = process.Quiet_Mode()
         # Initialize
+        suppressor = process.Quiet_Mode()
         device = self.factory_kwargs['device']
+        worker.setup(device)
         data_loader = self.make_data_loader()
         if config is None: config = self.config
 
@@ -202,7 +204,7 @@ class Faker(object):
         if quiet: suppressor.on()
         trainer = pre_trainer.Set(config, **self.factory_kwargs)
         for i in range(train_epoch):
-            report = trainer.train(data_loader,report_batch=False,device=device)
+            report = trainer.train(data_loader, report_batch = False,)
             print(f'Epoch {i} Loss: {report.iloc[0,0]}')
         if quiet: suppressor.off()
         print(f'\tPre-Trainer Green.\n')
@@ -211,10 +213,10 @@ class Faker(object):
         if quiet: suppressor.on()
         tuner = fine_tuner.Set(config, trainer.model, **self.factory_kwargs)
         for i in range(tune_epoch):
-            report = tuner.train(data_loader, report_batch=False, device=device)
+            report = tuner.train(data_loader, report_batch = False,)
             print(f'Epoch {i} Loss: {report.iloc[0,0]}')
         # Test fine tune model
-        report = tuner.test(data_loader, report_batch = True, device = device)
+        report = tuner.test(data_loader, report_batch = True,)
         print('Tuner Test Report')
         print(report)
         if quiet: suppressor.off()
@@ -247,5 +249,5 @@ class Faker(object):
         print('Reg Explain:\n', reg_exp, '\n')
         print('Node Explain:\n', node_exp, '\n')
         print(f'\tExplainer Green.\n')
-
+        worker.cleanup(device)
         return trainer.model, tuner.model
