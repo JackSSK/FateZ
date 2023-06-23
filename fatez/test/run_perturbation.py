@@ -13,10 +13,6 @@ import fatez.process.worker as worker
 import fatez.process.fine_tuner as fine_tuner
 import fatez.process.pre_trainer as pre_trainer
 from pkg_resources import resource_filename
-import os
-import torch
-import copy
-from torch.utils.data import DataLoader
 import torch_geometric.data as pyg_d
 import fatez.tool.PreprocessIO as PreprocessIO
 import fatez.process.early_stopper as es
@@ -24,16 +20,35 @@ from fatez.process.scale_network import scale_network
 from sklearn.model_selection import train_test_split
 import numpy as np
 
+
 """
-preprocess
+Initializing
 """
+suppressor = process.Quiet_Mode()
+dtype = torch.float32
+"""
+This doesn't seem appropriate.
+I will be surprised if it can be compiled.
+
 device = torch.device([0] if torch.cuda.is_available() else 'cpu')
-## preprocess parameters
+"""
+device = [0]
+worker.setup(device)
+print('Done init')
+
+"""
+Data Preparing
+
+I can not test any part of this due to lack of data.
+"""
+batch_size = 10
+test_size = 0.3
+data_name = 'GSE205117_NMFSM_bin20'
+data_save_dir = '/storage/peiweikeLab/jiangjunyao/fatez/tune_bert/result_dmodel4/'
 
 ####load node
 matrix1 = PreprocessIO.input_csv_dict_df('/storage/peiweikeLab/jiangjunyao/fatez/pp/pertur_erth/node/',df_type ='node')
 #matrix1 = PreprocessIO.input_csv_dict_df('/storage/peiweikeLab/jiangjunyao/fatez/tune_bert/node1/',df_type ='node')
-
 
 ###load edge
 matrix2 = PreprocessIO.input_csv_dict_df('/storage/peiweikeLab/jiangjunyao/fatez/pp/pertur_erth/edge/',df_type ='edge')
@@ -53,14 +68,10 @@ for i in list(matrix2.keys()):
 labels = torch.tensor([0]*len(matrix1))
 ### samples and labels
 samples = []
-# labels = []
 for i in range(len(matrix1)):
     sample_name = list(matrix1.keys())[i]
     m1 = torch.from_numpy(matrix1[sample_name].to_numpy()).to(torch.float32)
     inds, attrs = lib.get_sparse_coo(edge)
-    """
-    Using PyG Data object
-    """
     samples.append(
         pyg_d.Data(
             x = m1,
@@ -71,24 +82,6 @@ for i in range(len(matrix1)):
         )
     )
 
-    # samples.append([m1, m2])
-
-###
-"""
-hyperparameters
-"""
-###############################
-# General params
-batch_size = 10
-num_epoch = 1
-test_size = 0.3
-
-##############################
-data_save = True
-data_save_dir = '/storage/peiweikeLab/jiangjunyao/fatez/tune_bert/result_dmodel4/'
-"""
-dataloader
-"""
 X_train,X_test,y_train,y_test = train_test_split(
     samples,
     labels,
@@ -104,37 +97,20 @@ pertubation_dataloader = DataLoader(
 )
 
 result_dataloader = DataLoader(
-    lib.FateZ_Dataset(samples=X_test),
+    lib.FateZ_Dataset(samples = X_test),
     batch_size=batch_size,
     collate_fn = lib.collate_fn,
     shuffle=True
 )
-data_name = 'GSE205117_NMFSM_bin20'
+print('Done Data Prepare')
 
 
-suppressor = process.Quiet_Mode()
-print('Done import')
-
-params = {
-    'n_sample': 10,       # Fake samples to make
-    'batch_size': 2,      # Batch size
-}
-
-
-
-# Load built-in config file
-config = JSON.decode('/home/peiweikeLab/jiangjunyao/conda/envs/fatez-test/lib/python3.10/site-packages/fatez/data/config/gat_bert_config.json')
-suppressor = process.Quiet_Mode()
-dtype = torch.float32
-worker.setup(device)
-
-print('Done Init')
-
-# Generate Fake data
-
-
-print('Done Load Data')
-
+"""
+Model Preparing
+"""
+config_path = '/home/peiweikeLab/jiangjunyao/conda/envs/fatez-test/lib/python3.10/site-packages/fatez/data/config/gat_bert_config.json'
+# config_path = '../data/config/gat_bert_config.json'
+config = JSON.decode(config_path)
 trainer = pre_trainer.Set(config, dtype = dtype, device=device)
 report_batch = False
 size = trainer.input_sizes
@@ -205,13 +181,9 @@ print(report)
 
 trainer.model.eval()
 
-trainer.model.eval()
-
 for x,_ in tuner_dataloader:
-
     # Prepare input data as always
     input = [ele.to(trainer.device) for ele in x]
-
     # Mute some debug outputs
     suppressor.on()
     node_rec, adj_rec = trainer.model(input)
