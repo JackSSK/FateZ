@@ -10,7 +10,7 @@ import torch.distributed as dist
 def setup(
     device='cpu',
     master_addr:str = 'localhost',
-    master_port:str = '12355',
+    master_port:str = '2307',
     backend='nccl',
     rank:int=0,
     ):

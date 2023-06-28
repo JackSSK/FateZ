@@ -41,12 +41,14 @@ class Reconstructor(nn.Module):
             Whether reconstructing adjacent matrices or not.
         """
         super(Reconstructor, self).__init__()
+        self.input_sizes = input_sizes
         self.dtype = dtype
+        self.freeze_encoder = False
+        self.recon_adj = None
         self.rep_embedder = rep_embedder
         self.encoder = encoder
-        self.freeze_encoder = False
         self.adapter=self._set_adapter(adapter) if adapter is not None else None
-        self.input_sizes = input_sizes
+        self.relu = nn.ReLU(inplace = True)
         self.recon_node = mlp.Model(
             type = 'RECON',
             d_model = self.encoder.d_model,
@@ -54,7 +56,7 @@ class Reconstructor(nn.Module):
             n_class = self.input_sizes['node_attr'],
             dtype = dtype
         )
-        self.recon_adj = None
+        self.last_act = nn.LogSoftmax(dim = -1)
 
         if train_adj:
             self.recon_adj = mlp.Model(
@@ -74,20 +76,20 @@ class Reconstructor(nn.Module):
             is_causal: bool = None,
             ) -> torch.Tensor:
         out = self.rep_embedder(src)
-        print('Passed RE.')
+        # Get encoder/adapter output
         if self.adapter is None:
             out = self.encoder(out, mask, src_key_padding_mask, is_causal)
         else:
             out=self.deploy_adapter(out, mask, src_key_padding_mask, is_causal)
-        print('Passed encoder.')
+        # Reconstruct mats
         node_mat = self.recon_node(out)
-        print('Passed Node Recon.')
+        # node_mat = self.last_act(self.recon_node(out))
+        print(node_mat)
         if self.recon_adj != None:
-            adj_mat = self.recon_adj(out)
+            return node_mat, self.recon_adj(out)
         else:
-            adj_mat = None
-        print('Passed Adj Recon.')
-        return node_mat, adj_mat
+            return node_mat, None
+
 
     def deploy_adapter(self,
             src: torch.Tensor,

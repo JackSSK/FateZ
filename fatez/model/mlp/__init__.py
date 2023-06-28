@@ -7,7 +7,6 @@ author: jy
 """
 import torch
 import torch.nn as nn
-import torch.nn.functional as F
 from collections import OrderedDict
 
 
@@ -47,18 +46,20 @@ class Model(nn.Module):
         if n_layer_set == 1:
             model = OrderedDict([
                 (f'decide', nn.Linear(d_model, n_class, dtype = dtype)),
+                (f'act', nn.ReLU(inplace = True)),
             ])
         elif n_layer_set >= 2:
             model = OrderedDict([
                 (f'layer0', nn.Linear(d_model, n_hidden, dtype = dtype)),
-                (f'act0', nn.LogSoftmax(dim = -1)),
+                (f'act0', nn.ReLU(inplace = True)),
             ])
             for i in range(n_layer_set - 1):
                 model.update(
                     {f'layer{i+1}': nn.Linear(n_hidden, n_hidden, dtype=dtype)}
                 )
-                model.update({f'act{i+1}': nn.LogSoftmax(dim = -1)})
+                model.update({f'act{i+1}': nn.ReLU(inplace = True)})
             model.update({f'fc': nn.Flatten(start_dim = 1, end_dim = -1)})
+
             if n_features is None:
                 decision = nn.LazyLinear(n_class, dtype=dtype)
             else:
@@ -69,10 +70,10 @@ class Model(nn.Module):
             raise Exception(f'Invalid n_layer_set:{n_layer_set}')
 
         # Add softmax activation if acting as classifier
-        if type.upper() == 'CLF':
-            model.update({f'act_last': nn.Softmax(dim = -1)})
+        # if type.upper() == 'CLF':
+        #     assert True
         # Only one layer is acceptable for data reconstructor
-        elif type.upper() == 'RECON':
+        if type.upper() == 'RECON':
             assert n_layer_set == 1
 
         self.model = nn.Sequential(model)
