@@ -30,7 +30,6 @@ from sklearn.preprocessing import MinMaxScaler
 
 
 def bin_row(row, n_bin):
-    import numpy as np
 
     percentiles = np.linspace(0, 1, num=n_bin + 1)
     bins = np.quantile(row, percentiles)
