@@ -7,7 +7,6 @@ author: jy, nkmtmsys
 """
 import torch
 import torch.nn as nn
-import torch.nn.functional as F
 from collections import OrderedDict
 
 
@@ -179,7 +178,7 @@ class Model(nn.Module):
             verti_out = self.model_verti(reshaped)
             horiz_out = self.model_horiz(reshaped)
             out = self.decision(torch.cat((horiz_out, verti_out), dim = 1))
-            return F.softmax(out, dim = -1)
+            return out
 
     def _check_applicability(self, data_shape):
         """

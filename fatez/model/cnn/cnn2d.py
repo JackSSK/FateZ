@@ -6,7 +6,6 @@ author: jy, nkmtmsys
 """
 import torch
 import torch.nn as nn
-import torch.nn.functional as F
 from collections import OrderedDict
 
 
@@ -125,7 +124,7 @@ class Model(nn.Module):
             out = reshaped
         else:
             out = self.model(reshaped)
-        return F.softmax(out, dim = -1)
+        return out
 
     def _check_applicability(self, data_shape):
         """

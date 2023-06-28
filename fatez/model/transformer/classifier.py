@@ -6,6 +6,7 @@ author: jy, nkmtmsys
 """
 import torch
 import torch.nn as nn
+import torch.nn.functional as F
 import fatez.model as model
 import fatez.model.mlp as mlp
 import fatez.model.gnn as gnn
@@ -46,12 +47,13 @@ class Classifier(nn.Module):
             Exp
         """
         super(Classifier, self).__init__()
+        self.input_sizes = input_sizes
         self.dtype = dtype
+        self.freeze_encoder = True
         self.rep_embedder = rep_embedder
         self.encoder = encoder
-        self.freeze_encoder = True
         self.adapter=self._set_adapter(adapter) if adapter is not None else None
-        self.input_sizes = input_sizes
+        self.relu = nn.ReLU(inplace = True)
         self.classifier = self._set_classifier(
             n_features = self.input_sizes['n_reg'],
             n_dim = encoder.d_model,
@@ -71,9 +73,9 @@ class Classifier(nn.Module):
             out = self.encoder(out, mask, src_key_padding_mask, is_causal)
         else:
             out=self.deploy_adapter(out, mask, src_key_padding_mask, is_causal)
-
+        # out = self.relu(out)
         out = self.classifier(out)
-        return out
+        return F.softmax(out, dim = -1)
 
     def deploy_adapter(self,
             src: torch.Tensor,

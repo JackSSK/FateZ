@@ -55,6 +55,7 @@ class Model(Template):
             # Adding last layer
             layer = pyg.GCNConv(n_hidden, en_dim)
             model.append((layer, 'x, edge_index, edge_attr -> x'))
+            model.append(nn.ReLU(inplace = True))
 
         else:
             raise Exception('Why are we still here? Just to suffer.')

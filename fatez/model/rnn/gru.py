@@ -7,7 +7,6 @@ author: jy, nkmtmsys
 
 import torch
 import torch.nn as nn
-import torch.nn.functional as F
 from collections import OrderedDict
 
 
@@ -64,7 +63,7 @@ class Model(nn.Module):
         h0 = h0.to(input.device)
         out, states = self.gru(input, h0)
         out = self.decision(out)
-        return F.softmax(out, dim = 1)
+        return out
 
     def _cal_fc_size(self, n_fea, ):
         out = n_fea * self.hidden_size
