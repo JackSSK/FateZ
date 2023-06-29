@@ -42,7 +42,7 @@
     "fine_tuner": {
         "n_class": 2,
         "clf_type": "MLP",
-        "adapter": "lora",
+        "adapter": null,
         "clf_params":{
           "n_hidden": 2,
           "n_layer_set": 2

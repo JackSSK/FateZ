@@ -69,7 +69,7 @@ class Faker(object):
 
         def rand_sample():
             input_sz = self.config['input_sizes']
-            fea_m = abs(torch.randn(
+            fea_m = torch.abs(torch.randn(
                 (input_sz['n_node'], input_sz['node_attr']),
                 dtype = self.factory_kwargs['dtype']
             ))
