@@ -22,7 +22,7 @@ def setup(
     if str(type(device)) == "<class 'list'>":
         # Make sure using properly amount of device
         device_count = torch.cuda.device_count()
-        assert device_count == len(device)
+        assert device_count >= len(device)
         os.environ['MASTER_ADDR'] = master_addr
         os.environ['MASTER_PORT'] = master_port
         dist.init_process_group(backend, rank=rank, world_size=len(device))
