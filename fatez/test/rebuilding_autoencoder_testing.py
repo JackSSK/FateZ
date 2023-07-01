@@ -22,29 +22,11 @@ Y_train = np.array(Y_train)
 X_train_tensor = torch.from_numpy(X_train).float()
 Y_train_tensor = torch.from_numpy(Y_train).float()
 train_dataset = TensorDataset(X_train_tensor, Y_train_tensor)
-#device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
-device = 'cpu'
+device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 # Create DataLoader
 batch_size = 10
 train_dataloader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True)
 
-
-
-def bin_row(row, n_bin):
-    percentiles = np.linspace(0, 1, n_bin)
-    bins = stats.mstats.mquantiles(row, prob=percentiles)
-    binned_row = np.digitize(row, bins, right=True)
-    return binned_row+1
-
-def activate_bin(rna_use,bin_num = 20):
-    for batch in range(rna_use.shape[0]):
-        rna_value_distr, indices = torch.unique(rna_use[batch,torch.nonzero(rna_use)], sorted=True, return_inverse=True)
-
-        rna_value_bin = bin_row(rna_value_distr.detach().numpy(), n_bin=bin_num)
-        for i in range(len(rna_value_distr)):
-            rna_use[batch,torch.eq(rna_use[batch,], rna_value_distr[i])] = rna_value_bin[i]
-    
-    return rna_use
 
 
 class Autoencoder(nn.Module):
@@ -73,8 +55,7 @@ class Autoencoder(nn.Module):
     def forward(self, x):
         x = self.encoder(x)
         x = self.decoder(x)
-        x = activate_bin(x)
-        print(x)
+        x = nn.LogSoftmax(dim=-1)(x)
         return x
     
 
@@ -88,17 +69,35 @@ scheduler = CosineAnnealingLR(optimizer, T_max=100)  # 100 epochs
 # Convert numpy arrays to PyTorch tensors
 X_train_tensor = torch.from_numpy(X_train).float()
 Y_train_tensor = torch.from_numpy(Y_train).float()
+def correlation(tensor1, tensor2):
+    mean_tensor1 = torch.mean(tensor1, dim=1, keepdim=True)
+    mean_tensor2 = torch.mean(tensor2, dim=1, keepdim=True)
+    std_tensor1 = torch.std(tensor1, dim=1, keepdim=True)
+    std_tensor2 = torch.std(tensor2, dim=1, keepdim=True)
 
-epochs = 10
+    # Calculate correlation coefficient
+    correlation = torch.mean(
+        (tensor1 - mean_tensor1) * (tensor2 - mean_tensor2), dim=1,
+        keepdim=True) / (std_tensor1 * std_tensor2)
+
+    return torch.mean((correlation))
+epochs = 3000
 for epoch in range(epochs):
+    loss_epoch = []
+    cor_epoch = []
     for batch in train_dataloader:
         X_batch, Y_batch = batch
         X_batch, Y_batch = X_batch.to(device), Y_batch.to(device)  # Move data to device
         optimizer.zero_grad()
         outputs = model(X_batch)
-        loss = criterion(outputs, Y_batch)
+        loss = criterion(outputs, nn.LogSoftmax(dim=-1)(Y_batch))
+        cor = correlation(outputs,nn.LogSoftmax(dim=-1)(Y_batch))
         loss.backward()
         optimizer.step()
+        loss_epoch.append(loss.item())
+        cor_epoch.append(cor.item())
+        #print(f'Epoch: {epoch + 1}, Loss: {loss.item()}, cor: {cor}')
     scheduler.step()  # update learning rate
 
-    print(f'Epoch: {epoch+1}, Loss: {loss.item()}, LR: {scheduler.get_last_lr()[0]}')
+    print(f'Epoch: {epoch + 1}, Loss_epoch: {np.array(loss_epoch).mean()}, cor: {np.array(cor_epoch).mean()}')
+torch.save(Autoencoder,'D:\\Westlake\\pwk lab\\fatez/autoencoder.pt')
