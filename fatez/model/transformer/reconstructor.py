@@ -49,14 +49,21 @@ class Reconstructor(nn.Module):
         self.encoder = encoder
         self.adapter=self._set_adapter(adapter) if adapter is not None else None
         self.relu = nn.ReLU(inplace = True)
-        self.recon_node = mlp.Model(
+        self.recon_node_1 = mlp.Model(
             type = 'RECON',
             d_model = self.encoder.d_model,
+            n_layer_set = 1,
+            n_class = self.input_sizes['n_node'],
+            dtype = dtype
+        )
+        self.recon_node_2 = mlp.Model(
+            type = 'RECON',
+            d_model = self.input_sizes['n_reg'],
             n_layer_set = 1,
             n_class = self.input_sizes['node_attr'],
             dtype = dtype
         )
-        self.last_act = nn.LogSoftmax(dim = -1)
+        self.last_act = nn.LogSoftmax(dim = -2)
 
         if train_adj:
             self.recon_adj = mlp.Model(
@@ -82,9 +89,9 @@ class Reconstructor(nn.Module):
         else:
             out=self.deploy_adapter(out, mask, src_key_padding_mask, is_causal)
         # Reconstruct mats
-        node_mat = self.recon_node(out)
-        # node_mat = self.last_act(self.recon_node(out))
-        print(node_mat)
+        node_mat = self.recon_node_1(out)
+        node_mat = self.recon_node_2(torch.transpose(node_mat,1,2))
+        node_mat = self.last_act(node_mat)
         if self.recon_adj != None:
             return node_mat, self.recon_adj(out)
         else:

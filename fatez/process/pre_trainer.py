@@ -114,12 +114,15 @@ class Model(nn.Module):
         self.masker = masker
 
 
-    def forward(self, input):
-        output = self.graph_embedder(input)
-        output = self.gat(output)
+    def forward(self, input, return_embed = False):
+        embed = self.graph_embedder(input)
+        output = self.gat(embed)
         output = self.masker.mask(output,)
         output = self.bert_model(output,)
-        return output
+        if return_embed:
+            return output, embed
+        else:
+            return output
 
     def get_gat_out(self, input,):
         with torch.no_grad():
@@ -240,23 +243,25 @@ class Trainer(object):
 
         for x, _ in data_loader:
             input = [ele.to(self.device) for ele in x]
-            node_rec, adj_rec = self.worker(input)
+            recon, embed_data = self.worker(input, return_embed = True)
 
-            # Get total loss
-            origin_nodes = torch.split(
-                torch.stack([ele.x for ele in input], 0),
-                node_rec.shape[1],
-                dim = 1
-            )[0]
-            loss = self.criterion(node_rec, origin_nodes)
-            if adj_rec is not None:
+            # Get the input tensors
+            node_mat = torch.stack([ele.x for ele in embed_data], 0)
+            # The reg only version
+            # node_mat = torch.split(
+            #     torch.stack([ele.x for ele in input], 0),
+            #     recon[0].shape[1],
+            #     dim = 1
+            # )[0]
+            loss = self.criterion(recon[0], node_mat)
+
+            # For Adjacent Matrix reconstruction
+            if recon[1] is not None:
                 size = self.input_sizes
-                loss += self.criterion(
-                    adj_rec,
-                    lib.get_dense_adjs(
-                        input, (size['n_reg'],size['n_node'],size['edge_attr'])
-                    )
+                adj_mat = lib.get_dense_adjs(
+                    embed_data, (size['n_reg'],size['n_node'],size['edge_attr'])
                 )
+                loss += self.criterion(recon[1], adj_mat)
 
             loss.backward()
             nn.utils.clip_grad_norm_(self.model.parameters(), self.max_norm)
