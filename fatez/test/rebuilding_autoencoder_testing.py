@@ -14,8 +14,15 @@ from scipy import stats
 from torch.utils.data import TensorDataset, DataLoader
 import numpy as np
 # Assume X and Y are your data
+only_tf = True
+
 X = pd.read_table('D:\\Westlake\\pwk lab\\fatez\\rebuild_baseline\\rebuild_x.txt',header=0,index_col=0)
 Y = pd.read_table('D:\\Westlake\\pwk lab\\fatez\\rebuild_baseline\\rebuild_y.txt',header=0,index_col=0)
+tf = pd.read_table('E:\\public\\fatez_tf_use.txt',header=None)
+tf = tf[0].tolist()
+if only_tf:
+    X = X.loc[tf]
+    Y = Y.loc[tf]
 X_train, X_test, Y_train, Y_test = train_test_split(X.T, Y.T, test_size=0.2, random_state=42)
 X_train = np.array(X_train)
 Y_train = np.array(Y_train)
@@ -27,29 +34,27 @@ device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 batch_size = 10
 train_dataloader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True)
 
-
-
 class Autoencoder(nn.Module):
     def __init__(self):
         super(Autoencoder, self).__init__()
 
         # Encoder
         self.encoder = nn.Sequential(
-            nn.Linear(in_features=21820, out_features=5000),
+            nn.Linear(in_features=1103, out_features=250),
             nn.ReLU(),
-            nn.Linear(in_features=5000, out_features=1000),
+            nn.Linear(in_features=250, out_features=100),
             nn.ReLU(),
-            nn.Linear(in_features=1000, out_features=500),
+            nn.Linear(in_features=100, out_features=50),
             nn.ReLU()
         )
 
         # Decoder
         self.decoder = nn.Sequential(
-            nn.Linear(in_features=500, out_features=1000),
+            nn.Linear(in_features=50, out_features=100),
             nn.ReLU(),
-            nn.Linear(in_features=1000, out_features=5000),
+            nn.Linear(in_features=100, out_features=250),
             nn.ReLU(),
-            nn.Linear(in_features=5000, out_features=21820),
+            nn.Linear(in_features=250, out_features=1103),
         )
 
     def forward(self, x):
@@ -57,11 +62,41 @@ class Autoencoder(nn.Module):
         x = self.decoder(x)
         x = nn.LogSoftmax(dim=-1)(x)
         return x
+
+# class Autoencoder(nn.Module):
+#     def __init__(self):
+#         super(Autoencoder, self).__init__()
+#
+#         # Encoder
+#         self.encoder = nn.Sequential(
+#             nn.Linear(in_features=21820, out_features=5000),
+#             nn.ReLU(),
+#             nn.Linear(in_features=5000, out_features=1000),
+#             nn.ReLU(),
+#             nn.Linear(in_features=1000, out_features=500),
+#             nn.ReLU()
+#         )
+#
+#         # Decoder
+#         self.decoder = nn.Sequential(
+#             nn.Linear(in_features=500, out_features=1000),
+#             nn.ReLU(),
+#             nn.Linear(in_features=1000, out_features=5000),
+#             nn.ReLU(),
+#             nn.Linear(in_features=5000, out_features=21820),
+#         )
+#
+#     def forward(self, x):
+#         x = self.encoder(x)
+#         x = self.decoder(x)
+#         x = nn.LogSoftmax(dim=-1)(x)
+#         return x
     
 
 
-model = Autoencoder()
 model = Autoencoder().to(device)
+
+
 criterion = nn.L1Loss()
 optimizer = optim.Adam(model.parameters(), lr=0.001)  # initial learning rate
 scheduler = CosineAnnealingLR(optimizer, T_max=100)  # 100 epochs
