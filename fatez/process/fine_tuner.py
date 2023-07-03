@@ -75,11 +75,14 @@ class Model(nn.Module):
         self.gat = gat
         self.bert_model = bert_model
 
-    def forward(self, input):
-        output = self.graph_embedder(input)
-        output = self.gat(output)
+    def forward(self, input, return_embed = False):
+        embed = self.graph_embedder(input)
+        output = self.gat(embed)
         output = self.bert_model(output, )
-        return output
+        if return_embed:
+            return output, embed
+        else:
+            return output
 
     def get_gat_out(self, input,):
         with torch.no_grad():
