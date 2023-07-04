@@ -17,7 +17,7 @@ def output_csv_dict_df(matrix_dict, output_path,sample=None):
 
 def input_csv_dict_df(
         input_path,
-        specie = 'mouse',
+        cell_use = None,
         order_cell = True,
         df_type = 'node'
         ):
@@ -25,7 +25,10 @@ def input_csv_dict_df(
         __name__, '../data/gene_order.txt'
     )
     gene_order = pd.read_table(path,header=None)
-    file_list = os.listdir(input_path)
+    if cell_use != None:
+        file_list = cell_use
+    else:
+        file_list = os.listdir(input_path)
     dict_df = {}
     if input_path[-1] != '/':
         input_path = input_path + '/'
