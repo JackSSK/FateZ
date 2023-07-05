@@ -132,9 +132,14 @@ for pretrain_idx_use in all_idx:
     """
     traning
     """
-    trainer = pre_trainer.Set(config, dtype = torch.float32,device = device)
+    trainer = pre_trainer.Set(
+        config,
+        prev_model = model.Load(model_dir),
+        dtype = torch.float32,
+        device = device
+    )
     model_dir = data_save_dir +'model/'+ epoch +'/'+config_name+'_pretrainindex'+str(pretrain_idx_use-1)+'_pre_train.model'
-    trainer.model = model.Load(model_dir)
+
     for j in range(num_epoch):
         print(f"Epoch {j+1}\n-------------------------------")
 

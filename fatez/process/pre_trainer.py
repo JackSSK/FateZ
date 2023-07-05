@@ -113,7 +113,6 @@ class Model(nn.Module):
         self.bert_model = bert_model
         self.masker = masker
 
-
     def forward(self, input, return_embed = False):
         embed = self.graph_embedder(input)
         output = self.gat(embed)

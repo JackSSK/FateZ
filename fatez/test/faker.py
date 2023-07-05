@@ -221,7 +221,7 @@ class Faker(object):
         print(report)
         if quiet: suppressor.off()
         print(f'\tFine-Tuner Green.\n')
-
+        """
         # Test explain
         size = self.config['input_sizes']
         adj_exp = torch.zeros((size['n_reg'], size['n_node']))
@@ -249,5 +249,14 @@ class Faker(object):
         print('Reg Explain:\n', reg_exp, '\n')
         print('Node Explain:\n', node_exp, '\n')
         print(f'\tExplainer Green.\n')
+        """
+
+        model.Save(trainer.model, 'faker_test.model')
+        trainer = pre_trainer.Set(
+            config,
+            prev_model = model.Load('faker_test.model'),
+            **self.factory_kwargs
+        )
+        print('Save Load Green')
         worker.cleanup(device)
         return trainer.model, tuner.model
