@@ -33,6 +33,7 @@ def Save(model, file_path:str = 'a.model',):
     if (re.search(r'fatez.*.Trainer*', model_type) or
         re.search(r'fatez.*.Tuner*', model_type)
         ):
+        model.model = model.model.to('cpu')
         dict = {
             'type':model_type,
             'model':model.model.state_dict(),

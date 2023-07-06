@@ -59,6 +59,7 @@ def Set(
         )
     # Setup worker env
     net.setup(device=device)
+    print(net.optimizer.param_groups)
     return net
 
 
@@ -286,10 +287,20 @@ class Trainer(object):
     def setup(self, device='cpu',):
         if str(type(device)) == "<class 'list'>":
             self.device = torch.device('cuda:0')
-            self.model = self.model.to(self.device)
+            self._setup()
             self.worker = DDP(self.model, device_ids = device)
         elif str(type(device)) == "<class 'str'>":
             self.device = device
-            self.model = self.model.to(self.device)
+            self._setup()
             self.worker = self.model
         return
+
+    def _setup(self):
+        self.model = self.model.to(self.device)
+        self._set_state_values(self.optimizer.state.values())
+
+    def _set_state_values(self, state_values):
+        for state in state_values:
+            for k,v in state.items():
+                if torch.is_tensor(v):
+                    state[k] = v.to(self.device)
