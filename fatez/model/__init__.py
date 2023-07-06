@@ -21,7 +21,7 @@ class Error(Exception):
 
 
 
-def Save(model, file_path:str = 'a.model', device:str = 'cpu',):
+def Save(model, file_path:str = 'a.model',):
     """
     Saving a model
 
@@ -30,30 +30,34 @@ def Save(model, file_path:str = 'a.model', device:str = 'cpu',):
     :param device: device to load model
     """
     model_type = str(type(model))
-    if (re.search(r'torch.nn.modules.', model_type) or
-        re.search(r'fatez.*.Model*', model_type) or
-        re.search(r'fatez.*.Trainer*', model_type) or
+    if (re.search(r'fatez.*.Trainer*', model_type) or
         re.search(r'fatez.*.Tuner*', model_type)
         ):
-        torch.save(model.cpu(), file_path)
+        dict = {
+            'type':model_type,
+            'model':model.model.state_dict(),
+            'optimizer':model.optimizer.state_dict(),
+            'scheduler':model.scheduler.state_dict(),
+        }
+        torch.save(dict, file_path)
     else:
         raise Error('Not Supporting Save ' + model_type)
-    return model.to(device)
+    return
 
-def Load(file_path:str = 'a.model', mode:str = 'torch', device:str = 'cpu',):
+def Load(file_path:str = 'a.model', mode:str = 'torch',):
     """
     Loading a model
 
     :param file_path: path to load model
-    :param device: device to load model
     """
     model = None
     # PyTorch Loading method
     if mode == 'torch':
-        model = torch.load(file_path)
+        dict = torch.load(file_path)
+        print('Loaded:', dict['type'])
+        return dict
     else:
         raise Error('Not Supporting Load Mode ' + mode)
-    return model.to(device)
 
 
 

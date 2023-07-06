@@ -28,28 +28,31 @@ def Set(
     """
     Set up a Trainer object based on given config file and pre-trained model
     """
-    if prev_model is None:
+    net = Trainer(
+        input_sizes = config['input_sizes'],
+        gat = gnn.Set(config['gnn'], config['input_sizes'], dtype=dtype),
+        encoder = transformer.Encoder(**config['encoder'],),
+        graph_embedder = pe.Set(
+            config['graph_embedder'], config['input_sizes'], dtype=dtype
+        ),
+        rep_embedder = pe.Set(
+            config['rep_embedder'], config['input_sizes'], dtype=dtype
+        ),
+        dtype = dtype,
+        **config['pre_trainer'],
+        **kwargs,
+    )
+    if prev_model is not None and str(type(prev_model)) == "<class 'dict'>":
+        net.model.load_state_dict(prev_model['model'])
+        net.optimizer.load_state_dict(prev_model['optimizer'])
+        net.scheduler.load_state_dict(prev_model['scheduler'])
+    elif prev_model is not None:
         net = Trainer(
             input_sizes = config['input_sizes'],
-            gat = gnn.Set(config['gnn'], config['input_sizes'], dtype=dtype),
-            encoder = transformer.Encoder(**config['encoder'],),
-            graph_embedder = pe.Set(
-                config['graph_embedder'], config['input_sizes'], dtype=dtype
-            ),
-            rep_embedder = pe.Set(
-                config['rep_embedder'], config['input_sizes'], dtype=dtype
-            ),
-            dtype = dtype,
-            **config['pre_trainer'],
-            **kwargs,
-        )
-    else:
-        net = Trainer(
-            input_sizes = config['input_sizes'],
-            gat = prev_model.gat,
-            encoder = prev_model.bert_model.encoder,
-            graph_embedder = prev_model.graph_embedder,
-            rep_embedder = prev_model.bert_model.rep_embedder,
+            gat = prev_model.model.gat,
+            encoder = prev_model.model.bert_model.encoder,
+            graph_embedder = prev_model.model.graph_embedder,
+            rep_embedder = prev_model.model.bert_model.rep_embedder,
             dtype = dtype,
             **config['pre_trainer'],
             **kwargs,

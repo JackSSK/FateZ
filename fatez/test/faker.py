@@ -211,7 +211,7 @@ class Faker(object):
 
         # Fine tune part
         if quiet: suppressor.on()
-        tuner = fine_tuner.Set(config, trainer.model, **self.factory_kwargs)
+        tuner = fine_tuner.Set(config, trainer, **self.factory_kwargs)
         for i in range(tune_epoch):
             report = tuner.train(data_loader, report_batch = False,)
             print(f'Epoch {i} Loss: {report.iloc[0,0]}')
@@ -251,7 +251,7 @@ class Faker(object):
         print(f'\tExplainer Green.\n')
         """
 
-        model.Save(trainer.model, 'faker_test.model')
+        model.Save(trainer, 'faker_test.model')
         trainer = pre_trainer.Set(
             config,
             prev_model = model.Load('faker_test.model'),
@@ -259,4 +259,4 @@ class Faker(object):
         )
         print('Save Load Green')
         worker.cleanup(device)
-        return trainer.model, tuner.model
+        return trainer, tuner

@@ -159,7 +159,7 @@ for pretrain_idx_use in all_idx:
 
     if data_save:
         model.Save(
-            trainer.model,
+            trainer,
             data_save_dir + 'model/epoch1/' + config_name + '_pretrainindex' + str(
                 pretrain_idx_use) + '_pre_train.model'
         )
