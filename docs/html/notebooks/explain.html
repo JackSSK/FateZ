@@ -414,7 +414,7 @@ Done Import
 <span class="n">suppressor</span> <span class="o">=</span> <span class="n">process</span><span class="o">.</span><span class="n">Quiet_Mode</span><span class="p">()</span>
 <span class="n">device</span> <span class="o">=</span> <span class="p">[</span><span class="mi">0</span><span class="p">]</span>
 <span class="n">dtype</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">float32</span>
-<span class="n">worker</span><span class="o">.</span><span class="n">setup</span><span class="p">(</span><span class="n">device</span><span class="p">,</span> <span class="n">master_port</span> <span class="o">=</span> <span class="s1">&#39;12350&#39;</span><span class="p">)</span>
+<span class="n">worker</span><span class="o">.</span><span class="n">setup</span><span class="p">(</span><span class="n">device</span><span class="p">,</span> <span class="n">master_port</span> <span class="o">=</span> <span class="s1">&#39;2307&#39;</span><span class="p">)</span>
 
 <span class="c1"># Generate Fake data</span>
 <span class="n">faker</span> <span class="o">=</span> <span class="n">test</span><span class="o">.</span><span class="n">Faker</span><span class="p">(</span><span class="n">model_config</span> <span class="o">=</span> <span class="n">config</span><span class="p">,</span> <span class="o">**</span><span class="n">params</span><span class="p">)</span>
@@ -454,17 +454,17 @@ Done Init
 <div class="output_area docutils container">
 <div class="highlight"><pre>
         Loss
-0   2.482922
-1   1.605572
-2   1.765621
-3   1.284067
-4   2.221757
-5   1.462334
-6   2.723279
-7   1.777736
-8   2.777387
-9   2.399960
-10  2.050064
+0   1.307709
+1   7.125144
+2   7.212573
+3   7.185053
+4   1.215182
+5   7.039515
+6   6.969513
+7   1.040767
+8   1.182723
+9   1.147289
+10  4.142547
 </pre></div></div>
 </div>
 <p>In the case of pre-training with reconstructing adjacency matrices as well.</p>
@@ -487,17 +487,17 @@ Done Init
 <div class="output_area docutils container">
 <div class="highlight"><pre>
         Loss
-0   3.144596
-1   2.999091
-2   1.224872
-3   1.861074
-4   1.697979
-5   3.146333
-6   1.343641
-7   2.271840
-8   1.892645
-9   2.342091
-10  2.192416
+0   1.197746
+1   7.171856
+2   7.135652
+3   7.115325
+4   1.138201
+5   1.099432
+6   7.150834
+7   1.107591
+8   1.277280
+9   7.157175
+10  4.155109
 </pre></div></div>
 </div>
 </div>
@@ -507,7 +507,7 @@ Done Init
 <div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[5]:
 </pre></div>
 </div>
-<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">tuner</span> <span class="o">=</span> <span class="n">fine_tuner</span><span class="o">.</span><span class="n">Set</span><span class="p">(</span><span class="n">config</span><span class="p">,</span> <span class="n">prev_model</span> <span class="o">=</span> <span class="n">trainer</span><span class="o">.</span><span class="n">model</span><span class="p">,</span> <span class="n">dtype</span> <span class="o">=</span> <span class="n">dtype</span><span class="p">,</span> <span class="n">device</span> <span class="o">=</span> <span class="n">device</span><span class="p">)</span>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">tuner</span> <span class="o">=</span> <span class="n">fine_tuner</span><span class="o">.</span><span class="n">Set</span><span class="p">(</span><span class="n">config</span><span class="p">,</span> <span class="n">prev_model</span> <span class="o">=</span> <span class="n">trainer</span><span class="p">,</span> <span class="n">dtype</span> <span class="o">=</span> <span class="n">dtype</span><span class="p">,</span> <span class="n">device</span> <span class="o">=</span> <span class="n">device</span><span class="p">)</span>
 <span class="n">report</span> <span class="o">=</span> <span class="n">tuner</span><span class="o">.</span><span class="n">train</span><span class="p">(</span><span class="n">train_dataloader</span><span class="p">,</span> <span class="n">report_batch</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,)</span>
 <span class="nb">print</span><span class="p">(</span><span class="n">report</span><span class="p">)</span>
 </pre></div>
@@ -519,17 +519,17 @@ Done Init
 <div class="output_area docutils container">
 <div class="highlight"><pre>
         Loss  ACC
-0   1.125677  0.0
-1   0.495184  1.0
-2   0.989236  0.0
-3   0.956497  0.0
-4   0.898234  0.0
-5   0.563174  1.0
-6   0.574375  1.0
-7   0.832299  0.0
-8   0.577477  1.0
-9   0.577833  1.0
-10  0.758999  0.5
+0   0.649586  1.0
+1   0.743881  0.0
+2   0.645328  1.0
+3   0.744279  0.0
+4   0.645847  1.0
+5   0.645064  1.0
+6   0.744720  0.0
+7   0.747999  0.0
+8   0.645316  1.0
+9   0.746752  0.0
+10  0.695877  0.5
 </pre></div></div>
 </div>
 </div>
@@ -580,21 +580,21 @@ Explaining 2 classes.
 Each class has regulon explain in shape of (4, 4).
 
 Edge Explain:
- tensor([[0.0297, 0.0299, 0.0295, 0.0260, 0.0273, 0.0258, 0.0272, 0.0242, 0.0000,
-         0.0326],
-        [0.0291, 0.0305, 0.0266, 0.0276, 0.0287, 0.0262, 0.0242, 0.0285, 0.0000,
-         0.0280],
-        [0.0287, 0.0266, 0.0262, 0.0260, 0.0262, 0.0243, 0.0290, 0.0311, 0.0000,
-         0.0304],
-        [0.0273, 0.0270, 0.0267, 0.0269, 0.0243, 0.0286, 0.0298, 0.0291, 0.0000,
-         0.0299]])
+ tensor([[0.0302, 0.0293, 0.0292, 0.0280, 0.0272, 0.0294, 0.0258, 0.0309, 0.0000,
+         0.0291],
+        [0.0342, 0.0287, 0.0284, 0.0255, 0.0264, 0.0269, 0.0298, 0.0260, 0.0000,
+         0.0301],
+        [0.0294, 0.0231, 0.0260, 0.0229, 0.0267, 0.0267, 0.0304, 0.0262, 0.0000,
+         0.0266],
+        [0.0254, 0.0262, 0.0260, 0.0251, 0.0285, 0.0309, 0.0297, 0.0265, 0.0000,
+         0.0287]])
 
 Reg Explain:
- tensor([0.0007, 0.0008, 0.0007, 0.0013], dtype=torch.float64)
+ tensor([0.0008, 0.0008, 0.0003, 0.0016], dtype=torch.float64)
 
 Node Explain:
- tensor([9.8628e-05, 9.8209e-05, 9.4060e-05, 9.2660e-05, 9.1147e-05, 9.2438e-05,
-        9.6312e-05, 9.8330e-05, 0.0000e+00, 1.0423e-04], dtype=torch.float64)
+ tensor([9.7898e-05, 9.2607e-05, 9.2633e-05, 8.7263e-05, 9.3675e-05, 9.9449e-05,
+        9.7947e-05, 9.3009e-05, 0.0000e+00, 9.8218e-05], dtype=torch.float64)
 
 </pre></div></div>
 </div>

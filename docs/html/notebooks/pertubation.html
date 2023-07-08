@@ -365,7 +365,7 @@ div.rendered_html tbody tr:hover {
 <h1>FateZ Multiomic Pertubation Effect Prediction(?)<a class="headerlink" href="#FateZ-Multiomic-Pertubation-Effect-Prediction(?)" title="Permalink to this heading"></a></h1>
 <p>This notebook demonstrate how to implement Pertubation Effect Prediction method with FateZ’s modules.</p>
 <div class="nbinput docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[1]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[11]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">os</span>
@@ -399,7 +399,7 @@ Done Import
 <div class="section" id="Build-model-and-make-some-fake-data-first.">
 <h2>Build model and make some fake data first.<a class="headerlink" href="#Build-model-and-make-some-fake-data-first." title="Permalink to this heading"></a></h2>
 <div class="nbinput docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[2]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[12]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># Parameters</span>
@@ -414,7 +414,8 @@ Done Import
     <span class="p">)</span>
 <span class="p">)</span>
 <span class="n">suppressor</span> <span class="o">=</span> <span class="n">process</span><span class="o">.</span><span class="n">Quiet_Mode</span><span class="p">()</span>
-<span class="n">device</span> <span class="o">=</span> <span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+<span class="n">device</span> <span class="o">=</span> <span class="s1">&#39;cuda&#39;</span>
+<span class="c1"># device = [0] # Applying DDP if having multiple devices</span>
 <span class="n">dtype</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">float32</span>
 <span class="n">worker</span><span class="o">.</span><span class="n">setup</span><span class="p">(</span><span class="n">device</span><span class="p">)</span>
 
@@ -446,7 +447,7 @@ Done Fake Data
 <div class="section" id="The-model-will-be-architecturally-similar-with-a-pretrainer">
 <h2>The model will be architecturally similar with a pretrainer<a class="headerlink" href="#The-model-will-be-architecturally-similar-with-a-pretrainer" title="Permalink to this heading"></a></h2>
 <div class="nbinput docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[3]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[13]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">trainer</span> <span class="o">=</span> <span class="n">pre_trainer</span><span class="o">.</span><span class="n">Set</span><span class="p">(</span><span class="n">config</span><span class="p">,</span> <span class="n">dtype</span> <span class="o">=</span> <span class="n">dtype</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">device</span><span class="p">)</span>
@@ -468,7 +469,7 @@ Model Set
 <h2>However, the training part will be littel bit different<a class="headerlink" href="#However,-the-training-part-will-be-littel-bit-different" title="Permalink to this heading"></a></h2>
 <p>This part is modified based on pre_trainer.Trainer.train()</p>
 <div class="nbinput docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[4]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[14]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">report_batch</span> <span class="o">=</span> <span class="kc">False</span>
@@ -534,8 +535,8 @@ Model Set
 </div>
 <div class="output_area docutils container">
 <div class="highlight"><pre>
-      Loss
-0  1.74781
+       Loss
+0  4.716633
 </pre></div></div>
 </div>
 </div>
@@ -543,10 +544,10 @@ Model Set
 <h2>In the case of tuning unlabeled data, which does not have pertubation results…<a class="headerlink" href="#In-the-case-of-tuning-unlabeled-data,-which-does-not-have-pertubation-results…" title="Permalink to this heading"></a></h2>
 <p>We shall set another trainer using previous model.</p>
 <div class="nbinput docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[5]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[15]:
 </pre></div>
 </div>
-<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">tuner</span> <span class="o">=</span> <span class="n">pre_trainer</span><span class="o">.</span><span class="n">Set</span><span class="p">(</span><span class="n">config</span><span class="p">,</span> <span class="n">prev_model</span> <span class="o">=</span> <span class="n">trainer</span><span class="o">.</span><span class="n">model</span><span class="p">,</span> <span class="n">dtype</span> <span class="o">=</span> <span class="n">dtype</span><span class="p">,</span> <span class="n">device</span> <span class="o">=</span> <span class="n">device</span><span class="p">)</span>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">tuner</span> <span class="o">=</span> <span class="n">pre_trainer</span><span class="o">.</span><span class="n">Set</span><span class="p">(</span><span class="n">config</span><span class="p">,</span> <span class="n">prev_model</span> <span class="o">=</span> <span class="n">trainer</span><span class="p">,</span> <span class="n">dtype</span> <span class="o">=</span> <span class="n">dtype</span><span class="p">,</span> <span class="n">device</span> <span class="o">=</span> <span class="n">device</span><span class="p">)</span>
 
 <span class="c1"># Some new fake data</span>
 <span class="n">tuner_dataloader</span> <span class="o">=</span> <span class="n">faker</span><span class="o">.</span><span class="n">make_data_loader</span><span class="p">()</span>
@@ -565,7 +566,7 @@ Model Set
 <div class="output_area docutils container">
 <div class="highlight"><pre>
        Loss
-0  2.451723
+0  4.259047
 </pre></div></div>
 </div>
 </div>
@@ -573,7 +574,7 @@ Model Set
 <h2>Then we shall just use trainer object to make predictions.<a class="headerlink" href="#Then-we-shall-just-use-trainer-object-to-make-predictions." title="Permalink to this heading"></a></h2>
 <p>Similar with the training block above for trainer, but no need to prepare y.</p>
 <div class="nbinput docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[6]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[16]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">trainer</span><span class="o">.</span><span class="n">model</span><span class="o">.</span><span class="n">eval</span><span class="p">()</span>
@@ -596,11 +597,11 @@ Model Set
 </div>
 <div class="output_area docutils container">
 <div class="highlight"><pre>
-torch.Size([2, 4, 2]) torch.Size([2, 4, 10])
-torch.Size([2, 4, 2]) torch.Size([2, 4, 10])
-torch.Size([2, 4, 2]) torch.Size([2, 4, 10])
-torch.Size([2, 4, 2]) torch.Size([2, 4, 10])
-torch.Size([2, 4, 2]) torch.Size([2, 4, 10])
+torch.Size([2, 10, 2]) torch.Size([2, 4, 10])
+torch.Size([2, 10, 2]) torch.Size([2, 4, 10])
+torch.Size([2, 10, 2]) torch.Size([2, 4, 10])
+torch.Size([2, 10, 2]) torch.Size([2, 4, 10])
+torch.Size([2, 10, 2]) torch.Size([2, 4, 10])
 </pre></div></div>
 </div>
 </div>
@@ -608,7 +609,7 @@ torch.Size([2, 4, 2]) torch.Size([2, 4, 10])
 <h2>Cleanup Env<a class="headerlink" href="#Cleanup-Env" title="Permalink to this heading"></a></h2>
 <p>Need to clean up environment once finsihed.</p>
 <div class="nbinput docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[7]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[17]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">worker</span><span class="o">.</span><span class="n">cleanup</span><span class="p">(</span><span class="n">device</span><span class="p">)</span>

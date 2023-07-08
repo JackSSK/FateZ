@@ -365,11 +365,13 @@ div.rendered_html tbody tr:hover {
 <div class="section" id="FateZ-Clustering">
 <h1>FateZ Clustering<a class="headerlink" href="#FateZ-Clustering" title="Permalink to this heading"></a></h1>
 <p>This notebook demonstrate how to implement clustering method with FateZ’s representing method</p>
-<div class="nbinput nblast docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[1]:
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[5]:
 </pre></div>
 </div>
-<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">os</span>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="nb">print</span><span class="p">(</span><span class="s1">&#39;This part is yet to be modified!&#39;</span><span class="p">)</span>
+
+<span class="kn">import</span> <span class="nn">os</span>
 <span class="kn">import</span> <span class="nn">torch</span>
 <span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
 <span class="kn">from</span> <span class="nn">torch.utils.data</span> <span class="kn">import</span> <span class="n">DataLoader</span>
@@ -377,14 +379,25 @@ div.rendered_html tbody tr:hover {
 <span class="kn">from</span> <span class="nn">sklearn</span> <span class="kn">import</span> <span class="n">cluster</span>
 <span class="kn">import</span> <span class="nn">fatez.test</span> <span class="k">as</span> <span class="nn">test</span>
 <span class="kn">import</span> <span class="nn">fatez.model</span> <span class="k">as</span> <span class="nn">model</span>
-<span class="kn">import</span> <span class="nn">scanpy</span> <span class="k">as</span> <span class="nn">sc</span>
+<span class="c1"># import scanpy as sc</span>
+
+<span class="nb">print</span><span class="p">(</span><span class="s1">&#39;Done Import&#39;</span><span class="p">)</span>
 </pre></div>
 </div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+This part is yet to be modified!
+Done Import
+</pre></div></div>
 </div>
 <div class="section" id="Initialize-testing-model-first.">
 <h2>Initialize testing model first.<a class="headerlink" href="#Initialize-testing-model-first." title="Permalink to this heading"></a></h2>
 <div class="nbinput docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[2]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[6]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">faker</span> <span class="o">=</span> <span class="n">test</span><span class="o">.</span><span class="n">Faker</span><span class="p">()</span>
@@ -405,6 +418,22 @@ Testing Full Model.
 
         Fine-Tuner Green.
 
+Edge Explain:
+ tensor([[0.1573, 0.1524, 0.1506, 0.1357, 0.1349, 0.1365, 0.1361, 0.1353, 0.0000,
+         0.1383],
+        [0.1358, 0.1370, 0.1243, 0.1215, 0.1255, 0.1237, 0.1196, 0.1621, 0.0000,
+         0.1627],
+        [0.1638, 0.1475, 0.1416, 0.1444, 0.1399, 0.1464, 0.1395, 0.1368, 0.0000,
+         0.1393],
+        [0.1305, 0.1263, 0.1264, 0.1260, 0.1198, 0.1493, 0.1356, 0.1604, 0.0000,
+         0.1371]])
+
+Reg Explain:
+ tensor([0., 0., 0., 0.], dtype=torch.float64)
+
+Node Explain:
+ tensor([0., 0., 0., 0., 0., 0., 0., 0., 0., 0.], dtype=torch.float64)
+
         Explainer Green.
 
 </pre></div></div>
@@ -413,11 +442,11 @@ Testing Full Model.
 <div class="section" id="Get-the-fake-dataset">
 <h2>Get the fake dataset<a class="headerlink" href="#Get-the-fake-dataset" title="Permalink to this heading"></a></h2>
 <div class="nbinput docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[3]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[8]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">dataset</span> <span class="o">=</span> <span class="n">faker</span><span class="o">.</span><span class="n">make_data_loader</span><span class="p">()</span><span class="o">.</span><span class="n">dataset</span>
-<span class="k">for</span> <span class="n">x</span><span class="p">,</span> <span class="n">labels</span> <span class="ow">in</span> <span class="n">DataLoader</span><span class="p">(</span><span class="n">dataset</span><span class="p">,</span> <span class="n">batch_size</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">dataset</span><span class="p">)):</span>
+<span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">DataLoader</span><span class="p">(</span><span class="n">dataset</span><span class="p">,</span> <span class="n">batch_size</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">dataset</span><span class="p">)):</span>
     <span class="n">all_fea_mat</span> <span class="o">=</span> <span class="n">x</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
     <span class="n">all_adj_mat</span> <span class="o">=</span> <span class="n">x</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
 <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s1">&#39;Labels:</span><span class="se">\n</span><span class="si">{</span><span class="n">labels</span><span class="o">.</span><span class="n">tolist</span><span class="p">()</span><span class="si">}</span><span class="s1">&#39;</span><span class="p">)</span>
@@ -427,17 +456,72 @@ Testing Full Model.
 <div class="nboutput nblast docutils container">
 <div class="prompt empty docutils container">
 </div>
-<div class="output_area docutils container">
-<div class="highlight"><pre>
-Labels:
-[3, 2, 0, 2, 1, 2, 3, 0, 1, 0]
-</pre></div></div>
+<div class="output_area rendered_html docutils container">
+<pre style="white-space:pre;overflow-x:auto;line-height:normal;font-family:Menlo,'DejaVu Sans Mono',consolas,'Courier New',monospace"><span style="color: #800000; text-decoration-color: #800000">╭─────────────────────────────── </span><span style="color: #800000; text-decoration-color: #800000; font-weight: bold">Traceback </span><span style="color: #bf7f7f; text-decoration-color: #bf7f7f; font-weight: bold">(most recent call last)</span><span style="color: #800000; text-decoration-color: #800000"> ────────────────────────────────╮</span>
+<span style="color: #800000; text-decoration-color: #800000">│</span> in <span style="color: #00ff00; text-decoration-color: #00ff00">&lt;cell line: 2&gt;</span>:<span style="color: #0000ff; text-decoration-color: #0000ff">2</span>                                                                              <span style="color: #800000; text-decoration-color: #800000">│</span>
+<span style="color: #800000; text-decoration-color: #800000">│</span>                                                                                                  <span style="color: #800000; text-decoration-color: #800000">│</span>
+<span style="color: #800000; text-decoration-color: #800000">│</span>   <span style="color: #7f7f7f; text-decoration-color: #7f7f7f">1 </span>dataset = faker.make_data_loader().dataset                                                   <span style="color: #800000; text-decoration-color: #800000">│</span>
+<span style="color: #800000; text-decoration-color: #800000">│</span> <span style="color: #800000; text-decoration-color: #800000">❱ </span>2 <span style="color: #0000ff; text-decoration-color: #0000ff">for</span> x <span style="color: #ff00ff; text-decoration-color: #ff00ff">in</span> DataLoader(dataset, batch_size = <span style="color: #00ffff; text-decoration-color: #00ffff">len</span>(dataset)):                                     <span style="color: #800000; text-decoration-color: #800000">│</span>
+<span style="color: #800000; text-decoration-color: #800000">│</span>   <span style="color: #7f7f7f; text-decoration-color: #7f7f7f">3 │   </span>all_fea_mat = x[<span style="color: #0000ff; text-decoration-color: #0000ff">0</span>]                                                                       <span style="color: #800000; text-decoration-color: #800000">│</span>
+<span style="color: #800000; text-decoration-color: #800000">│</span>   <span style="color: #7f7f7f; text-decoration-color: #7f7f7f">4 │   </span>all_adj_mat = x[<span style="color: #0000ff; text-decoration-color: #0000ff">1</span>]                                                                       <span style="color: #800000; text-decoration-color: #800000">│</span>
+<span style="color: #800000; text-decoration-color: #800000">│</span>   <span style="color: #7f7f7f; text-decoration-color: #7f7f7f">5 </span><span style="color: #00ffff; text-decoration-color: #00ffff">print</span>(<span style="color: #808000; text-decoration-color: #808000">f'Labels:\n{</span>labels.tolist()<span style="color: #808000; text-decoration-color: #808000">}'</span>)                                                         <span style="color: #800000; text-decoration-color: #800000">│</span>
+<span style="color: #800000; text-decoration-color: #800000">│</span>                                                                                                  <span style="color: #800000; text-decoration-color: #800000">│</span>
+<span style="color: #800000; text-decoration-color: #800000">│</span> <span style="color: #bfbf7f; text-decoration-color: #bfbf7f">/usr/local/lib/python3.10/dist-packages/torch/utils/data/</span><span style="color: #808000; text-decoration-color: #808000; font-weight: bold">dataloader.py</span>:<span style="color: #0000ff; text-decoration-color: #0000ff">634</span> in <span style="color: #00ff00; text-decoration-color: #00ff00">__next__</span>           <span style="color: #800000; text-decoration-color: #800000">│</span>
+<span style="color: #800000; text-decoration-color: #800000">│</span>                                                                                                  <span style="color: #800000; text-decoration-color: #800000">│</span>
+<span style="color: #800000; text-decoration-color: #800000">│</span>   <span style="color: #7f7f7f; text-decoration-color: #7f7f7f"> 631 │   │   │   </span><span style="color: #0000ff; text-decoration-color: #0000ff">if</span> <span style="color: #00ffff; text-decoration-color: #00ffff">self</span>._sampler_iter <span style="color: #ff00ff; text-decoration-color: #ff00ff">is</span> <span style="color: #0000ff; text-decoration-color: #0000ff">None</span>:                                                <span style="color: #800000; text-decoration-color: #800000">│</span>
+<span style="color: #800000; text-decoration-color: #800000">│</span>   <span style="color: #7f7f7f; text-decoration-color: #7f7f7f"> 632 │   │   │   │   # TODO(https://github.com/pytorch/pytorch/issues/76750)</span>                   <span style="color: #800000; text-decoration-color: #800000">│</span>
+<span style="color: #800000; text-decoration-color: #800000">│</span>   <span style="color: #7f7f7f; text-decoration-color: #7f7f7f"> 633 │   │   │   │   </span><span style="color: #00ffff; text-decoration-color: #00ffff">self</span>._reset()  <span style="color: #7f7f7f; text-decoration-color: #7f7f7f"># type: ignore[call-arg]</span>                                   <span style="color: #800000; text-decoration-color: #800000">│</span>
+<span style="color: #800000; text-decoration-color: #800000">│</span> <span style="color: #800000; text-decoration-color: #800000">❱ </span> 634 <span style="color: #7f7f7f; text-decoration-color: #7f7f7f">│   │   │   </span>data = <span style="color: #00ffff; text-decoration-color: #00ffff">self</span>._next_data()                                                      <span style="color: #800000; text-decoration-color: #800000">│</span>
+<span style="color: #800000; text-decoration-color: #800000">│</span>   <span style="color: #7f7f7f; text-decoration-color: #7f7f7f"> 635 │   │   │   </span><span style="color: #00ffff; text-decoration-color: #00ffff">self</span>._num_yielded += <span style="color: #0000ff; text-decoration-color: #0000ff">1</span>                                                        <span style="color: #800000; text-decoration-color: #800000">│</span>
+<span style="color: #800000; text-decoration-color: #800000">│</span>   <span style="color: #7f7f7f; text-decoration-color: #7f7f7f"> 636 │   │   │   </span><span style="color: #0000ff; text-decoration-color: #0000ff">if</span> <span style="color: #00ffff; text-decoration-color: #00ffff">self</span>._dataset_kind == _DatasetKind.Iterable <span style="color: #ff00ff; text-decoration-color: #ff00ff">and</span> \                          <span style="color: #800000; text-decoration-color: #800000">│</span>
+<span style="color: #800000; text-decoration-color: #800000">│</span>   <span style="color: #7f7f7f; text-decoration-color: #7f7f7f"> 637 │   │   │   │   │   </span><span style="color: #00ffff; text-decoration-color: #00ffff">self</span>._IterableDataset_len_called <span style="color: #ff00ff; text-decoration-color: #ff00ff">is</span> <span style="color: #ff00ff; text-decoration-color: #ff00ff">not</span> <span style="color: #0000ff; text-decoration-color: #0000ff">None</span> <span style="color: #ff00ff; text-decoration-color: #ff00ff">and</span> \                    <span style="color: #800000; text-decoration-color: #800000">│</span>
+<span style="color: #800000; text-decoration-color: #800000">│</span>                                                                                                  <span style="color: #800000; text-decoration-color: #800000">│</span>
+<span style="color: #800000; text-decoration-color: #800000">│</span> <span style="color: #bfbf7f; text-decoration-color: #bfbf7f">/usr/local/lib/python3.10/dist-packages/torch/utils/data/</span><span style="color: #808000; text-decoration-color: #808000; font-weight: bold">dataloader.py</span>:<span style="color: #0000ff; text-decoration-color: #0000ff">678</span> in <span style="color: #00ff00; text-decoration-color: #00ff00">_next_data</span>         <span style="color: #800000; text-decoration-color: #800000">│</span>
+<span style="color: #800000; text-decoration-color: #800000">│</span>                                                                                                  <span style="color: #800000; text-decoration-color: #800000">│</span>
+<span style="color: #800000; text-decoration-color: #800000">│</span>   <span style="color: #7f7f7f; text-decoration-color: #7f7f7f"> 675 │   </span>                                                                                      <span style="color: #800000; text-decoration-color: #800000">│</span>
+<span style="color: #800000; text-decoration-color: #800000">│</span>   <span style="color: #7f7f7f; text-decoration-color: #7f7f7f"> 676 │   </span><span style="color: #0000ff; text-decoration-color: #0000ff">def</span> <span style="color: #00ff00; text-decoration-color: #00ff00">_next_data</span>(<span style="color: #00ffff; text-decoration-color: #00ffff">self</span>):                                                                 <span style="color: #800000; text-decoration-color: #800000">│</span>
+<span style="color: #800000; text-decoration-color: #800000">│</span>   <span style="color: #7f7f7f; text-decoration-color: #7f7f7f"> 677 │   │   </span>index = <span style="color: #00ffff; text-decoration-color: #00ffff">self</span>._next_index()  <span style="color: #7f7f7f; text-decoration-color: #7f7f7f"># may raise StopIteration</span>                             <span style="color: #800000; text-decoration-color: #800000">│</span>
+<span style="color: #800000; text-decoration-color: #800000">│</span> <span style="color: #800000; text-decoration-color: #800000">❱ </span> 678 <span style="color: #7f7f7f; text-decoration-color: #7f7f7f">│   │   </span>data = <span style="color: #00ffff; text-decoration-color: #00ffff">self</span>._dataset_fetcher.fetch(index)  <span style="color: #7f7f7f; text-decoration-color: #7f7f7f"># may raise StopIteration</span>              <span style="color: #800000; text-decoration-color: #800000">│</span>
+<span style="color: #800000; text-decoration-color: #800000">│</span>   <span style="color: #7f7f7f; text-decoration-color: #7f7f7f"> 679 │   │   </span><span style="color: #0000ff; text-decoration-color: #0000ff">if</span> <span style="color: #00ffff; text-decoration-color: #00ffff">self</span>._pin_memory:                                                              <span style="color: #800000; text-decoration-color: #800000">│</span>
+<span style="color: #800000; text-decoration-color: #800000">│</span>   <span style="color: #7f7f7f; text-decoration-color: #7f7f7f"> 680 │   │   │   </span>data = _utils.pin_memory.pin_memory(data, <span style="color: #00ffff; text-decoration-color: #00ffff">self</span>._pin_memory_device)            <span style="color: #800000; text-decoration-color: #800000">│</span>
+<span style="color: #800000; text-decoration-color: #800000">│</span>   <span style="color: #7f7f7f; text-decoration-color: #7f7f7f"> 681 │   │   </span><span style="color: #0000ff; text-decoration-color: #0000ff">return</span> data                                                                       <span style="color: #800000; text-decoration-color: #800000">│</span>
+<span style="color: #800000; text-decoration-color: #800000">│</span>                                                                                                  <span style="color: #800000; text-decoration-color: #800000">│</span>
+<span style="color: #800000; text-decoration-color: #800000">│</span> <span style="color: #bfbf7f; text-decoration-color: #bfbf7f">/usr/local/lib/python3.10/dist-packages/torch/utils/data/_utils/</span><span style="color: #808000; text-decoration-color: #808000; font-weight: bold">fetch.py</span>:<span style="color: #0000ff; text-decoration-color: #0000ff">54</span> in <span style="color: #00ff00; text-decoration-color: #00ff00">fetch</span>             <span style="color: #800000; text-decoration-color: #800000">│</span>
+<span style="color: #800000; text-decoration-color: #800000">│</span>                                                                                                  <span style="color: #800000; text-decoration-color: #800000">│</span>
+<span style="color: #800000; text-decoration-color: #800000">│</span>   <span style="color: #7f7f7f; text-decoration-color: #7f7f7f">51 │   │   │   │   </span>data = [<span style="color: #00ffff; text-decoration-color: #00ffff">self</span>.dataset[idx] <span style="color: #0000ff; text-decoration-color: #0000ff">for</span> idx <span style="color: #ff00ff; text-decoration-color: #ff00ff">in</span> possibly_batched_index]                <span style="color: #800000; text-decoration-color: #800000">│</span>
+<span style="color: #800000; text-decoration-color: #800000">│</span>   <span style="color: #7f7f7f; text-decoration-color: #7f7f7f">52 │   │   </span><span style="color: #0000ff; text-decoration-color: #0000ff">else</span>:                                                                               <span style="color: #800000; text-decoration-color: #800000">│</span>
+<span style="color: #800000; text-decoration-color: #800000">│</span>   <span style="color: #7f7f7f; text-decoration-color: #7f7f7f">53 │   │   │   </span>data = <span style="color: #00ffff; text-decoration-color: #00ffff">self</span>.dataset[possibly_batched_index]                                     <span style="color: #800000; text-decoration-color: #800000">│</span>
+<span style="color: #800000; text-decoration-color: #800000">│</span> <span style="color: #800000; text-decoration-color: #800000">❱ </span>54 <span style="color: #7f7f7f; text-decoration-color: #7f7f7f">│   │   </span><span style="color: #0000ff; text-decoration-color: #0000ff">return</span> <span style="color: #00ffff; text-decoration-color: #00ffff">self</span>.collate_fn(data)                                                        <span style="color: #800000; text-decoration-color: #800000">│</span>
+<span style="color: #800000; text-decoration-color: #800000">│</span>   <span style="color: #7f7f7f; text-decoration-color: #7f7f7f">55 </span>                                                                                            <span style="color: #800000; text-decoration-color: #800000">│</span>
+<span style="color: #800000; text-decoration-color: #800000">│</span>                                                                                                  <span style="color: #800000; text-decoration-color: #800000">│</span>
+<span style="color: #800000; text-decoration-color: #800000">│</span> <span style="color: #bfbf7f; text-decoration-color: #bfbf7f">/usr/local/lib/python3.10/dist-packages/torch/utils/data/_utils/</span><span style="color: #808000; text-decoration-color: #808000; font-weight: bold">collate.py</span>:<span style="color: #0000ff; text-decoration-color: #0000ff">264</span> in                <span style="color: #800000; text-decoration-color: #800000">│</span>
+<span style="color: #800000; text-decoration-color: #800000">│</span> <span style="color: #00ff00; text-decoration-color: #00ff00">default_collate</span>                                                                                  <span style="color: #800000; text-decoration-color: #800000">│</span>
+<span style="color: #800000; text-decoration-color: #800000">│</span>                                                                                                  <span style="color: #800000; text-decoration-color: #800000">│</span>
+<span style="color: #800000; text-decoration-color: #800000">│</span>   <span style="color: #7f7f7f; text-decoration-color: #7f7f7f">261 </span><span style="color: #bfbf7f; text-decoration-color: #bfbf7f">│   │   │   </span><span style="color: #808000; text-decoration-color: #808000">&gt;&gt;&gt; default_collate_fn_map.update(CustoType, collate_customtype_fn)</span>            <span style="color: #800000; text-decoration-color: #800000">│</span>
+<span style="color: #800000; text-decoration-color: #800000">│</span>   <span style="color: #7f7f7f; text-decoration-color: #7f7f7f">262 </span><span style="color: #bfbf7f; text-decoration-color: #bfbf7f">│   │   │   </span><span style="color: #808000; text-decoration-color: #808000">&gt;&gt;&gt; default_collate(batch)  # Handle `CustomType` automatically</span>                <span style="color: #800000; text-decoration-color: #800000">│</span>
+<span style="color: #800000; text-decoration-color: #800000">│</span>   <span style="color: #7f7f7f; text-decoration-color: #7f7f7f">263 </span><span style="color: #bfbf7f; text-decoration-color: #bfbf7f">│   </span><span style="color: #808000; text-decoration-color: #808000">"""</span>                                                                                    <span style="color: #800000; text-decoration-color: #800000">│</span>
+<span style="color: #800000; text-decoration-color: #800000">│</span> <span style="color: #800000; text-decoration-color: #800000">❱ </span>264 <span style="color: #7f7f7f; text-decoration-color: #7f7f7f">│   </span><span style="color: #0000ff; text-decoration-color: #0000ff">return</span> collate(batch, collate_fn_map=default_collate_fn_map)                           <span style="color: #800000; text-decoration-color: #800000">│</span>
+<span style="color: #800000; text-decoration-color: #800000">│</span>   <span style="color: #7f7f7f; text-decoration-color: #7f7f7f">265 </span>                                                                                           <span style="color: #800000; text-decoration-color: #800000">│</span>
+<span style="color: #800000; text-decoration-color: #800000">│</span>                                                                                                  <span style="color: #800000; text-decoration-color: #800000">│</span>
+<span style="color: #800000; text-decoration-color: #800000">│</span> <span style="color: #bfbf7f; text-decoration-color: #bfbf7f">/usr/local/lib/python3.10/dist-packages/torch/utils/data/_utils/</span><span style="color: #808000; text-decoration-color: #808000; font-weight: bold">collate.py</span>:<span style="color: #0000ff; text-decoration-color: #0000ff">150</span> in <span style="color: #00ff00; text-decoration-color: #00ff00">collate</span>        <span style="color: #800000; text-decoration-color: #800000">│</span>
+<span style="color: #800000; text-decoration-color: #800000">│</span>                                                                                                  <span style="color: #800000; text-decoration-color: #800000">│</span>
+<span style="color: #800000; text-decoration-color: #800000">│</span>   <span style="color: #7f7f7f; text-decoration-color: #7f7f7f">147 │   │   │   │   # The sequence type may not support `__init__(iterable)` (e.g., `range`)</span>   <span style="color: #800000; text-decoration-color: #800000">│</span>
+<span style="color: #800000; text-decoration-color: #800000">│</span>   <span style="color: #7f7f7f; text-decoration-color: #7f7f7f">148 │   │   │   │   </span><span style="color: #0000ff; text-decoration-color: #0000ff">return</span> [collate(samples, collate_fn_map=collate_fn_map) <span style="color: #0000ff; text-decoration-color: #0000ff">for</span> samples <span style="color: #ff00ff; text-decoration-color: #ff00ff">in</span> t   <span style="color: #800000; text-decoration-color: #800000">│</span>
+<span style="color: #800000; text-decoration-color: #800000">│</span>   <span style="color: #7f7f7f; text-decoration-color: #7f7f7f">149 │   </span>                                                                                       <span style="color: #800000; text-decoration-color: #800000">│</span>
+<span style="color: #800000; text-decoration-color: #800000">│</span> <span style="color: #800000; text-decoration-color: #800000">❱ </span>150 <span style="color: #7f7f7f; text-decoration-color: #7f7f7f">│   </span><span style="color: #0000ff; text-decoration-color: #0000ff">raise</span> <span style="color: #00ffff; text-decoration-color: #00ffff">TypeError</span>(default_collate_err_msg_format.format(elem_type))                      <span style="color: #800000; text-decoration-color: #800000">│</span>
+<span style="color: #800000; text-decoration-color: #800000">│</span>   <span style="color: #7f7f7f; text-decoration-color: #7f7f7f">151 </span>                                                                                           <span style="color: #800000; text-decoration-color: #800000">│</span>
+<span style="color: #800000; text-decoration-color: #800000">│</span>   <span style="color: #7f7f7f; text-decoration-color: #7f7f7f">152 </span>                                                                                           <span style="color: #800000; text-decoration-color: #800000">│</span>
+<span style="color: #800000; text-decoration-color: #800000">│</span>   <span style="color: #7f7f7f; text-decoration-color: #7f7f7f">153 </span><span style="color: #0000ff; text-decoration-color: #0000ff">def</span> <span style="color: #00ff00; text-decoration-color: #00ff00">collate_tensor_fn</span>(batch, *, collate_fn_map: Optional[Dict[Union[Type, Tuple[Type, ..   <span style="color: #800000; text-decoration-color: #800000">│</span>
+<span style="color: #800000; text-decoration-color: #800000">╰──────────────────────────────────────────────────────────────────────────────────────────────────╯</span>
+<span style="color: #ff0000; text-decoration-color: #ff0000; font-weight: bold">TypeError: </span>default_collate: batch must contain tensors, numpy arrays, numbers, dicts or lists; found <span style="font-weight: bold">&lt;</span><span style="color: #ff00ff; text-decoration-color: #ff00ff; font-weight: bold">class</span><span style="color: #000000; text-decoration-color: #000000"> </span>
+<span style="color: #008000; text-decoration-color: #008000">'torch_geometric.data.data.Data'</span><span style="font-weight: bold">&gt;</span>
+</pre></div>
 </div>
 </div>
 <div class="section" id="Process-origin-data">
 <h2>Process origin data<a class="headerlink" href="#Process-origin-data" title="Permalink to this heading"></a></h2>
 <div class="nbinput docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[5]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[9]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># Flatten Data</span>
@@ -454,18 +538,24 @@ Labels:
 <div class="nboutput nblast docutils container">
 <div class="prompt empty docutils container">
 </div>
-<div class="output_area docutils container">
-<div class="highlight"><pre>
-Origin Data Var Ratios:
-[0.23183194 0.19009876 0.16549532 0.12865475 0.10778842 0.08295161
- 0.04993934 0.02638779 0.01685206]
-</pre></div></div>
+<div class="output_area rendered_html docutils container">
+<pre style="white-space:pre;overflow-x:auto;line-height:normal;font-family:Menlo,'DejaVu Sans Mono',consolas,'Courier New',monospace"><span style="color: #800000; text-decoration-color: #800000">╭─────────────────────────────── </span><span style="color: #800000; text-decoration-color: #800000; font-weight: bold">Traceback </span><span style="color: #bf7f7f; text-decoration-color: #bf7f7f; font-weight: bold">(most recent call last)</span><span style="color: #800000; text-decoration-color: #800000"> ────────────────────────────────╮</span>
+<span style="color: #800000; text-decoration-color: #800000">│</span> in <span style="color: #00ff00; text-decoration-color: #00ff00">&lt;cell line: 2&gt;</span>:<span style="color: #0000ff; text-decoration-color: #0000ff">2</span>                                                                              <span style="color: #800000; text-decoration-color: #800000">│</span>
+<span style="color: #800000; text-decoration-color: #800000">│</span>                                                                                                  <span style="color: #800000; text-decoration-color: #800000">│</span>
+<span style="color: #800000; text-decoration-color: #800000">│</span>   <span style="color: #7f7f7f; text-decoration-color: #7f7f7f">1 # Flatten Data</span>                                                                               <span style="color: #800000; text-decoration-color: #800000">│</span>
+<span style="color: #800000; text-decoration-color: #800000">│</span> <span style="color: #800000; text-decoration-color: #800000">❱ </span>2 origin = np.array([torch.reshape(ele.to_dense(), (-<span style="color: #0000ff; text-decoration-color: #0000ff">1</span>,)).tolist() <span style="color: #0000ff; text-decoration-color: #0000ff">for</span> ele <span style="color: #ff00ff; text-decoration-color: #ff00ff">in</span> all_fea_mat]     <span style="color: #800000; text-decoration-color: #800000">│</span>
+<span style="color: #800000; text-decoration-color: #800000">│</span>   <span style="color: #7f7f7f; text-decoration-color: #7f7f7f">3 </span>                                                                                             <span style="color: #800000; text-decoration-color: #800000">│</span>
+<span style="color: #800000; text-decoration-color: #800000">│</span>   <span style="color: #7f7f7f; text-decoration-color: #7f7f7f">4 # PCA analysis for dimensionality deduction</span>                                                  <span style="color: #800000; text-decoration-color: #800000">│</span>
+<span style="color: #800000; text-decoration-color: #800000">│</span>   <span style="color: #7f7f7f; text-decoration-color: #7f7f7f">5 </span>pca_analysis = sc.pp.pca(origin, n_comps = <span style="color: #0000ff; text-decoration-color: #0000ff">9</span>, return_info = <span style="color: #0000ff; text-decoration-color: #0000ff">True</span>,)                           <span style="color: #800000; text-decoration-color: #800000">│</span>
+<span style="color: #800000; text-decoration-color: #800000">╰──────────────────────────────────────────────────────────────────────────────────────────────────╯</span>
+<span style="color: #ff0000; text-decoration-color: #ff0000; font-weight: bold">NameError: </span>name <span style="color: #008000; text-decoration-color: #008000">'all_fea_mat'</span> is not defined
+</pre></div>
 </div>
 </div>
 <div class="section" id="Process-data-with-encoder">
 <h2>Process data with encoder<a class="headerlink" href="#Process-data-with-encoder" title="Permalink to this heading"></a></h2>
 <div class="nbinput docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[6]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[10]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># Get encoded representaions made by GAT -&gt; BERT encoder</span>
@@ -486,19 +576,25 @@ Origin Data Var Ratios:
 <div class="nboutput nblast docutils container">
 <div class="prompt empty docutils container">
 </div>
-<div class="output_area docutils container">
-<div class="highlight"><pre>
-Encoded Rep Var Ratios:
-[9.79227635e-01 1.91004990e-02 1.36150445e-03 1.87922273e-04
- 1.18413872e-04 2.40584645e-06 1.61693856e-06 2.42179989e-09
- 0.00000000e+00]
-</pre></div></div>
+<div class="output_area rendered_html docutils container">
+<pre style="white-space:pre;overflow-x:auto;line-height:normal;font-family:Menlo,'DejaVu Sans Mono',consolas,'Courier New',monospace"><span style="color: #800000; text-decoration-color: #800000">╭─────────────────────────────── </span><span style="color: #800000; text-decoration-color: #800000; font-weight: bold">Traceback </span><span style="color: #bf7f7f; text-decoration-color: #bf7f7f; font-weight: bold">(most recent call last)</span><span style="color: #800000; text-decoration-color: #800000"> ────────────────────────────────╮</span>
+<span style="color: #800000; text-decoration-color: #800000">│</span> in <span style="color: #00ff00; text-decoration-color: #00ff00">&lt;cell line: 2&gt;</span>:<span style="color: #0000ff; text-decoration-color: #0000ff">3</span>                                                                              <span style="color: #800000; text-decoration-color: #800000">│</span>
+<span style="color: #800000; text-decoration-color: #800000">│</span>                                                                                                  <span style="color: #800000; text-decoration-color: #800000">│</span>
+<span style="color: #800000; text-decoration-color: #800000">│</span>   <span style="color: #7f7f7f; text-decoration-color: #7f7f7f"> 1 # Get encoded representaions made by GAT -&gt; BERT encoder</span>                                    <span style="color: #800000; text-decoration-color: #800000">│</span>
+<span style="color: #800000; text-decoration-color: #800000">│</span>   <span style="color: #7f7f7f; text-decoration-color: #7f7f7f"> 2 </span>encode = np.array([                                                                         <span style="color: #800000; text-decoration-color: #800000">│</span>
+<span style="color: #800000; text-decoration-color: #800000">│</span> <span style="color: #800000; text-decoration-color: #800000">❱ </span> 3 <span style="color: #7f7f7f; text-decoration-color: #7f7f7f">│   </span>torch.reshape(ele, (-<span style="color: #0000ff; text-decoration-color: #0000ff">1</span>,)).tolist() <span style="color: #0000ff; text-decoration-color: #0000ff">for</span> ele <span style="color: #ff00ff; text-decoration-color: #ff00ff">in</span> testM.get_encoder_output(                 <span style="color: #800000; text-decoration-color: #800000">│</span>
+<span style="color: #800000; text-decoration-color: #800000">│</span>   <span style="color: #7f7f7f; text-decoration-color: #7f7f7f"> 4 │   │   </span>all_fea_mat, all_adj_mat                                                            <span style="color: #800000; text-decoration-color: #800000">│</span>
+<span style="color: #800000; text-decoration-color: #800000">│</span>   <span style="color: #7f7f7f; text-decoration-color: #7f7f7f"> 5 │   </span>)                                                                                       <span style="color: #800000; text-decoration-color: #800000">│</span>
+<span style="color: #800000; text-decoration-color: #800000">│</span>   <span style="color: #7f7f7f; text-decoration-color: #7f7f7f"> 6 </span>])                                                                                          <span style="color: #800000; text-decoration-color: #800000">│</span>
+<span style="color: #800000; text-decoration-color: #800000">╰──────────────────────────────────────────────────────────────────────────────────────────────────╯</span>
+<span style="color: #ff0000; text-decoration-color: #ff0000; font-weight: bold">AttributeError: </span><span style="color: #008000; text-decoration-color: #008000">'Trainer'</span> object has no attribute <span style="color: #008000; text-decoration-color: #008000">'get_encoder_output'</span>
+</pre></div>
 </div>
 </div>
 <div class="section" id="Set-clustering-models-and-fit-models-with-original-data">
 <h2>Set clustering models and fit models with original data<a class="headerlink" href="#Set-clustering-models-and-fit-models-with-original-data" title="Permalink to this heading"></a></h2>
 <div class="nbinput docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[7]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[11]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">eps</span> <span class="o">=</span> <span class="mf">0.5</span>
@@ -523,18 +619,24 @@ Encoded Rep Var Ratios:
 <div class="nboutput nblast docutils container">
 <div class="prompt empty docutils container">
 </div>
-<div class="output_area docutils container">
-<div class="highlight"><pre>
-[-1 -1 -1 -1 -1 -1 -1 -1 -1 -1]
-[0 0 1 2 0 0 3 2 1 0]
-[0 0 0 0 0 0 0 0 0 0]
-</pre></div></div>
+<div class="output_area rendered_html docutils container">
+<pre style="white-space:pre;overflow-x:auto;line-height:normal;font-family:Menlo,'DejaVu Sans Mono',consolas,'Courier New',monospace"><span style="color: #800000; text-decoration-color: #800000">╭─────────────────────────────── </span><span style="color: #800000; text-decoration-color: #800000; font-weight: bold">Traceback </span><span style="color: #bf7f7f; text-decoration-color: #bf7f7f; font-weight: bold">(most recent call last)</span><span style="color: #800000; text-decoration-color: #800000"> ────────────────────────────────╮</span>
+<span style="color: #800000; text-decoration-color: #800000">│</span> in <span style="color: #00ff00; text-decoration-color: #00ff00">&lt;cell line: 2&gt;</span>:<span style="color: #0000ff; text-decoration-color: #0000ff">2</span>                                                                              <span style="color: #800000; text-decoration-color: #800000">│</span>
+<span style="color: #800000; text-decoration-color: #800000">│</span>                                                                                                  <span style="color: #800000; text-decoration-color: #800000">│</span>
+<span style="color: #800000; text-decoration-color: #800000">│</span>   <span style="color: #7f7f7f; text-decoration-color: #7f7f7f"> 1 </span>eps = <span style="color: #0000ff; text-decoration-color: #0000ff">0.5</span>                                                                                   <span style="color: #800000; text-decoration-color: #800000">│</span>
+<span style="color: #800000; text-decoration-color: #800000">│</span> <span style="color: #800000; text-decoration-color: #800000">❱ </span> 2 n_clusters = <span style="color: #00ffff; text-decoration-color: #00ffff">len</span>(np.unique(labels))                                                         <span style="color: #800000; text-decoration-color: #800000">│</span>
+<span style="color: #800000; text-decoration-color: #800000">│</span>   <span style="color: #7f7f7f; text-decoration-color: #7f7f7f"> 3 </span>min_samples = <span style="color: #0000ff; text-decoration-color: #0000ff">5</span>                                                                             <span style="color: #800000; text-decoration-color: #800000">│</span>
+<span style="color: #800000; text-decoration-color: #800000">│</span>   <span style="color: #7f7f7f; text-decoration-color: #7f7f7f"> 4 </span>                                                                                            <span style="color: #800000; text-decoration-color: #800000">│</span>
+<span style="color: #800000; text-decoration-color: #800000">│</span>   <span style="color: #7f7f7f; text-decoration-color: #7f7f7f"> 5 </span>dbscan = cluster.DBSCAN(eps = eps)                                                          <span style="color: #800000; text-decoration-color: #800000">│</span>
+<span style="color: #800000; text-decoration-color: #800000">╰──────────────────────────────────────────────────────────────────────────────────────────────────╯</span>
+<span style="color: #ff0000; text-decoration-color: #ff0000; font-weight: bold">NameError: </span>name <span style="color: #008000; text-decoration-color: #008000">'labels'</span> is not defined
+</pre></div>
 </div>
 </div>
 <div class="section" id="Reset-models-and-fit-with-encoded-representaions">
 <h2>Reset models and fit with encoded representaions<a class="headerlink" href="#Reset-models-and-fit-with-encoded-representaions" title="Permalink to this heading"></a></h2>
 <div class="nbinput docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[8]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[12]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">dbscan</span> <span class="o">=</span> <span class="n">cluster</span><span class="o">.</span><span class="n">DBSCAN</span><span class="p">(</span><span class="n">eps</span> <span class="o">=</span> <span class="n">eps</span><span class="p">)</span>
@@ -554,12 +656,18 @@ Encoded Rep Var Ratios:
 <div class="nboutput nblast docutils container">
 <div class="prompt empty docutils container">
 </div>
-<div class="output_area docutils container">
-<div class="highlight"><pre>
-[ 0  0  0 -1  0  0  0  0  0  0]
-[0 0 0 1 3 0 0 2 0 2]
-[0 0 0 0 0 0 0 0 0 0]
-</pre></div></div>
+<div class="output_area rendered_html docutils container">
+<pre style="white-space:pre;overflow-x:auto;line-height:normal;font-family:Menlo,'DejaVu Sans Mono',consolas,'Courier New',monospace"><span style="color: #800000; text-decoration-color: #800000">╭─────────────────────────────── </span><span style="color: #800000; text-decoration-color: #800000; font-weight: bold">Traceback </span><span style="color: #bf7f7f; text-decoration-color: #bf7f7f; font-weight: bold">(most recent call last)</span><span style="color: #800000; text-decoration-color: #800000"> ────────────────────────────────╮</span>
+<span style="color: #800000; text-decoration-color: #800000">│</span> in <span style="color: #00ff00; text-decoration-color: #00ff00">&lt;cell line: 2&gt;</span>:<span style="color: #0000ff; text-decoration-color: #0000ff">2</span>                                                                              <span style="color: #800000; text-decoration-color: #800000">│</span>
+<span style="color: #800000; text-decoration-color: #800000">│</span>                                                                                                  <span style="color: #800000; text-decoration-color: #800000">│</span>
+<span style="color: #800000; text-decoration-color: #800000">│</span>   <span style="color: #7f7f7f; text-decoration-color: #7f7f7f"> 1 </span>dbscan = cluster.DBSCAN(eps = eps)                                                          <span style="color: #800000; text-decoration-color: #800000">│</span>
+<span style="color: #800000; text-decoration-color: #800000">│</span> <span style="color: #800000; text-decoration-color: #800000">❱ </span> 2 kmeans = cluster.KMeans(n_clusters = n_clusters)                                            <span style="color: #800000; text-decoration-color: #800000">│</span>
+<span style="color: #800000; text-decoration-color: #800000">│</span>   <span style="color: #7f7f7f; text-decoration-color: #7f7f7f"> 3 </span>optics = cluster.OPTICS(min_samples = min_samples)                                          <span style="color: #800000; text-decoration-color: #800000">│</span>
+<span style="color: #800000; text-decoration-color: #800000">│</span>   <span style="color: #7f7f7f; text-decoration-color: #7f7f7f"> 4 </span>dbscan.fit(encode_pca)                                                                      <span style="color: #800000; text-decoration-color: #800000">│</span>
+<span style="color: #800000; text-decoration-color: #800000">│</span>   <span style="color: #7f7f7f; text-decoration-color: #7f7f7f"> 5 </span>kmeans.fit(encode_pca)                                                                      <span style="color: #800000; text-decoration-color: #800000">│</span>
+<span style="color: #800000; text-decoration-color: #800000">╰──────────────────────────────────────────────────────────────────────────────────────────────────╯</span>
+<span style="color: #ff0000; text-decoration-color: #ff0000; font-weight: bold">NameError: </span>name <span style="color: #008000; text-decoration-color: #008000">'n_clusters'</span> is not defined
+</pre></div>
 </div>
 </div>
 </div>

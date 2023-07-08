@@ -59,7 +59,6 @@ def Set(
         )
     # Setup worker env
     net.setup(device=device)
-    print(net.optimizer.param_groups)
     return net
 
 
