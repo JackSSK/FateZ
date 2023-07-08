@@ -19,7 +19,8 @@ def input_csv_dict_df(
         input_path,
         cell_use = None,
         order_cell = True,
-        df_type = 'node'
+        df_type = 'node',
+        only_tf = False
         ):
     path = resource_filename(
         __name__, '../data/gene_order.txt'
