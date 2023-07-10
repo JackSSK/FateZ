@@ -365,7 +365,7 @@ div.rendered_html tbody tr:hover {
 <h1>FateZ Multiomic Pertubation Effect Prediction(?)<a class="headerlink" href="#FateZ-Multiomic-Pertubation-Effect-Prediction(?)" title="Permalink to this heading"></a></h1>
 <p>This notebook demonstrate how to implement Pertubation Effect Prediction method with FateZ’s modules.</p>
 <div class="nbinput docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[11]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[1]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">os</span>
@@ -399,7 +399,7 @@ Done Import
 <div class="section" id="Build-model-and-make-some-fake-data-first.">
 <h2>Build model and make some fake data first.<a class="headerlink" href="#Build-model-and-make-some-fake-data-first." title="Permalink to this heading"></a></h2>
 <div class="nbinput docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[12]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[2]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># Parameters</span>
@@ -447,7 +447,7 @@ Done Fake Data
 <div class="section" id="The-model-will-be-architecturally-similar-with-a-pretrainer">
 <h2>The model will be architecturally similar with a pretrainer<a class="headerlink" href="#The-model-will-be-architecturally-similar-with-a-pretrainer" title="Permalink to this heading"></a></h2>
 <div class="nbinput docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[13]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[3]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">trainer</span> <span class="o">=</span> <span class="n">pre_trainer</span><span class="o">.</span><span class="n">Set</span><span class="p">(</span><span class="n">config</span><span class="p">,</span> <span class="n">dtype</span> <span class="o">=</span> <span class="n">dtype</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">device</span><span class="p">)</span>
@@ -469,7 +469,7 @@ Model Set
 <h2>However, the training part will be littel bit different<a class="headerlink" href="#However,-the-training-part-will-be-littel-bit-different" title="Permalink to this heading"></a></h2>
 <p>This part is modified based on pre_trainer.Trainer.train()</p>
 <div class="nbinput docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[14]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[7]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">report_batch</span> <span class="o">=</span> <span class="kc">False</span>
@@ -494,11 +494,7 @@ Model Set
     <span class="n">y</span> <span class="o">=</span> <span class="p">[</span><span class="n">result_dataloader</span><span class="o">.</span><span class="n">dataset</span><span class="o">.</span><span class="n">samples</span><span class="p">[</span><span class="n">ele</span><span class="p">]</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">trainer</span><span class="o">.</span><span class="n">device</span><span class="p">)</span> <span class="k">for</span> <span class="n">ele</span> <span class="ow">in</span> <span class="n">y</span><span class="p">]</span>
     <span class="c1"># Please be noted here that this script is only reconstructing TF parts</span>
     <span class="c1"># To reconstruct whole genome, we can certainly add an additionaly layer which takes adj_rec and node_rec to do the job.</span>
-    <span class="n">node_results</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">split</span><span class="p">(</span>
-        <span class="n">torch</span><span class="o">.</span><span class="n">stack</span><span class="p">([</span><span class="n">ele</span><span class="o">.</span><span class="n">x</span> <span class="k">for</span> <span class="n">ele</span> <span class="ow">in</span> <span class="n">y</span><span class="p">],</span> <span class="mi">0</span><span class="p">),</span>
-        <span class="n">node_rec</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span>
-        <span class="n">dim</span> <span class="o">=</span> <span class="mi">1</span>
-    <span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
+    <span class="n">node_results</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">stack</span><span class="p">([</span><span class="n">ele</span><span class="o">.</span><span class="n">x</span> <span class="k">for</span> <span class="n">ele</span> <span class="ow">in</span> <span class="nb">input</span><span class="p">],</span> <span class="mi">0</span><span class="p">)</span>
     <span class="n">adj_results</span> <span class="o">=</span> <span class="n">lib</span><span class="o">.</span><span class="n">get_dense_adjs</span><span class="p">(</span>
         <span class="n">y</span><span class="p">,</span> <span class="p">(</span><span class="n">size</span><span class="p">[</span><span class="s1">&#39;n_reg&#39;</span><span class="p">],</span><span class="n">size</span><span class="p">[</span><span class="s1">&#39;n_node&#39;</span><span class="p">],</span><span class="n">size</span><span class="p">[</span><span class="s1">&#39;edge_attr&#39;</span><span class="p">])</span>
     <span class="p">)</span>
@@ -536,7 +532,7 @@ Model Set
 <div class="output_area docutils container">
 <div class="highlight"><pre>
        Loss
-0  4.716633
+0  4.120818
 </pre></div></div>
 </div>
 </div>
@@ -544,7 +540,7 @@ Model Set
 <h2>In the case of tuning unlabeled data, which does not have pertubation results…<a class="headerlink" href="#In-the-case-of-tuning-unlabeled-data,-which-does-not-have-pertubation-results…" title="Permalink to this heading"></a></h2>
 <p>We shall set another trainer using previous model.</p>
 <div class="nbinput docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[15]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[8]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">tuner</span> <span class="o">=</span> <span class="n">pre_trainer</span><span class="o">.</span><span class="n">Set</span><span class="p">(</span><span class="n">config</span><span class="p">,</span> <span class="n">prev_model</span> <span class="o">=</span> <span class="n">trainer</span><span class="p">,</span> <span class="n">dtype</span> <span class="o">=</span> <span class="n">dtype</span><span class="p">,</span> <span class="n">device</span> <span class="o">=</span> <span class="n">device</span><span class="p">)</span>
@@ -566,7 +562,7 @@ Model Set
 <div class="output_area docutils container">
 <div class="highlight"><pre>
        Loss
-0  4.259047
+0  4.340387
 </pre></div></div>
 </div>
 </div>
@@ -574,7 +570,7 @@ Model Set
 <h2>Then we shall just use trainer object to make predictions.<a class="headerlink" href="#Then-we-shall-just-use-trainer-object-to-make-predictions." title="Permalink to this heading"></a></h2>
 <p>Similar with the training block above for trainer, but no need to prepare y.</p>
 <div class="nbinput docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[16]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[9]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">trainer</span><span class="o">.</span><span class="n">model</span><span class="o">.</span><span class="n">eval</span><span class="p">()</span>
@@ -609,7 +605,7 @@ torch.Size([2, 10, 2]) torch.Size([2, 4, 10])
 <h2>Cleanup Env<a class="headerlink" href="#Cleanup-Env" title="Permalink to this heading"></a></h2>
 <p>Need to clean up environment once finsihed.</p>
 <div class="nbinput docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[17]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[10]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">worker</span><span class="o">.</span><span class="n">cleanup</span><span class="p">(</span><span class="n">device</span><span class="p">)</span>
