@@ -109,7 +109,7 @@ class Model(nn.Module):
         ])
         verti_size = self._cal_fc_size(
             n_features,
-            horiz_kernel_size,
+            verti_kernel_size,
             pool_kernel_size
             )*n_dim
 
@@ -152,7 +152,7 @@ class Model(nn.Module):
             })
             verti_size = self._cal_fc_size(
                 verti_size,
-                horiz_kernel_size,
+                verti_kernel_size,
                 pool_kernel_size
                 )*n_dim
 

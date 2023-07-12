@@ -131,12 +131,18 @@ for config_name in config_list:
 
     config = JSON.decode('/storage/peiweikeLab/jiangjunyao/fatez/pre_train/tf_config/'+config_name)
     config['fine_tuner']['n_class'] = len(label_set)
-    trainer = pre_trainer.Set(config, dtype=torch.float32,
-                                      device=device,
-                                      prev_model=model.Load(model_dir))
-    fine_tuner_model = fine_tuner.Set(config, dtype = torch.float32
-                                      ,device=device
-                                      ,prev_model=trainer)
+    # trainer = pre_trainer.Set(
+    #     config,
+    #     prev_model = model.Load(model_dir),
+    #     dtype = torch.float32,
+    #     device = device,
+    # )
+    fine_tuner_model = fine_tuner.Set(
+        config,
+        prev_model = model.Load(model_dir),
+        dtype = torch.float32,
+        device = device,
+    )
     fine_tuner_model.setup()
     early_stop = es.Monitor(tolerance=30, min_delta=0.01)
     for epoch in range(num_epoch):
