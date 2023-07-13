@@ -44,6 +44,7 @@
         "sch_T_0": 2,
         "sch_T_mult": 2,
         "sch_eta_min": 2e-06,
+        "adapter": "LORA",
         "clf_type": "CNN_HYB",
         "clf_params": {
             "n_layer_set": 1,
