@@ -231,7 +231,7 @@ for config_name in config_list:
             """
 
             # The input is not LogSoftmax-ed?
-            node_results = nn.LogSoftmax(dim=-2)(node_results)
+            node_results = nn.LogSoftmax(dim=-2)(node_results[:,:,1])
             adj_results = lib.get_dense_adjs(
                 y, (size['n_reg'],size['n_node'],size['edge_attr'])
             )
