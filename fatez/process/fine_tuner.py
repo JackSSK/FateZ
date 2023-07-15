@@ -42,7 +42,14 @@ def Set(
         **kwargs,
     )
     if prev_model is not None and str(type(prev_model)) == "<class 'dict'>":
-        net.model.load_state_dict(prev_model['model'])
+        net.model.gat.load_state_dict(prev_model['model']['gat'])
+        net.model.encoder.load_state_dict(prev_model['model']['encoder'])
+        net.model.graph_embedder.load_state_dict(
+            prev_model['model']['graph_embedder']
+            )
+        net.model.rep_embedder.load_state_dict(
+            prev_model['model']['rep_embedder']
+        )
         net.optimizer.load_state_dict(prev_model['optimizer'])
         net.scheduler.load_state_dict(prev_model['scheduler'])
     elif prev_model is not None:
