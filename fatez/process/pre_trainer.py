@@ -21,6 +21,7 @@ from torch.nn.parallel import DistributedDataParallel as DDP
 def Set(
     config:dict=None,
     prev_model=None,
+    load_full_model:bool = False,
     device:str='cpu',
     dtype:str=None,
     **kwargs
@@ -43,16 +44,7 @@ def Set(
         **kwargs,
     )
     if prev_model is not None and str(type(prev_model)) == "<class 'dict'>":
-        net.model.gat.load_state_dict(prev_model['model']['gat'])
-        net.model.encoder.load_state_dict(prev_model['model']['encoder'])
-        net.model.graph_embedder.load_state_dict(
-            prev_model['model']['graph_embedder']
-            )
-        net.model.rep_embedder.load_state_dict(
-            prev_model['model']['rep_embedder']
-        )
-        net.optimizer.load_state_dict(prev_model['optimizer'])
-        net.scheduler.load_state_dict(prev_model['scheduler'])
+        model.Load_state_dict(net, prev_model)
     elif prev_model is not None:
         net = Trainer(
             input_sizes = config['input_sizes'],
