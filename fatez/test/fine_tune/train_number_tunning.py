@@ -194,10 +194,16 @@ for config_name in config_list:
 
     trainer = pre_trainer.Set(
         config,
-        node_recon_dim = 1,
         dtype = dtype,
         device=device,
         prev_model=model.Load(model_dir)
+    )
+    trainer = pre_trainer.Set(
+        config,
+        node_recon_dim = 1,
+        dtype = dtype,
+        device=device,
+        prev_model=trainer
     )
     trainer.setup()
     report_batch = True

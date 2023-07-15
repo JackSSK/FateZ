@@ -21,7 +21,7 @@ class Error(Exception):
 
 
 
-def Save(model, file_path:str = 'a.model',):
+def Save(model, file_path:str = 'a.model', save_full:bool = False,):
     """
     Saving a model
 
@@ -34,9 +34,21 @@ def Save(model, file_path:str = 'a.model',):
         re.search(r'fatez.*.Tuner*', model_type)
         ):
         model.model = model.model.to('cpu')
+        if save_full:
+            bert_model = model.model.bert_model.state_dict()
+            encoder = None
+            rep_embedder = None
+        else:
+            bert_model = None
+            encoder = model.model.bert_model.encoder.state_dict()
+            rep_embedder = model.model.bert_model.rep_embedder.state_dict()
         dict = {
             'type':model_type,
-            'model':model.model.state_dict(),
+            'graph_embedder':model.model.graph_embedder.state_dict(),
+            'gnn':model.model.gat.state_dict(),
+            'encoder':encoder,
+            'rep_embedder':rep_embedder,
+            'bert_model':bert_model,
             'optimizer':model.optimizer.state_dict(),
             'scheduler':model.scheduler.state_dict(),
         }
@@ -59,6 +71,21 @@ def Load(file_path:str = 'a.model', mode:str = 'torch',):
         return dict
     else:
         raise Error('Not Supporting Load Mode ' + mode)
+
+def Load_state_dict(net, state):
+    net.optimizer.load_state_dict(state['optimizer'])
+    net.scheduler.load_state_dict(state['scheduler'])
+    if 'model' in state:
+        net.model.load_state_dict(state['model'])
+        return
+    net.model.graph_embedder.load_state_dict(state['graph_embedder'])
+    net.model.gat.load_state_dict(state['gnn'])
+    if state['bert_model'] is not None:
+        net.model.bert_model.load_state_dict(state['bert_model'])
+    else:
+        net.model.bert_model.encoder.load_state_dict(state['encoder'])
+        net.model.bert_model.rep_embedder.load_state_dict(state['rep_embedder'])
+
 
 
 
