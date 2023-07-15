@@ -192,7 +192,13 @@ for config_name in config_list:
     config_path = '/storage/peiweikeLab/jiangjunyao/fatez/pre_train/tf_config/'+config_name
     config = JSON.decode(config_path)
 
-    trainer = pre_trainer.Set(config, dtype = dtype, device=device,prev_model=model.Load(model_dir))
+    trainer = pre_trainer.Set(
+        config,
+        node_recon_dim = 1,
+        dtype = dtype,
+        device=device,
+        prev_model=model.Load(model_dir)
+    )
     trainer.setup()
     report_batch = True
     size = trainer.input_sizes
@@ -217,13 +223,14 @@ for config_name in config_list:
 
             # Prepare pertubation result data using a seperate dataloader
             y = [result_dataloader.dataset.samples[ele].to(trainer.device) for ele in y]
-            # Please be noted here that this script is only reconstructing TF parts
-            # To reconstruct whole genome, we can certainly add an additionaly layer which takes adj_rec and node_rec to do the job.
-            node_results = torch.split(
-                torch.stack([ele.x for ele in y], 0),
-                node_rec.shape[1],
-                dim = 1
-            )[0]
+
+            node_results = torch.stack([ele.x for ele in input], 0)
+
+            """
+            Need to select training feature here by partioning node_results
+            """
+
+            # The input is not LogSoftmax-ed?
             node_results = nn.LogSoftmax(dim=-2)(node_results)
             adj_results = lib.get_dense_adjs(
                 y, (size['n_reg'],size['n_node'],size['edge_attr'])

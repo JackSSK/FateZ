@@ -168,6 +168,7 @@ class Trainer(object):
         graph_embedder = pe.Skip(),
         rep_embedder = pe.Skip(),
         train_adj:bool = False,
+        node_recon_dim:int = None,
 
         # Adam optimizer settings
         lr:float = 1e-4,
@@ -203,6 +204,7 @@ class Trainer(object):
                 encoder = encoder,
                 input_sizes = self.input_sizes,
                 train_adj = train_adj,
+                node_recon_dim = node_recon_dim,
                 dtype = self.dtype,
             ),
         )

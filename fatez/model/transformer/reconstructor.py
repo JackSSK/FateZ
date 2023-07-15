@@ -24,6 +24,7 @@ class Reconstructor(nn.Module):
         adapter:str = None,
         input_sizes:dict = None,
         train_adj:bool = False,
+        node_recon_dim:int = None,
         dtype:str = None,
         **kwargs
         ):
@@ -43,6 +44,10 @@ class Reconstructor(nn.Module):
         super(Reconstructor, self).__init__()
         self.input_sizes = input_sizes
         self.dtype = dtype
+        if node_recon_dim is None:
+            self.node_recon_dim = self.input_sizes['node_attr']
+        else:
+            self.node_recon_dim = node_recon_dim
         self.freeze_encoder = False
         self.recon_adj = None
         self.rep_embedder = rep_embedder
@@ -60,7 +65,7 @@ class Reconstructor(nn.Module):
             type = 'RECON',
             d_model = self.input_sizes['n_reg'],
             n_layer_set = 1,
-            n_class = self.input_sizes['node_attr'],
+            n_class = self.node_recon_dim ,
             dtype = dtype
         )
         self.last_act = nn.LogSoftmax(dim = -2)
