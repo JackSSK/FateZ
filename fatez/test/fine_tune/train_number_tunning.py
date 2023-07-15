@@ -149,13 +149,13 @@ result_dataloader = DataLoader(
 )
 predict_dataloader = DataLoader(
     lib.FateZ_Dataset(samples = samples3),
-    batch_size=len(samples3),
+    batch_size=batch_size,
     collate_fn = lib.collate_fn,
     shuffle=False
 )
 predict_true_dataloader = DataLoader(
     lib.FateZ_Dataset(samples = samples4),
-    batch_size=len(samples4),
+    batch_size=batch_size,
     collate_fn = lib.collate_fn,
     shuffle=False
 )
@@ -167,8 +167,8 @@ def tensor_cor_atac(tensor1,tensor2):
     for i in range(tensor1.shape[0]):
         tensor1_use = tensor1[i]
         tensor2_use = tensor2[i]
-        column1 = tensor1_use[:, 1].detach().numpy()
-        column2 = tensor2_use[:, 1].detach().numpy()
+        column1 = tensor1_use[:,0].detach().numpy()
+        column2 = tensor2_use[:,0].detach().numpy()
         correlation1 = np.corrcoef(column1, column2)[0, 1]
         all_cor.append(correlation1)
     return(np.array(all_cor).mean())
@@ -237,13 +237,17 @@ for config_name in config_list:
             """
 
             # The input is not LogSoftmax-ed?
-            node_results = nn.LogSoftmax(dim=-2)(node_results[:,:,1])
+            node_results = nn.LogSoftmax(dim=-2)(node_results)
+            node_results = node_results[:, :, 1]
+            node_results = node_results.reshape(node_results.shape[0], 1103, 1)
+            print(node_results.shape)
+            print(node_rec.shape)
             adj_results = lib.get_dense_adjs(
                 y, (size['n_reg'],size['n_node'],size['edge_attr'])
             )
             cor_atac = tensor_cor_atac(node_rec.cpu(),node_results.cpu())
-            cor_rna = tensor_cor_rna(node_rec.cpu(), node_results.cpu())
-            all_cor_rna.append(cor_rna)
+            #cor_rna = tensor_cor_rna(node_rec.cpu(), node_results.cpu())
+            #all_cor_rna.append(cor_rna)
             all_cor_atac.append(cor_atac)
             # Get total loss
             loss = trainer.criterion(node_rec, node_results)
@@ -266,7 +270,8 @@ for config_name in config_list:
         trainer.scheduler.step()
         report.append([loss_all / len(pertubation_dataloader)])
         report = pd.DataFrame({'loss':report})
-        report_cor = pd.DataFrame({'cor_rna':all_cor_rna,'cor_atac':all_cor_atac})
+        print(all_cor_atac)
+        report_cor = pd.DataFrame({'cor_atac':all_cor_atac,})
         print(report)
         out1 = pd.DataFrame(report)
         out1.to_csv(data_save_dir+model_name+'train_number_'+str(train_number)+'_loss'+config_name+'.csv',mode='a+')
@@ -293,12 +298,14 @@ for config_name in config_list:
             node_rec.shape[1],
             dim=1
         )[0]
+        node_results = node_results[:, :, 1]
+        node_results = node_results.reshape(node_results.shape[0], 1103, 1)
         node_results = nn.LogSoftmax(dim=-2)(node_results)
         cor_atac = tensor_cor_atac(node_rec.cpu(), node_results.cpu())
-        cor_rna = tensor_cor_rna(node_rec.cpu(), node_results.cpu())
+        #cor_rna = tensor_cor_rna(node_rec.cpu(), node_results.cpu())
         predict_all_cor_atac_hap.append(cor_atac)
     report_cor = pd.DataFrame(
-        {'predict_cor_rna': [cor_rna], 'predict_cor_atac': predict_all_cor_atac_hap})
+        { 'predict_cor_atac': predict_all_cor_atac_hap})
     report_cor.to_csv(
         data_save_dir + model_name + 'train_number_' + str(
             train_number) + '_cor_' + config_name + '.csv',
