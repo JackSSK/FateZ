@@ -1,34 +1,25 @@
-import os
-import sys
+
 import torch
 import torch.nn as nn
 from torch.utils.data import DataLoader
 import pandas as pd
 import fatez.lib as lib
-import fatez.test as test
 import fatez.model as model
-import fatez.tool.JSON as JSON
-import fatez.process as process
-import fatez.process.worker as worker
-import fatez.process.fine_tuner as fine_tuner
 import fatez.process.pre_trainer as pre_trainer
-from pkg_resources import resource_filename
 import torch_geometric.data as pyg_d
 import fatez.tool.PreprocessIO as PreprocessIO
 import fatez.process.early_stopper as es
 from fatez.process.scale_network import scale_network
-from sklearn.model_selection import train_test_split
 import numpy as np
 
 class rebuilder(object):
     def __init__(self,
-        node_train_dir = None,
-        label_idr = None,
+        node_dir = None,
+        edge_label = None,
         edge_dir = None,
-        train_cell = None
         ):
         self.matrix1 = PreprocessIO.input_csv_dict_df(
-            node_train_dir,
+            node_dir,
             df_type='node', order_cell=False)
         self.matrix2 = PreprocessIO.input_csv_dict_df(
             edge_dir,
@@ -38,10 +29,8 @@ class rebuilder(object):
             edge = torch.from_numpy(edge)
             edge = edge.to(torch.float32)
             self.matrix2[i] = edge
-        self.edge_label = pd.read_table(
-            label_idr)
+        self.edge_label = edge_label
         self.edge_label.index = self.edge_label['sample']
-        self.train_cell = train_cell
         self.pertubation_dataloader = None
         self.result_dataloader = None
         self.predict_dataloader = None
@@ -64,7 +53,7 @@ class rebuilder(object):
             all_cor.append(correlation1)
         return (np.array(all_cor).mean())
 
-    def load_data(self,batch_size = 10):
+    def load_data(self,batch_size = 10,cell_train = None,cell_predict = None):
         samples1 = []
         samples2 = []
         samples3 = []
@@ -81,7 +70,7 @@ class rebuilder(object):
             edge_name = self.edge_label.loc[sample_name, 'label']
             key_use = dict_key + '#' + str(edge_name)
             inds, attrs = lib.get_sparse_coo(self.matrix2[key_use])
-            if sample_name in self.train_cell:
+            if sample_name in cell_train:
                 samples1.append(
                     pyg_d.Data(
                         x=m2,
@@ -100,7 +89,7 @@ class rebuilder(object):
                         shape=self.matrix2[key_use].shape,
                     )
                 )
-            else:
+            elif sample_name in cell_predict:
                 samples3.append(
                     pyg_d.Data(
                         x=m2,
@@ -216,8 +205,8 @@ class rebuilder(object):
                 cor_all += cor_atac
 
                 # Some logs
-                self.train_batch_loss.append([loss.item()])
-                self.train_batch_loss.append(cor_atac)
+                self.train_batch_loss.append(float(loss.item()))
+                self.train_batch_cor.append(cor_atac)
             self.model = trainer
             self.train_epoch_loss.append(loss_all / len(self.pertubation_dataloader))
             self.train_epoch_cor.append(cor_all / len(self.pertubation_dataloader))
@@ -227,6 +216,7 @@ class rebuilder(object):
         self.model.model.eval()
         self.predict_cor = []
         all_predict = []
+        all_true = []
         for x, y in self.predict_dataloader:
             # Prepare input data as always
             input = [ele.to(self.model.device) for ele in x]
@@ -243,6 +233,20 @@ class rebuilder(object):
             self.predict_cor.append(cor_atac)
             node_rec = node_rec.reshape([node_rec.shape[0], 1103])
             all_predict.append(node_rec)
+            all_true.append(node_results)
+        return torch.cat(all_predict,dim=0),torch.cat(all_true,dim=0)
 
-        return torch.cat(all_predict,dim=0)
+    def output_report(self,outputdir = '/',prefix = ''):
 
+        batch_report = pd.DataFrame({'loss':self.train_batch_loss
+                         ,'cor':self.train_batch_cor})
+        epoch_report = pd.DataFrame({'loss':self.train_epoch_loss
+                         ,'cor':self.train_epoch_cor})
+        predict_report = pd.DataFrame({'cor':self.predict_cor})
+        batch_report.to_csv(outputdir + prefix + '_batch_report.csv')
+        epoch_report.to_csv(outputdir + prefix + '_epoch_report.csv')
+        predict_report.to_csv(outputdir + prefix + '_predict_report.csv')
+        model.Save(
+            self.model,
+            outputdir + prefix + '_model.model'
+        )
