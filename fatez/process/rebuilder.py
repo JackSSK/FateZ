@@ -135,10 +135,10 @@ class rebuilder(object):
             shuffle=False
         )
         return pertubation_dataloader,result_dataloader,predict_dataloader,predict_true_dataloader
-    def train(self,config,prev_model_dir = None,device = 'cuda',epoch=5,
-              pertubation_dataloader = None,
-              result_dataloader = None,
-              node_recon_dim = 1):
+
+    def set_model(self,config,prev_model_dir = None,device = 'cuda',
+                  node_recon_dim = 1):
+
         if prev_model_dir ==None:
             self.trainer = pre_trainer.Set(
                 config,
@@ -160,11 +160,18 @@ class rebuilder(object):
                 device=device,
                 prev_model=trainer
             )
+
+        self.trainer.setup()
+    def train(self,epoch=5,
+              pertubation_dataloader = None,
+              result_dataloader = None,
+              node_recon_dim = 1):
+
         self.train_batch_loss = []
         self.train_epoch_loss = []
         self.train_batch_cor = []
         self.train_epoch_cor = []
-        self.trainer.setup()
+
         size = self.trainer.input_sizes
         for i in range(epoch):
             self.trainer.worker.train(True)
@@ -279,14 +286,20 @@ class rebuilder(object):
 
     def output_report(self,outputdir = '/',prefix = ''):
 
-        batch_report = pd.DataFrame({'loss':self.train_batch_loss
-                         ,'cor':self.train_batch_cor})
-        epoch_report = pd.DataFrame({'loss':self.train_epoch_loss
-                         ,'cor':self.train_epoch_cor})
-        predict_report = pd.DataFrame({'cor':self.predict_cor,'loss':self.predict_loss})
-        batch_report.to_csv(outputdir + prefix + '_batch_report.csv')
-        epoch_report.to_csv(outputdir + prefix + '_epoch_report.csv')
-        predict_report.to_csv(outputdir + prefix + '_predict_report.csv')
+        if len(self.train_batch_loss)>1:
+
+            batch_report = pd.DataFrame({'loss':self.train_batch_loss
+                             ,'cor':self.train_batch_cor})
+            epoch_report = pd.DataFrame({'loss':self.train_epoch_loss
+                             ,'cor':self.train_epoch_cor})
+            batch_report.to_csv(outputdir + prefix + '_batch_report.csv')
+            epoch_report.to_csv(outputdir + prefix + '_epoch_report.csv')
+
+        if len(self.predict_cor)>1:
+
+            predict_report = pd.DataFrame({'cor':self.predict_cor,'loss':self.predict_loss})
+            predict_report.to_csv(outputdir + prefix + '_predict_report.csv')
+
         model.Save(
             self.trainer,
             outputdir + prefix + '_model.model'
