@@ -138,7 +138,7 @@ class rebuilder(object):
     def train(self,config,prev_model_dir = None,device = 'cuda',epoch=5,
               pertubation_dataloader = None,
               result_dataloader = None,
-              node_recon_dim = 2):
+              node_recon_dim = 1):
         if prev_model_dir ==None:
             self.trainer = pre_trainer.Set(
                 config,
@@ -155,7 +155,7 @@ class rebuilder(object):
             )
             self.trainer = pre_trainer.Set(
                 config,
-                node_recon_dim=2,
+                node_recon_dim=node_recon_dim,
                 dtype=torch.float32,
                 device=device,
                 prev_model=trainer
@@ -237,10 +237,11 @@ class rebuilder(object):
             self.train_epoch_loss.append(loss_all / len(pertubation_dataloader))
             self.train_epoch_cor.append(cor_all / len(pertubation_dataloader))
 
-    def predict(self,predict_dataloader,predict_true_dataloader,node_recon_dim = 2):
+    def predict(self,predict_dataloader,predict_true_dataloader,node_recon_dim = 1):
 
         self.trainer.model.eval()
         self.predict_cor = []
+        self.predict_loss = []
         all_predict = []
         all_true = []
         for x, y in predict_dataloader:
@@ -252,7 +253,7 @@ class rebuilder(object):
                  for ele
                  in y]
             node_results = torch.stack([ele.x for ele in y], 0)
-            loss = self.trainer.criterion(node_rec, node_results)
+
             if node_recon_dim == 1:
                 node_results = nn.LogSoftmax(dim=-2)(node_results)
                 node_results = node_results[:, :, 1]
@@ -260,12 +261,16 @@ class rebuilder(object):
                                                     1)
                 cor_atac = self.__tensor_cor_atac(node_rec.cpu(),
                                                   node_results.cpu(), dim=0)
+                loss = self.trainer.criterion(node_rec, node_results)
                 node_rec = node_rec.reshape([node_rec.shape[0], 1103])
             elif node_recon_dim == 2:
                 node_results = nn.LogSoftmax(dim=-2)(node_results)
                 cor_atac = self.__tensor_cor_atac(node_rec.cpu(),
                                                   node_results.cpu(), dim=1)
-
+                loss = self.trainer.criterion(node_rec, node_results)
+            print('---loss')
+            print(node_rec.shape)
+            print(node_results.shape)
             self.predict_cor.append(cor_atac)
             self.predict_loss.append(loss.item())
             all_predict.append(node_rec)
@@ -278,7 +283,7 @@ class rebuilder(object):
                          ,'cor':self.train_batch_cor})
         epoch_report = pd.DataFrame({'loss':self.train_epoch_loss
                          ,'cor':self.train_epoch_cor})
-        predict_report = pd.DataFrame({'cor':self.predict_cor})
+        predict_report = pd.DataFrame({'cor':self.predict_cor,'loss':self.predict_loss})
         batch_report.to_csv(outputdir + prefix + '_batch_report.csv')
         epoch_report.to_csv(outputdir + prefix + '_epoch_report.csv')
         predict_report.to_csv(outputdir + prefix + '_predict_report.csv')
