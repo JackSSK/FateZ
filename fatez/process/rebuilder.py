@@ -137,7 +137,7 @@ class rebuilder(object):
         return pertubation_dataloader,result_dataloader,predict_dataloader,predict_true_dataloader
 
     def set_model(self,config,prev_model_dir = None,device = 'cuda',
-                  node_recon_dim = 1):
+                  node_recon_dim = 1,mode = 'train'):
 
         if prev_model_dir ==None:
             self.trainer = pre_trainer.Set(
@@ -147,19 +147,28 @@ class rebuilder(object):
                 device=device
             )
         else:
-            trainer = pre_trainer.Set(
-                config,
-                dtype=torch.float32,
-                device=device,
-                prev_model=model.Load(prev_model_dir)
-            )
-            self.trainer = pre_trainer.Set(
-                config,
-                node_recon_dim=node_recon_dim,
-                dtype=torch.float32,
-                device=device,
-                prev_model=trainer
-            )
+            if  mode == 'train':
+                trainer = pre_trainer.Set(
+                    config,
+                    dtype=torch.float32,
+                    device=device,
+                    prev_model=model.Load(prev_model_dir)
+                )
+                self.trainer = pre_trainer.Set(
+                    config,
+                    node_recon_dim=node_recon_dim,
+                    dtype=torch.float32,
+                    device=device,
+                    prev_model=trainer
+                )
+            elif mode =='predict':
+                self.trainer = pre_trainer.Set(
+                    config,
+                    node_recon_dim=node_recon_dim,
+                    dtype=torch.float32,
+                    device=device,
+                    prev_model=model.Load(prev_model_dir)
+                )
 
         self.trainer.setup()
     def train(self,epoch=5,
