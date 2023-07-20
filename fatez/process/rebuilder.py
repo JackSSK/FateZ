@@ -11,6 +11,8 @@ import fatez.tool.PreprocessIO as PreprocessIO
 import fatez.process.early_stopper as es
 from fatez.process.scale_network import scale_network
 import numpy as np
+import pickle
+import umap
 
 class rebuilder(object):
     def __init__(self,
@@ -65,7 +67,9 @@ class rebuilder(object):
                 torch.float32)
             m2 = torch.from_numpy(self.matrix1[sample_name].to_numpy()).to(
                 torch.float32)
-            m2[:, 1] = 0
+            m1 = nn.LogSoftmax(dim=-2)(m1)
+            m2 = nn.LogSoftmax(dim=-2)(m2)
+            m2[:,1] = 1
             dict_key = sample_name.split('#')[0]
             label = self.edge_label['label'][str(sample_name)]
             edge_name = self.edge_label.loc[sample_name, 'label']
@@ -109,6 +113,8 @@ class rebuilder(object):
                         shape=self.matrix2[key_use].shape,
                     )
                 )
+        print(m1)
+        print(m2)
         pertubation_dataloader = DataLoader(
             lib.FateZ_Dataset(samples=samples1),
             batch_size=batch_size,
@@ -162,15 +168,21 @@ class rebuilder(object):
                     prev_model=trainer
                 )
             elif mode =='predict':
-                self.trainer = pre_trainer.Set(
-                    config,
-                    node_recon_dim=node_recon_dim,
-                    dtype=torch.float32,
-                    device=device,
-                    prev_model=model.Load(prev_model_dir)
-                )
-
+                full_model = model.Load(prev_model_dir)
+                self.trainer = pre_trainer.Set(config,
+                                prev_model=full_model,
+                                dtype=torch.float32,
+                                node_recon_dim=node_recon_dim,
+                                device=device)
         self.trainer.setup()
+    def get_encoder_out(self,dataloader):
+        all_out = []
+        for x, y in dataloader:
+            input = [ele.to(self.trainer.device) for ele in x]
+            output = self.trainer.model.get_encoder_out(input)
+            all_out.append(output)
+        return torch.cat(all_out,dim=0)
+
     def train(self,epoch=5,
               pertubation_dataloader = None,
               result_dataloader = None,
@@ -285,13 +297,17 @@ class rebuilder(object):
                                                   node_results.cpu(), dim=1)
                 loss = self.trainer.criterion(node_rec, node_results)
             print('---loss')
-            print(node_rec.shape)
-            print(node_results.shape)
             self.predict_cor.append(cor_atac)
             self.predict_loss.append(loss.item())
             all_predict.append(node_rec)
             all_true.append(node_results)
         return torch.cat(all_predict,dim=0),torch.cat(all_true,dim=0)
+
+    def get_umap_embedding(self,tensor):
+
+        reshaped_tensor = np.reshape(tensor, (740, 1103 * 32))
+        umap_obj = umap.UMAP()
+        umap_result = umap_obj.fit_transform(reshaped_tensor)
 
     def output_report(self,outputdir = '/',prefix = ''):
 
@@ -306,10 +322,17 @@ class rebuilder(object):
 
         if len(self.predict_cor)>1:
 
-            predict_report = pd.DataFrame({'cor':self.predict_cor,'loss':self.predict_loss})
+            predict_report = pd.DataFrame({'loss':self.predict_loss,'cor':self.predict_cor})
             predict_report.to_csv(outputdir + prefix + '_predict_report.csv')
 
-        model.Save(
+        torch.save(
             self.trainer,
             outputdir + prefix + '_model.model'
+        )
+        with open(outputdir + prefix + '_model.pkl', 'wb') as file:
+            pickle.dump(self.trainer, file)
+        model.Save(
+            self.trainer,
+            outputdir + prefix + '_model_para.model',
+            save_full=True
         )
