@@ -44,7 +44,8 @@ class rebuilder(object):
         self.train_epoch_cor = []
         self.predict_cor = []
         self.predict_loss = []
-
+        self.train_cell_name = []
+        self.test_cell_name = []
     def __tensor_cor_atac(self,tensor1, tensor2,dim=0):
         all_cor = []
         for i in range(tensor1.shape[0]):
@@ -94,6 +95,7 @@ class rebuilder(object):
                         shape=self.matrix2[key_use].shape,
                     )
                 )
+                self.train_cell_name.append(sample_name)
             elif sample_name in cell_predict:
                 samples3.append(
                     pyg_d.Data(
@@ -113,8 +115,8 @@ class rebuilder(object):
                         shape=self.matrix2[key_use].shape,
                     )
                 )
-        print(m1)
-        print(m2)
+                self.test_cell_name.append(sample_name)
+
         pertubation_dataloader = DataLoader(
             lib.FateZ_Dataset(samples=samples1),
             batch_size=batch_size,
@@ -195,7 +197,7 @@ class rebuilder(object):
 
         size = self.trainer.input_sizes
         for i in range(epoch):
-            self.trainer.worker.train(True)
+            self.trainer.model.train(True)
             best_loss = 99
             loss_all = 0
             cor_all = 0
@@ -205,7 +207,7 @@ class rebuilder(object):
                 # Prepare input data as always
                 input = [ele.to(self.trainer.device) for ele in x]
 
-                node_rec, adj_rec = self.trainer.worker(input)
+                node_rec, adj_rec = self.trainer.model(input)
 
                 # Prepare pertubation result data using a seperate dataloader
                 y = [result_dataloader.dataset.samples[ele].to(self.trainer.device)
@@ -276,7 +278,7 @@ class rebuilder(object):
             # Prepare input data as always
             input = [ele.to(self.trainer.device) for ele in x]
             # Mute some debug outputs
-            node_rec, adj_rec = self.trainer.worker(input)
+            node_rec, adj_rec = self.trainer.model(input)
             y = [predict_true_dataloader.dataset.samples[ele].to(self.trainer.device)
                  for ele
                  in y]
