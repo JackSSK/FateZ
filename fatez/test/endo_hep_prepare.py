@@ -63,12 +63,12 @@ def get_config():
             "sch_T_0": 2,
             "sch_T_mult": 2,
             "sch_eta_min": 2e-06,
-            "adapter": "LORA",
+            "adapter": "Lora",
             "clf_type": "CNN_HYB",
             "clf_params": {
                 "n_layer_set": 1,
                 "conv_kernel_num": 8,
-                "verti_kernel_size": 32,
+                "verti_kernel_size": 8,
                 "horiz_kernel_size": 3,
                 "maxpool_kernel_size": 2,
                 "densed_size": 128

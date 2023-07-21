@@ -10,6 +10,7 @@ import torch.nn as nn
 import torch.optim as optim
 import pandas as pd
 from torchmetrics import AUROC
+import fatez.model as model
 import fatez.model.gnn as gnn
 import fatez.model.transformer as transformer
 import fatez.model.position_embedder as pe
