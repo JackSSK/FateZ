@@ -43,6 +43,11 @@ matrix1 = PreprocessIO.input_csv_dict_df(
 hep_edge = pd.read_table(data_header+'hep_edge.txt')
 endo_edge = pd.read_table(data_header+'endo_edge.txt')
 edge_dict = {'hep':hep_edge,'endo':endo_edge}
+for i in list(edge_dict.keys()):
+    edge = scale_network(edge_dict[i])
+    edge = torch.from_numpy(edge)
+    edge = edge.to(torch.float32)
+    edge_dict[i] = edge
 edge_label = pd.read_table(data_header+'fake_label.txt')
 edge_label.index = edge_label['sample']
 samples = []
