@@ -155,7 +155,7 @@ print(config['input_sizes'])
 traning
 """
 factory_kwargs = {'device': device, 'dtype': torch.float32, }
-fine_tuner_model = fine_tuner.Set(config, **factory_kwarg)
+fine_tuner_model = fine_tuner.Set(config, dtype = torch.float32)
 early_stop = es.Monitor(tolerance=30, min_delta=0.01)
 for epoch in range(num_epoch):
     print(f"Epoch {epoch+1}\n-------------------------------")
@@ -165,14 +165,14 @@ for epoch in range(num_epoch):
     report_train = fine_tuner_model.train(
         train_dataloader,
         report_batch = True,
-        device = [0],
+        device = 'cuda:0',
         )
     print(report_train[-1:])
 
     report_test = fine_tuner_model.test(
         test_dataloader,
         report_batch = True,
-        device = [0]
+        device = 'cuda:0'
         )
     print(report_test[-1:])
 

@@ -28,11 +28,12 @@ dtype = torch.float32
 
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
-def split_dataset_ct(label,train_number):
+def split_dataset_ct(label,train_percent):
     train_all = []
     test_all = []
     for i in set(label['label']):
         label_use = label.loc[label['label']==i]
+        train_number = int(int(label_use.shape[0])*train_percent)
         train_sample = label_use['sample'][0:train_number].to_list()
         test_sample = label_use['sample'][train_number:len(label)].to_list()
         train_all.extend(train_sample)
@@ -44,14 +45,14 @@ Data Preparing
 I can not test any part of this due to lack of data.
 """
 batch_size = 10
-epoch = 10
+epoch = 3
 data_name = 'GSE205117_NMFSM_bin20'
 pretrain_model = 'No'
 model_name = sys.argv[1]
 train_number = int(sys.argv[2])
 data_save_dir = '/storage/peiweikeLab/jiangjunyao/fatez/fine_tune/rebuild/result/'
 
-model_dir = '/storage/peiweikeLab/jiangjunyao/fatez/pre_train/model_tf/epoch1/'+model_name
+model_dir = '/storage/peiweikeLab/jiangjunyao/fatez/pre_train/model_tf/epoch2/'+model_name
 print('pretrain model',model_dir)
 
 ####load node
@@ -230,7 +231,7 @@ for config_name in config_list:
             # Prepare pertubation result data using a seperate dataloader
             y = [result_dataloader.dataset.samples[ele].to(trainer.device) for ele in y]
 
-            node_results = torch.stack([ele.x for ele in input], 0)
+            node_results = torch.stack([ele.x for ele in y], 0)
 
             """
             Need to select training feature here by partioning node_results
@@ -240,8 +241,6 @@ for config_name in config_list:
             node_results = nn.LogSoftmax(dim=-2)(node_results)
             node_results = node_results[:, :, 1]
             node_results = node_results.reshape(node_results.shape[0], 1103, 1)
-            print(node_results.shape)
-            print(node_rec.shape)
             adj_results = lib.get_dense_adjs(
                 y, (size['n_reg'],size['n_node'],size['edge_attr'])
             )
@@ -278,6 +277,10 @@ for config_name in config_list:
         report_cor.to_csv(
             data_save_dir+model_name +'train_number_'+str(train_number)+ '_cor_' + config_name + '.csv',
             mode='a+')
+        model.Save(
+            trainer,
+            data_save_dir +'train_number_'+str(train_number)+ '_rebuilder.model'
+        )
         torch.save(node_rec,
                    data_save_dir+model_name+'_node_rec.pt')
         torch.save(node_results,
@@ -290,17 +293,13 @@ for config_name in config_list:
         # Prepare input data as always
         input = [ele.to(trainer.device) for ele in x]
         # Mute some debug outputs
-        node_rec, adj_rec = trainer.model(input)
+        node_rec, adj_rec = trainer.worker(input)
         y = [predict_true_dataloader.dataset.samples[ele].to(trainer.device) for ele
              in y]
-        node_results = torch.split(
-            torch.stack([ele.x for ele in y], 0),
-            node_rec.shape[1],
-            dim=1
-        )[0]
+        node_results = torch.stack([ele.x for ele in y], 0)
+        node_results = nn.LogSoftmax(dim=-2)(node_results)
         node_results = node_results[:, :, 1]
         node_results = node_results.reshape(node_results.shape[0], 1103, 1)
-        node_results = nn.LogSoftmax(dim=-2)(node_results)
         cor_atac = tensor_cor_atac(node_rec.cpu(), node_results.cpu())
         #cor_rna = tensor_cor_rna(node_rec.cpu(), node_results.cpu())
         predict_all_cor_atac_hap.append(cor_atac)
