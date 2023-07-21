@@ -36,6 +36,35 @@ import fatez.process.worker as worker
 
 
 data_header = '../data/rd_fake_data/'
+node_dir = data_header+'all_node/'
+matrix1 = PreprocessIO.input_csv_dict_df(
+            node_dir,
+            df_type='node', order_cell=False)
+hep_edge = pd.read_table(data_header+'hep_edge.txt')
+endo_edge = pd.read_table(data_header+'endo_edge.txt')
+edge_dict = {'hep':hep_edge,'endo':endo_edge}
+edge_label = pd.read_table(data_header+'fake_label.txt')
+edge_label.index = edge_label['sample']
+samples = []
+for i in range(len(matrix1)):
+    sample_name = list(matrix1.keys())[i]
+    m1 = torch.from_numpy(matrix1[sample_name].to_numpy()).to(torch.float32)
+    label = edge_label['label'][str(sample_name)]
+    if sample_name[0:3] == 'hep':
+        key_use = 'hep'
+    else:
+        key_use = 'endo'
+    inds, attrs = lib.get_sparse_coo(edge_dict[key_use])
+    samples.append(
+        pyg_d.Data(
+            x=m1,
+            edge_index=inds,
+            edge_attr=attrs,
+            y=label,
+            shape=edge_dict[key_use].shape,
+        )
+    )
+
 
 """
 preprocess
