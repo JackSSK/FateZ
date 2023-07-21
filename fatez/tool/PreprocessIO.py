@@ -17,15 +17,16 @@ def output_csv_dict_df(matrix_dict, output_path,sample=None):
 
 def input_csv_dict_df(
         input_path,
-        cell_use = None,
+        cell_use = None, # What type of input will be expected?
         order_cell = True,
         df_type = 'node',
-        only_tf = False
+        only_tf = False,
+        specie:str = 'mouse'
         ):
     path = resource_filename(
-        __name__, '../data/gene_order.txt'
+        __name__, '../data/' + specie + '/gene_order.txt'
     )
-    gene_order = pd.read_table(path,header=None)
+    gene_order = pd.read_table(path, header=None)
     if cell_use != None:
         file_list = cell_use
     else:
