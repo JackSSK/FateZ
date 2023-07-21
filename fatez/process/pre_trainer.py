@@ -8,13 +8,14 @@ import random
 import torch
 import torch.nn as nn
 import torch.optim as optim
+from torch.nn.parallel import DistributedDataParallel as DDP
 import pandas as pd
 import fatez.model as model
 import fatez.model.gnn as gnn
 import fatez.model.transformer as transformer
 import fatez.model.position_embedder as pe
 import fatez.lib as lib
-from torch.nn.parallel import DistributedDataParallel as DDP
+import fatez.process.masker as masker
 
 
 
@@ -62,43 +63,6 @@ def Set(
 
 
 
-class Masker(object):
-    """
-    Make masks for BERT encoder input.
-
-    ToDo:
-    Mask data on sparse matrices instead of full matrix.
-    Then, the loss should be calculated only considering masked values?
-    """
-    def __init__(self, ratio, seed = None):
-        super(Masker, self).__init__()
-        self.ratio = ratio
-        self.seed = seed
-        self.choices = None
-
-    def make_2d_mask(self, size, dtype:str = None):
-        # Set random seed
-        if self.seed != None:
-            random.seed(self.seed)
-            self.seed += 1
-        # Make tensors
-        answer = torch.ones(size)
-        mask = torch.zeros(size[-1])
-        # Set random choices to mask
-        choices = random.choices(range(size[-2]), k = int(size[-2]*self.ratio))
-        assert choices != None
-        self.choices = choices
-        # Make mask
-        for ind in choices:
-            answer[ind] = mask
-        return answer
-
-    def mask(self, input,):
-        mask = self.make_2d_mask(input[0].size(), input.dtype).to(input.device)
-        return torch.multiply(input, mask)
-
-
-
 class Model(nn.Module):
     """
     Full model for pre-training.
@@ -106,19 +70,19 @@ class Model(nn.Module):
     def __init__(self,
         graph_embedder = None,
         gat = None,
-        masker:Masker = Masker(ratio = 0.0),
+        fea_masker:masker.Feature_Masker = masker.Feature_Masker(),
         bert_model:transformer.Reconstructor = None,
         ):
         super(Model, self).__init__()
         self.graph_embedder = graph_embedder
         self.gat = gat
         self.bert_model = bert_model
-        self.masker = masker
+        self.fea_masker = fea_masker
 
     def forward(self, input, return_embed = False):
         embed = self.graph_embedder(input)
         output = self.gat(embed)
-        output = self.masker.mask(output,)
+        output = self.fea_masker.mask(output,)
         output = self.bert_model(output,)
         if return_embed:
             return output, embed
@@ -196,7 +160,7 @@ class Trainer(object):
         self.dtype = dtype
         self.model = Model(
             gat = gat,
-            masker = Masker(**masker_params),
+            fea_masker = masker.Feature_Masker(**masker_params),
             graph_embedder = graph_embedder,
             bert_model = transformer.Reconstructor(
                 rep_embedder = rep_embedder,

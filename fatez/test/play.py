@@ -21,8 +21,8 @@ def test_full_model(
     config:dict = None,
     train_dataloader:DataLoader = None,
     test_dataloader:DataLoader = None,
-    train_epoch:int = 5,
-    tune_epoch:int = 20,
+    train_epoch:int = 10,
+    tune_epoch:int = 50,
     quiet:bool = False,
     device = 'cpu',
     dtype = torch.float32,
@@ -69,9 +69,11 @@ def test_full_model(
     )
     report = tuner.test(test_dataloader, report_batch = True,)
     print(report)
+    report = tuner.test(train_dataloader, report_batch = True,)
+    print(report)
 
     worker.cleanup(device)
-    return trainer
+    return tuner
 
 
 
