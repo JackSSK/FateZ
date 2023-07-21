@@ -13,6 +13,7 @@ from fatez.process.scale_network import scale_network
 import numpy as np
 import pickle
 import umap
+from sklearn.decomposition import PCA
 
 class rebuilder(object):
     def __init__(self,
@@ -184,6 +185,22 @@ class rebuilder(object):
             output = self.trainer.model.get_encoder_out(input)
             all_out.append(output)
         return torch.cat(all_out,dim=0)
+    def get_gat_out(self,dataloader):
+        all_out = []
+        for x, y in dataloader:
+            input = [ele.to(self.trainer.device) for ele in x]
+            output = self.trainer.model.get_gat_out(input)
+            all_out.append(output)
+        return torch.cat(all_out,dim=0)
+
+    def umap_embedding(self,pca_num=None,input=None):
+        if pca_num == None:
+            umap_obj = umap.UMAP()
+            umap_result = umap_obj.fit_transform(input)
+        else:
+            reduced_matrix = pca.fit_transform(pca_num)
+            umap_obj = umap.UMAP()
+            umap_result = umap_obj.fit_transform(reduced_matrix)
 
     def train(self,epoch=5,
               pertubation_dataloader = None,
