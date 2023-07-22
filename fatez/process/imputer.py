@@ -246,7 +246,8 @@ class Imputer(object):
 
                 # Get the input tensors
                 node_mat = torch.stack([ele.x for ele in embed_data], 0)
-                loss = self.criterion(recon[0], node_mat)
+                impute_mat = node_mat[:,:, self.impute_dim:self.impute_dim+1]
+                loss = self.criterion(recon[0], impute_mat)
 
                 # Accumulate
                 best_loss = min(best_loss, loss.item())
