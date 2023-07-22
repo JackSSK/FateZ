@@ -97,9 +97,9 @@ def test_imputer(
     if quiet: suppressor.off()
 
     # Performace test
-    report = tuner.test(test_dataloader, report_batch = True,)
+    report = imput_model.test(test_dataloader, report_batch = True,)
     print('Test Data Report:\n', report)
-    report = tuner.test(train_dataloader, report_batch = True,)
+    report = imput_model.test(train_dataloader, report_batch = True,)
     print('Train Data Report:\n', report)
 
     worker.cleanup(device)
