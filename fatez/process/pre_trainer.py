@@ -15,7 +15,7 @@ import fatez.model.gnn as gnn
 import fatez.model.transformer as transformer
 import fatez.model.position_embedder as pe
 import fatez.lib as lib
-import fatez.process.masker as masker
+from fatez.process.masker import Dimension_Masker, Feature_Masker
 
 
 
@@ -70,19 +70,19 @@ class Model(nn.Module):
     def __init__(self,
         graph_embedder = None,
         gat = None,
-        fea_masker:masker.Feature_Masker = masker.Feature_Masker(),
+        masker = Feature_Masker(),
         bert_model:transformer.Reconstructor = None,
         ):
         super(Model, self).__init__()
         self.graph_embedder = graph_embedder
         self.gat = gat
         self.bert_model = bert_model
-        self.fea_masker = fea_masker
+        self.masker = masker
 
     def forward(self, input, return_embed = False):
         embed = self.graph_embedder(input)
         output = self.gat(embed)
-        output = self.fea_masker.mask(output,)
+        output = self.masker.mask(output,)
         output = self.bert_model(output,)
         if return_embed:
             return output, embed
@@ -160,7 +160,7 @@ class Trainer(object):
         self.dtype = dtype
         self.model = Model(
             gat = gat,
-            fea_masker = masker.Feature_Masker(**masker_params),
+            masker = Feature_Masker(**masker_params),
             graph_embedder = graph_embedder,
             bert_model = transformer.Reconstructor(
                 rep_embedder = rep_embedder,

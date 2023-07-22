@@ -17,13 +17,15 @@ class Dimension_Masker(object):
     Mask data on sparse matrices instead of full matrix.
     Then, the loss should be calculated only considering masked values?
     """
-    def __init__(self, dim:int = -1, mask_token = 0):
+    def __init__(self, dim:int = -1, mask_token = 0, **kwargs):
         super(Dimension_Masker, self).__init__()
         self.dim = dim
         self.mask_token = mask_token
 
-    def mask(self, size, dtype:str = None):
-        return
+    def mask(self, input):
+        for ele in input:
+            ele.x[:,self.dim] = ele.x[:,self.dim] * 0 + self.mask_token
+        return input
 
 
 
@@ -35,7 +37,7 @@ class Feature_Masker(object):
     Mask data on sparse matrices instead of full matrix.
     Then, the loss should be calculated only considering masked values?
     """
-    def __init__(self, ratio:float=None, seed:int=None, mask_token = 0):
+    def __init__(self, ratio:float=None, seed:int=None, mask_token=0, **kwargs):
         super(Feature_Masker, self).__init__()
         self.ratio = ratio
         self.seed = seed

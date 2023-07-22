@@ -17,7 +17,7 @@ import fatez.model.gnn as gnn
 import fatez.model.transformer as transformer
 import fatez.model.position_embedder as pe
 import fatez.lib as lib
-import fatez.process.masker as masker
+from fatez.process.masker import Dimension_Masker, Feature_Masker
 
 
 
@@ -72,7 +72,7 @@ class Model(nn.Module):
     def __init__(self,
         graph_embedder = None,
         gat = None,
-        masker:Masker = Masker(ratio = 0.0),
+        masker:Dimension_Masker = Dimension_Masker(ratio = 0.0),
         bert_model:transformer.Reconstructor = None,
         ):
         super(Model, self).__init__()
@@ -128,11 +128,12 @@ class Imputer(object):
         # Models to take
         gat = None,
         encoder:transformer.Encoder = None,
-        masker_params:dict = {'ratio': 0.15},
+        masker_params:dict = {'mask_token': 0},
         graph_embedder = pe.Skip(),
         rep_embedder = pe.Skip(),
         train_adj:bool = False,
         node_recon_dim:int = None,
+        impute_dim:int = None,
 
         # Adam optimizer settings
         lr:float = 1e-4,
@@ -157,11 +158,13 @@ class Imputer(object):
         ):
         super(Imputer, self).__init__()
         self.input_sizes = input_sizes
+        self.impute_dim = impute_dim
+        assert self.impute_dim >= 0
         self.device = device
         self.dtype = dtype
         self.model = Model(
             gat = gat,
-            masker = Masker(**masker_params),
+            masker = Dimension_Masker(dim = impute_dim, **masker_params),
             graph_embedder = graph_embedder,
             bert_model = transformer.Reconstructor(
                 rep_embedder = rep_embedder,
@@ -182,12 +185,6 @@ class Imputer(object):
             betas = betas,
             weight_decay = weight_decay
         )
-        # self.optimizer = optim.SGD(
-        #     self.model.parameters(),
-        #     lr = lr,
-        #     betas = betas,
-        #     weight_decay = weight_decay
-        # )
 
         # Gradient norm clipper param
         self.max_norm = max_norm
@@ -215,21 +212,8 @@ class Imputer(object):
 
             # Get the input tensors
             node_mat = torch.stack([ele.x for ele in embed_data], 0)
-            # The reg only version
-            # node_mat = torch.split(
-            #     torch.stack([ele.x for ele in input], 0),
-            #     recon[0].shape[1],
-            #     dim = 1
-            # )[0]
-            loss = self.criterion(recon[0], node_mat)
-
-            # For Adjacent Matrix reconstruction
-            if recon[1] is not None:
-                size = self.input_sizes
-                adj_mat = lib.get_dense_adjs(
-                    embed_data, (size['n_reg'],size['n_node'],size['edge_attr'])
-                )
-                loss += self.criterion(recon[1], adj_mat)
+            impute_mat = node_mat[:,:, self.impute_dim:self.impute_dim+1]
+            loss = self.criterion(recon[0], impute_mat)
 
             loss.backward()
             nn.utils.clip_grad_norm_(self.model.parameters(), self.max_norm)
@@ -244,6 +228,33 @@ class Imputer(object):
             if report_batch: report.append([loss.item()])
 
         self.scheduler.step()
+        report.append([loss_all / len(data_loader)])
+        report = pd.DataFrame(report)
+        report.columns = ['Loss', ]
+        return report
+
+    def test(self, data_loader, report_batch:bool = False,):
+        self.worker.eval()
+        best_loss = 99
+        loss_all = 0
+        report = list()
+
+        with torch.no_grad():
+            for x, _ in data_loader:
+                input = [ele.to(self.device) for ele in x]
+                recon, embed_data = self.worker(input, return_embed = True)
+
+                # Get the input tensors
+                node_mat = torch.stack([ele.x for ele in embed_data], 0)
+                loss = self.criterion(recon[0], node_mat)
+
+                # Accumulate
+                best_loss = min(best_loss, loss.item())
+                loss_all += loss.item()
+
+                # Some logs
+                if report_batch: report.append([loss.item()])
+
         report.append([loss_all / len(data_loader)])
         report = pd.DataFrame(report)
         report.columns = ['Loss', ]

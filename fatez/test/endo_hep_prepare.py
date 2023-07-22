@@ -57,6 +57,13 @@ def get_config():
                 "ratio": 0.15
             }
         },
+        "imputer": {
+            "impute_dim": 1,
+            "node_recon_dim": 1,
+            "masker_params": {
+                "mask_token": -1
+            }
+        },
         "fine_tuner": {
             "n_class": 2,
             "weight_decay": 0.0001,
