@@ -4,6 +4,7 @@ Objects for masking inputs for models or parts of models.
 
 author: jy
 """
+import copy
 import torch
 import random
 
@@ -23,9 +24,10 @@ class Dimension_Masker(object):
         self.mask_token = mask_token
 
     def mask(self, input):
-        for ele in input:
+        result = copy.deepcopy(input)
+        for ele in result:
             ele.x[:,self.dim] = ele.x[:,self.dim] * 0 + self.mask_token
-        return input
+        return result
 
 
 

@@ -25,7 +25,7 @@ def get_config():
             "edge_attr": 1
         },
         "graph_embedder": {
-            "type": "skip",
+            "type": "lsme",
             "params": {
                 "n_dim": -2
             }

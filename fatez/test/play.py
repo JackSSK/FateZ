@@ -79,6 +79,7 @@ def test_imputer(
     train_dataloader:DataLoader = None,
     test_dataloader:DataLoader = None,
     train_epoch:int = 10,
+    tune_epoch:int = 10,
     quiet:bool = False,
     device = 'cpu',
     dtype = torch.float32,
@@ -87,13 +88,22 @@ def test_imputer(
     suppressor = process.Quiet_Mode()
     worker.setup(device)
 
+    # Pre-train part
+    if quiet: suppressor.on()
+    trainer = pre_trainer.Set(config, device = device, dtype = dtype)
+    print('Pre-Training:')
+    for i in range(train_epoch):
+        report = trainer.train(train_dataloader, report_batch = False,)
+        print(f'\tEpoch {i} Loss: {report.iloc[0,0]}')
+    if quiet: suppressor.off()
+
     # Imputaation model training part
     if quiet: suppressor.on()
-    imput_model = imputer.Set(config, device = device, dtype = dtype)
+    imput_model = imputer.Set(config, trainer, device = device, dtype = dtype)
     print('Training Imputer:')
-    for i in range(train_epoch):
+    for i in range(tune_epoch):
         report = imput_model.train(train_dataloader, report_batch = False,)
-        print(f'\tEpoch {i} Loss: {report.iloc[0,0]}')
+        print(f'\tEpoch {i} Loss: {report.iloc[0,0]} Cor: {report.iloc[0,1]}')
     if quiet: suppressor.off()
 
     # Performace test

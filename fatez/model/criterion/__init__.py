@@ -18,12 +18,14 @@ from fatez.model.criterion.accuracy import Accuracy
 from fatez.model.criterion.auroc import AUROC
 from fatez.model.criterion.f1 import F1_Score
 from fatez.model.criterion.silhouette import Silhouette
+from fatez.model.criterion.pearson import Pearson
 
 __all__ = [
     'Accuracy',
     'AUROC',
     'F1_Score',
     'Silhouette',
+    'Pearson',
 ]
 
 """

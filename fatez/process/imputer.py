@@ -6,6 +6,7 @@ Q: How to get GRN if one modality is missing?
 
 author: jy
 """
+import copy
 import random
 import torch
 import torch.nn as nn
@@ -16,6 +17,7 @@ import fatez.model as model
 import fatez.model.gnn as gnn
 import fatez.model.transformer as transformer
 import fatez.model.position_embedder as pe
+import fatez.model.criterion as crit
 import fatez.lib as lib
 from fatez.process.masker import Dimension_Masker, Feature_Masker
 
@@ -204,7 +206,10 @@ class Imputer(object):
         self.worker.train(True)
         best_loss = 99
         loss_all = 0
+        cor_all = 0
+        p_value_all = 0
         report = list()
+        pearson_calc = crit.Pearson()
 
         for x, _ in data_loader:
             input = [ele.to(self.device) for ele in x]
@@ -214,6 +219,7 @@ class Imputer(object):
             node_mat = torch.stack([ele.x for ele in embed_data], 0)
             impute_mat = node_mat[:,:, self.impute_dim:self.impute_dim+1]
             loss = self.criterion(recon[0], impute_mat)
+            cor, p_value = pearson_calc(recon[0], impute_mat)
 
             loss.backward()
             nn.utils.clip_grad_norm_(self.model.parameters(), self.max_norm)
@@ -223,21 +229,30 @@ class Imputer(object):
             # Accumulate
             best_loss = min(best_loss, loss.item())
             loss_all += loss.item()
+            cor_all += cor
+            p_value_all += p_value
 
             # Some logs
-            if report_batch: report.append([loss.item()])
+            if report_batch: report.append([loss.item(), cor, p_value])
 
         self.scheduler.step()
-        report.append([loss_all / len(data_loader)])
+        report.append([
+            loss_all / len(data_loader),
+            cor_all / len(data_loader),
+            p_value_all / len(data_loader)
+        ])
         report = pd.DataFrame(report)
-        report.columns = ['Loss', ]
+        report.columns = ['Loss', 'Pearson_Cor', 'p-value']
         return report
 
     def test(self, data_loader, report_batch:bool = False,):
         self.worker.eval()
         best_loss = 99
         loss_all = 0
+        cor_all = 0
+        p_value_all = 0
         report = list()
+        pearson_calc = crit.Pearson()
 
         with torch.no_grad():
             for x, _ in data_loader:
@@ -248,17 +263,24 @@ class Imputer(object):
                 node_mat = torch.stack([ele.x for ele in embed_data], 0)
                 impute_mat = node_mat[:,:, self.impute_dim:self.impute_dim+1]
                 loss = self.criterion(recon[0], impute_mat)
+                cor, p_value = pearson_calc(recon[0], impute_mat)
 
                 # Accumulate
                 best_loss = min(best_loss, loss.item())
                 loss_all += loss.item()
+                cor_all += cor
+                p_value_all += p_value
 
                 # Some logs
-                if report_batch: report.append([loss.item()])
+                if report_batch: report.append([loss.item(), cor, p_value])
 
-        report.append([loss_all / len(data_loader)])
+        report.append([
+            loss_all / len(data_loader),
+            cor_all / len(data_loader),
+            p_value_all / len(data_loader)
+        ])
         report = pd.DataFrame(report)
-        report.columns = ['Loss', ]
+        report.columns = ['Loss', 'Pearson_Cor', 'p-value']
         return report
 
     def setup(self, device='cpu',):
