@@ -32,9 +32,11 @@ print(device)
 
 tune_epoch = 10
 training = True
-rebuilding = rebuilder(node_dir=node_dir,
-                       edge_label=edge_label,
-                       edge_dir=edge_dir)
+rebuilding = rebuilder(
+    node_dir=node_dir,
+    edge_label=edge_label,
+    edge_dir=edge_dir
+)
 if training:
 
     prev_model_dir = '/storage/peiweikeLab/jiangjunyao/fatez/pre_train/model_tf/epoch2/config1.json_pretrainindex9_pre_train.model'
@@ -46,8 +48,18 @@ if training:
     pertubation_dataloader,result_dataloader,predict_dataloader,predict_true_dataloader = rebuilding.load_data(cell_train=train_cell,cell_predict=test_cell)
     #### training here
     worker.setup(device)
-    trainer = pre_trainer.Set(config, device=device, dtype=dtype,
-                              prev_model = model.Load(prev_model_dir))
+    trainer = pre_trainer.Set(
+        config,
+        device=device,
+        dtype=dtype,
+        prev_model = model.Load(prev_model_dir)
+    )
+
+    """
+    Save a new file for direct load?
+
+    model.Save(path, trainer)
+    """
 
     imput_model = imputer.Set(config, trainer, device=device, dtype=dtype)
     for i in range(tune_epoch):
