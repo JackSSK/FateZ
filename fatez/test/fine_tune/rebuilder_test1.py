@@ -61,7 +61,13 @@ if training:
     model.Save(path, trainer)
     """
 
-    imput_model = imputer.Set(config, trainer, device=device, dtype=dtype)
+    imput_model = imputer.Set(
+        config,
+        prev_model = model.Load(prev_model_dir), # The part model
+        load_opt_sch = False,
+        device=device,
+        dtype=dtype
+    )
     for i in range(tune_epoch):
         report = imput_model.train(result_dataloader, report_batch = False,)
         print(f'\tEpoch {i} Loss: {report.iloc[0,0]} Cor: {report.iloc[0,1]}')

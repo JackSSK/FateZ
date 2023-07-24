@@ -72,9 +72,12 @@ def Load(file_path:str = 'a.model', mode:str = 'torch',):
     else:
         raise Error('Not Supporting Load Mode ' + mode)
 
-def Load_state_dict(net, state):
-    net.optimizer.load_state_dict(state['optimizer'])
-    net.scheduler.load_state_dict(state['scheduler'])
+def Load_state_dict(net, state, load_opt_sch:bool = True):
+    if load_opt_sch:
+        net.optimizer.load_state_dict(state['optimizer'])
+        net.scheduler.load_state_dict(state['scheduler'])
+
+    # This part will be depreciated soon
     if 'model' in state:
         net.model.load_state_dict(state['model'])
         return

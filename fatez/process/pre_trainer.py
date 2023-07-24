@@ -23,6 +23,7 @@ def Set(
     config:dict=None,
     prev_model=None,
     load_full_model:bool = False,
+    load_opt_sch:bool = True,
     device:str='cpu',
     dtype:str=None,
     **kwargs
@@ -45,7 +46,7 @@ def Set(
         **kwargs,
     )
     if prev_model is not None and str(type(prev_model)) == "<class 'dict'>":
-        model.Load_state_dict(net, prev_model)
+        model.Load_state_dict(net, prev_model, load_opt_sch)
     elif prev_model is not None:
         net = Trainer(
             input_sizes = config['input_sizes'],
