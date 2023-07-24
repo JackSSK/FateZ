@@ -85,6 +85,8 @@ def Load_state_dict(net, state, load_opt_sch:bool = True):
     net.model.gat.load_state_dict(state['gnn'])
     if state['bert_model'] is not None:
         net.model.bert_model.load_state_dict(state['bert_model'])
+        # net.optimizer.load_state_dict(state['optimizer'])
+        # net.scheduler.load_state_dict(state['scheduler'])
     else:
         net.model.bert_model.encoder.load_state_dict(state['encoder'])
         net.model.bert_model.rep_embedder.load_state_dict(state['rep_embedder'])
