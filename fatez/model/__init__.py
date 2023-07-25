@@ -30,8 +30,8 @@ def Save(model, file_path:str = 'a.model', save_full:bool = False,):
     :param device: device to load model
     """
     model_type = str(type(model))
-    if (re.search(r'fatez.*.Trainer*', model_type) or
-        re.search(r'fatez.*.Tuner*', model_type)
+    if (re.search(r'*fatez.process.*', model_type) or
+        re.search(r'*fatez.model.*', model_type) or 
         ):
         model.model = model.model.to('cpu')
         if save_full:
