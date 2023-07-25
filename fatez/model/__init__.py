@@ -31,7 +31,8 @@ def Save(model, file_path:str = 'a.model', save_full:bool = False,):
     """
     model_type = str(type(model))
     if (re.search(r'fatez.*.Trainer*', model_type) or
-        re.search(r'fatez.*.Tuner*', model_type)
+        re.search(r'fatez.*.Tuner*', model_type) or
+            re.search(r'fatez.*.Imputer*', model_type)
         ):
         model.model = model.model.to('cpu')
         if save_full:

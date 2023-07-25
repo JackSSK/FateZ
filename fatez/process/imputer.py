@@ -246,7 +246,7 @@ class Imputer(object):
         report.columns = ['Loss', 'Pearson_Cor', 'p-value']
         return report
 
-    def test(self, data_loader, report_batch:bool = False,):
+    def test(self, data_loader, report_batch:bool = False,return_data = False):
         self.worker.eval()
         best_loss = 99
         loss_all = 0
@@ -254,7 +254,8 @@ class Imputer(object):
         p_value_all = 0
         report = list()
         pearson_calc = crit.Pearson()
-
+        all_predict = []
+        all_truth = []
         with torch.no_grad():
             for x, _ in data_loader:
                 input = [ele.to(self.device) for ele in x]
@@ -274,7 +275,8 @@ class Imputer(object):
 
                 # Some logs
                 if report_batch: report.append([loss.item(), cor, p_value])
-
+                all_predict.append(recon[0])
+                all_truth.append(impute_mat)
         report.append([
             loss_all / len(data_loader),
             cor_all / len(data_loader),
@@ -282,7 +284,11 @@ class Imputer(object):
         ])
         report = pd.DataFrame(report)
         report.columns = ['Loss', 'Pearson_Cor', 'p-value']
-        return report
+        if return_data:
+            return report,torch.cat(all_predict,dim=0),torch.cat(all_truth,dim=0)
+        else:
+            return report
+
 
     def setup(self, device='cpu',):
         if str(type(device)) == "<class 'list'>":
