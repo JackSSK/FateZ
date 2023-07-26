@@ -1,0 +1,58 @@
+{
+    "input_sizes": {
+        "n_reg": 1103,
+        "n_node": 1103,
+        "node_attr": 2,
+        "edge_attr": 1
+    },
+    "graph_embedder": {
+        "type": "lsme",
+        "params": {
+            "n_dim": -2
+        }
+    },
+    "gnn": {
+        "type": "GATv2",
+        "params": {
+            "en_dim": 32,
+            "n_hidden": 4,
+            "nhead": 1
+        }
+    },
+    "rep_embedder": {
+        "type": "ABS",
+        "params": {
+            "n_embed": 1103,
+            "n_dim": 32
+        }
+    },
+    "encoder": {
+        "d_model": 32,
+        "n_layer": 6,
+        "nhead": 4,
+        "dim_feedforward": 512
+    },
+    "pre_trainer": {
+        "train_adj": false,
+        "masker_params": {
+            "ratio": 0.2
+        }
+    },
+    "fine_tuner": {
+        "n_class": 2,
+        "weight_decay": 0.0001,
+        "sch_T_0": 2,
+        "sch_T_mult": 2,
+        "sch_eta_min": 2e-06,
+        "clf_type": "CNN_HYB",
+        "clf_params": {
+            "n_layer_set": 1,
+            "conv_kernel_num": 1,
+            "verti_kernel_size": 32,
+            "horiz_kernel_size": 3,
+            "maxpool_kernel_size": 2,
+            "densed_size": 8192
+        },
+        "lr": 0.0001
+    }
+}

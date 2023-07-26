@@ -18,12 +18,14 @@ from fatez.model.criterion.accuracy import Accuracy
 from fatez.model.criterion.auroc import AUROC
 from fatez.model.criterion.f1 import F1_Score
 from fatez.model.criterion.silhouette import Silhouette
+from fatez.model.criterion.pearson import Pearson
 
 __all__ = [
     'Accuracy',
     'AUROC',
     'F1_Score',
     'Silhouette',
+    'Pearson',
 ]
 
 """
@@ -31,16 +33,16 @@ These methods are for linking one tensor to a result which has no grad through
 solving least square problems and matmul input tensor with the inverse matrix.
 Basically, we just simply whatever process leading to the result as a param mat.
 """
-def reps_to_probs(reps, probs, device = None):
+def reps_to_probs(reps, probs,):
     inv = torch.linalg.lstsq(reps, probs,).solution
     return torch.matmul(reps.data, inv)
 
-def probs_to_preds(probs, preds, device = None):
+def probs_to_preds(probs, preds,):
     preds = preds.reshape(probs.shape[0], 1).to(probs.dtype).to(probs.device)
     inv = torch.linalg.lstsq(probs, preds,).solution
     return torch.matmul(probs.data, inv)
 
-def preds_to_scores(preds, scores, device = None):
+def preds_to_scores(preds, scores,):
     scores = torch.Tensor([[scores]],).to(preds.dtype).to(preds.device)
     inv = torch.linalg.lstsq(preds.T, scores).solution.T
     return torch.matmul(inv, preds.data)

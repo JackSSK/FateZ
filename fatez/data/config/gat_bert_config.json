@@ -6,10 +6,9 @@
         "edge_attr": 1
     },
     "graph_embedder": {
-        "type": "skip",
+        "type": "lsme",
         "params": {
-            "n_embed": 10,
-            "n_dim": 2
+            "dim": -2
         }
     },
     "gnn": {
@@ -31,7 +30,7 @@
         "d_model": 4,
         "n_layer": 2,
         "nhead": 2,
-        "dim_feedforward": 512
+        "dim_feedforward": 64
     },
     "pre_trainer": {
         "train_adj": true,
@@ -42,7 +41,7 @@
     "fine_tuner": {
         "n_class": 2,
         "clf_type": "MLP",
-        "adapter": null,
+        "adapter": "LORA",
         "clf_params":{
           "n_hidden": 2,
           "n_layer_set": 2

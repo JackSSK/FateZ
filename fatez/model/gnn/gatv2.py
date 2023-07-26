@@ -83,6 +83,7 @@ class Model(Template):
                 **kwargs
             )
             model.append((layer, 'x, edge_index, edge_attr -> x'))
+            model.append(nn.ReLU(inplace = True))
 
         else:
             raise Exception('Why are we still here? Just to suffer.')

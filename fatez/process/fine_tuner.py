@@ -10,41 +10,56 @@ import torch.nn as nn
 import torch.optim as optim
 import pandas as pd
 from torchmetrics import AUROC
+import fatez.model as model
 import fatez.model.gnn as gnn
 import fatez.model.transformer as transformer
 import fatez.model.position_embedder as pe
 import fatez.model.criterion as crit
+from torch.nn.parallel import DistributedDataParallel as DDP
 
 
-
-def Set(config:dict = None, factory_kwargs:dict = None, prev_model = None,):
+def Set(
+    config:dict=None,
+    prev_model=None,
+    load_full_model:bool = False,
+    load_opt_sch:bool = True,
+    device:str='cpu',
+    dtype:str=None,
+    **kwargs
+    ):
     """
     Set up a Tuner object based on given config file (and pre-trained model)
     """
-    if prev_model is None:
-        return Tuner(
+    net = Tuner(
+        input_sizes = config['input_sizes'],
+        gat = gnn.Set(config['gnn'], config['input_sizes'], dtype=dtype),
+        encoder = transformer.Encoder(**config['encoder'],),
+        graph_embedder = pe.Set(
+            config['graph_embedder'], config['input_sizes'], dtype=dtype
+        ),
+        rep_embedder = pe.Set(
+            config['rep_embedder'], config['input_sizes'], dtype=dtype
+        ),
+        dtype = dtype,
+        **config['fine_tuner'],
+        **kwargs,
+    )
+    if prev_model is not None and str(type(prev_model)) == "<class 'dict'>":
+        model.Load_state_dict(net, prev_model, load_opt_sch)
+    elif prev_model is not None:
+        net = Tuner(
             input_sizes = config['input_sizes'],
-            gat = gnn.Set(config['gnn'], config['input_sizes'], factory_kwargs),
-            encoder = transformer.Encoder(**config['encoder'],**factory_kwargs),
-            graph_embedder = pe.Set(
-                config['graph_embedder'], config['input_sizes'], factory_kwargs
-            ),
-            rep_embedder = pe.Set(
-                config['rep_embedder'], config['input_sizes'], factory_kwargs
-            ),
+            gat = prev_model.model.gat,
+            encoder = prev_model.model.bert_model.encoder,
+            graph_embedder = prev_model.model.graph_embedder,
+            rep_embedder = prev_model.model.bert_model.rep_embedder,
+            dtype = dtype,
             **config['fine_tuner'],
-            **factory_kwargs,
+            **kwargs,
         )
-    else:
-        return Tuner(
-            input_sizes = config['input_sizes'],
-            gat = prev_model.gat,
-            encoder = prev_model.bert_model.encoder,
-            graph_embedder = prev_model.graph_embedder,
-            rep_embedder = prev_model.bert_model.rep_embedder,
-            **config['fine_tuner'],
-            **factory_kwargs,
-        )
+    # Setup worker env
+    net.setup(device=device)
+    return net
 
 
 
@@ -64,11 +79,14 @@ class Model(nn.Module):
         self.gat = gat
         self.bert_model = bert_model
 
-    def forward(self, input):
-        output = self.graph_embedder(input)
-        output = self.gat(output)
+    def forward(self, input, return_embed = False):
+        embed = self.graph_embedder(input)
+        output = self.gat(embed)
         output = self.bert_model(output, )
-        return output
+        if return_embed:
+            return output, embed
+        else:
+            return output
 
     def get_gat_out(self, input,):
         with torch.no_grad():
@@ -130,14 +148,15 @@ class Tuner(object):
             # ignore_index:int = 0, # For NLLLoss
             reduction:str = 'mean',
 
-            # factory_kwargs
+            # factory kwargs
             device:str = 'cpu',
             dtype:str = None,
             **kwargs
             ):
         super(Tuner, self).__init__()
         self.input_sizes = input_sizes
-        self.factory_kwargs = {'device': device, 'dtype': dtype}
+        self.device = device
+        self.dtype = dtype
         self.n_class = n_class
         self.model = Model(
             gat = gat,
@@ -145,13 +164,16 @@ class Tuner(object):
             bert_model = transformer.Classifier(
                 rep_embedder = rep_embedder,
                 encoder = encoder,
-                adapter = adapter.upper(),
+                adapter = adapter,
+                input_sizes = self.input_sizes,
                 clf_type = clf_type,
                 clf_params = clf_params,
                 n_class = n_class,
-                **self.factory_kwargs
+                dtype = self.dtype
             ),
         )
+        # Torch 2
+        # self.model = torch.compile(self.model)
 
         # Setting the Adam optimizer with hyper-param
         self.optimizer = optim.AdamW(
@@ -183,16 +205,22 @@ class Tuner(object):
             ignore_index = ignore_index,
             reduction = reduction,
         )
-
-        # Not supporting parallel training now
-        # # Distributed GPU training if CUDA can detect more than 1 GPU
-        # if with_cuda and torch.cuda.device_count() > 1:
-        #     self.model = nn.DataParallel(self.model, device_ids = cuda_devices)
-
+    def get_encoder_out(self,dataloader):
+        all_out = []
+        for x, y in dataloader:
+            input = [ele.to(self.device) for ele in x]
+            output = self.worker.get_encoder_out(input)
+            all_out.append(output)
+        return torch.cat(all_out,dim=0)
+    def get_gat_out(self,dataloader):
+        all_out = []
+        for x, y in dataloader:
+            input = [ele.to(self.device) for ele in x]
+            output = self.worker.get_gat_out(input)
+            all_out.append(output)
+        return torch.cat(all_out,dim=0)
     def train(self, data_loader, report_batch:bool = False,):
-        # save_gat_out:bool = False
-        self.model.train()
-        self.model.to(self.factory_kwargs['device'])
+        self.worker.train(True)
         nbatch = len(data_loader)
         best_loss = 99
         loss_all, acc_all = 0, 0
@@ -202,9 +230,8 @@ class Tuner(object):
         acc_crit = crit.Accuracy(requires_grad = False)
 
         for x,y in data_loader:
-            input = [ele.to(self.factory_kwargs['device']) for ele in x]
-            y = y.to(self.factory_kwargs['device'])
-            output = self.model(input)
+            y = y.to(self.device)
+            output = self.worker([ele.to(self.device) for ele in x])
             loss = self.criterion(output, y)
             loss.backward()
             nn.utils.clip_grad_norm_(self.model.parameters(), self.max_norm)
@@ -224,8 +251,8 @@ class Tuner(object):
         report.columns = ['Loss', 'ACC',]
         return report
 
-    def test(self, data_loader, report_batch = False):
-        self.model.eval()
+    def test(self, data_loader, report_batch:bool = False,):
+        self.worker.eval()
         nbatch = len(data_loader)
         report = list()
         loss_all, acc_all, auroc_all = 0, 0, 0
@@ -235,9 +262,8 @@ class Tuner(object):
         auroc = AUROC("multiclass", num_classes = self.n_class)
         with torch.no_grad():
             for x, y in data_loader:
-                input = [ele.to(self.factory_kwargs['device']) for ele in x]
-                y = y.to(self.factory_kwargs['device'])
-                output = self.model(input)
+                y = y.to(self.device)
+                output = self.worker([ele.to(self.device) for ele in x])
 
                 # Batch specific
                 loss = self.criterion(output, y).item()
@@ -260,3 +286,24 @@ class Tuner(object):
     def unfreeze_encoder(self):
         self.model.bert_model.freeze_encoder = False
         return
+
+    def setup(self, device='cpu',):
+        if str(type(device)) == "<class 'list'>":
+            self.device = torch.device('cuda:0')
+            self._setup()
+            self.worker = DDP(self.model, device_ids = device)
+        elif str(type(device)) == "<class 'str'>":
+            self.device = device
+            self._setup()
+            self.worker = self.model
+        return
+
+    def _setup(self):
+        self.model = self.model.to(self.device)
+        self._set_state_values(self.optimizer.state.values())
+
+    def _set_state_values(self, state_values):
+        for state in state_values:
+            for k,v in state.items():
+                if torch.is_tensor(v):
+                    state[k] = v.to(self.device)

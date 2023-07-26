@@ -21,6 +21,7 @@
     <script src="../_static/js/theme.js"></script>
     <link rel="index" title="Index" href="../genindex.html" />
     <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="FateZ Multiomic Pertubation Effect Prediction(?)" href="pertubation.html" />
     <link rel="prev" title="FateZ Clustering" href="clustering.html" /> 
 </head>
 
@@ -42,14 +43,17 @@
               <ul class="current">
 <li class="toctree-l1"><a class="reference internal" href="../api.html">API reference</a></li>
 <li class="toctree-l1 current"><a class="reference internal" href="../examples.html">Examples</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="bin_number_tuning.html">You need a title here</a></li>
 <li class="toctree-l2"><a class="reference internal" href="clustering.html">FateZ Clustering</a></li>
 <li class="toctree-l2 current"><a class="current reference internal" href="#">FateZ Explain</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="#Build-model-and-make-some-fake-data-first.">Build model and make some fake data first.</a></li>
 <li class="toctree-l3"><a class="reference internal" href="#Now-we-perform-pre-training-with-no-label.">Now we perform pre-training with no label.</a></li>
 <li class="toctree-l3"><a class="reference internal" href="#Then,-we-can-go-for-fine-tuning-part-with-class-labels.">Then, we can go for fine tuning part with class labels.</a></li>
 <li class="toctree-l3"><a class="reference internal" href="#To-explain-model.">To explain model.</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#Cleanup-Env">Cleanup Env</a></li>
 </ul>
 </li>
+<li class="toctree-l2"><a class="reference internal" href="pertubation.html">FateZ Multiomic Pertubation Effect Prediction(?)</a></li>
 </ul>
 </li>
 </ul>
@@ -361,26 +365,24 @@ div.rendered_html tbody tr:hover {
 <h1>FateZ Explain<a class="headerlink" href="#FateZ-Explain" title="Permalink to this heading"></a></h1>
 <p>This notebook demonstrate how to utilize explanatory methods of FateZ models.</p>
 <div class="nbinput docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[17]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[1]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">os</span>
 <span class="kn">import</span> <span class="nn">sys</span>
 <span class="kn">import</span> <span class="nn">torch</span>
 <span class="kn">from</span> <span class="nn">torch.utils.data</span> <span class="kn">import</span> <span class="n">DataLoader</span>
+<span class="kn">import</span> <span class="nn">fatez.lib</span> <span class="k">as</span> <span class="nn">lib</span>
 <span class="kn">import</span> <span class="nn">fatez.test</span> <span class="k">as</span> <span class="nn">test</span>
 <span class="kn">import</span> <span class="nn">fatez.model</span> <span class="k">as</span> <span class="nn">model</span>
 <span class="kn">import</span> <span class="nn">fatez.tool.JSON</span> <span class="k">as</span> <span class="nn">JSON</span>
 <span class="kn">import</span> <span class="nn">fatez.process</span> <span class="k">as</span> <span class="nn">process</span>
+<span class="kn">import</span> <span class="nn">fatez.process.worker</span> <span class="k">as</span> <span class="nn">worker</span>
 <span class="kn">import</span> <span class="nn">fatez.process.fine_tuner</span> <span class="k">as</span> <span class="nn">fine_tuner</span>
 <span class="kn">import</span> <span class="nn">fatez.process.pre_trainer</span> <span class="k">as</span> <span class="nn">pre_trainer</span>
 <span class="kn">from</span> <span class="nn">pkg_resources</span> <span class="kn">import</span> <span class="n">resource_filename</span>
 
-<span class="c1"># Ignoring warnings because of using LazyLinear</span>
-<span class="kn">import</span> <span class="nn">warnings</span>
-<span class="n">warnings</span><span class="o">.</span><span class="n">filterwarnings</span><span class="p">(</span><span class="s1">&#39;ignore&#39;</span><span class="p">)</span>
-
-<span class="nb">print</span><span class="p">(</span><span class="s1">&#39;Done&#39;</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="s1">&#39;Done Import&#39;</span><span class="p">)</span>
 </pre></div>
 </div>
 </div>
@@ -389,13 +391,13 @@ div.rendered_html tbody tr:hover {
 </div>
 <div class="output_area docutils container">
 <div class="highlight"><pre>
-Done
+Done Import
 </pre></div></div>
 </div>
 <div class="section" id="Build-model-and-make-some-fake-data-first.">
 <h2>Build model and make some fake data first.<a class="headerlink" href="#Build-model-and-make-some-fake-data-first." title="Permalink to this heading"></a></h2>
 <div class="nbinput docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[18]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[2]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># Parameters</span>
@@ -404,19 +406,21 @@ Done
     <span class="s1">&#39;batch_size&#39;</span><span class="p">:</span> <span class="mi">1</span><span class="p">,</span>      <span class="c1"># Batch size</span>
 <span class="p">}</span>
 
-<span class="c1"># Load built-in config file</span>
+<span class="c1"># Init worker env</span>
 <span class="n">config</span> <span class="o">=</span> <span class="n">JSON</span><span class="o">.</span><span class="n">decode</span><span class="p">(</span><span class="n">resource_filename</span><span class="p">(</span>
         <span class="vm">__name__</span><span class="p">,</span> <span class="s1">&#39;../../fatez/data/config/gat_bert_config.json&#39;</span>
     <span class="p">)</span>
 <span class="p">)</span>
-
-<span class="n">factory_kwargs</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;device&#39;</span><span class="p">:</span> <span class="s1">&#39;cuda&#39;</span><span class="p">,</span> <span class="s1">&#39;dtype&#39;</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">float32</span><span class="p">,}</span>
+<span class="n">suppressor</span> <span class="o">=</span> <span class="n">process</span><span class="o">.</span><span class="n">Quiet_Mode</span><span class="p">()</span>
+<span class="n">device</span> <span class="o">=</span> <span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+<span class="n">dtype</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">float32</span>
+<span class="n">worker</span><span class="o">.</span><span class="n">setup</span><span class="p">(</span><span class="n">device</span><span class="p">,</span> <span class="n">master_port</span> <span class="o">=</span> <span class="s1">&#39;2307&#39;</span><span class="p">)</span>
 
 <span class="c1"># Generate Fake data</span>
 <span class="n">faker</span> <span class="o">=</span> <span class="n">test</span><span class="o">.</span><span class="n">Faker</span><span class="p">(</span><span class="n">model_config</span> <span class="o">=</span> <span class="n">config</span><span class="p">,</span> <span class="o">**</span><span class="n">params</span><span class="p">)</span>
 <span class="n">train_dataloader</span> <span class="o">=</span> <span class="n">faker</span><span class="o">.</span><span class="n">make_data_loader</span><span class="p">()</span>
 
-<span class="nb">print</span><span class="p">(</span><span class="s1">&#39;Done&#39;</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="s1">&#39;Done Init&#39;</span><span class="p">)</span>
 </pre></div>
 </div>
 </div>
@@ -425,7 +429,7 @@ Done
 </div>
 <div class="output_area docutils container">
 <div class="highlight"><pre>
-Done
+Done Init
 </pre></div></div>
 </div>
 </div>
@@ -433,11 +437,13 @@ Done
 <h2>Now we perform pre-training with no label.<a class="headerlink" href="#Now-we-perform-pre-training-with-no-label." title="Permalink to this heading"></a></h2>
 <p>Here trainer’s <span class="math notranslate nohighlight">\(train\_adj\)</span> is set to False, and the model is NOT reconstructing the adjacency matrices, etc.</p>
 <div class="nbinput docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[19]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[3]:
 </pre></div>
 </div>
-<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">trainer</span> <span class="o">=</span> <span class="n">pre_trainer</span><span class="o">.</span><span class="n">Set</span><span class="p">(</span><span class="n">config</span><span class="p">,</span> <span class="n">factory_kwargs</span><span class="p">)</span>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">trainer</span> <span class="o">=</span> <span class="n">pre_trainer</span><span class="o">.</span><span class="n">Set</span><span class="p">(</span><span class="n">config</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">dtype</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">device</span><span class="p">)</span>
+<span class="n">suppressor</span><span class="o">.</span><span class="n">on</span><span class="p">()</span>
 <span class="n">report</span> <span class="o">=</span> <span class="n">trainer</span><span class="o">.</span><span class="n">train</span><span class="p">(</span><span class="n">train_dataloader</span><span class="p">,</span> <span class="n">report_batch</span> <span class="o">=</span> <span class="kc">True</span><span class="p">)</span>
+<span class="n">suppressor</span><span class="o">.</span><span class="n">off</span><span class="p">()</span>
 <span class="nb">print</span><span class="p">(</span><span class="n">report</span><span class="p">)</span>
 </pre></div>
 </div>
@@ -448,27 +454,29 @@ Done
 <div class="output_area docutils container">
 <div class="highlight"><pre>
         Loss
-0   1.523740
-1   2.056911
-2   2.464677
-3   2.160961
-4   1.769112
-5   2.518550
-6   2.565397
-7   1.717235
-8   2.797816
-9   2.683969
-10  2.225837
+0   1.307709
+1   7.125144
+2   7.212573
+3   7.185053
+4   1.215182
+5   7.039515
+6   6.969513
+7   1.040767
+8   1.182723
+9   1.147289
+10  4.142547
 </pre></div></div>
 </div>
 <p>In the case of pre-training with reconstructing adjacency matrices as well.</p>
 <div class="nbinput docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[20]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[4]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">config</span><span class="p">[</span><span class="s1">&#39;pre_trainer&#39;</span><span class="p">][</span><span class="s1">&#39;train_adj&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="kc">True</span>
-<span class="n">trainer</span> <span class="o">=</span> <span class="n">pre_trainer</span><span class="o">.</span><span class="n">Set</span><span class="p">(</span><span class="n">config</span><span class="p">,</span> <span class="n">factory_kwargs</span><span class="p">)</span>
+<span class="n">trainer</span> <span class="o">=</span> <span class="n">pre_trainer</span><span class="o">.</span><span class="n">Set</span><span class="p">(</span><span class="n">config</span><span class="p">,</span> <span class="n">dtype</span> <span class="o">=</span> <span class="n">dtype</span><span class="p">,</span> <span class="n">device</span> <span class="o">=</span> <span class="n">device</span><span class="p">)</span>
+<span class="n">suppressor</span><span class="o">.</span><span class="n">on</span><span class="p">()</span>
 <span class="n">report</span> <span class="o">=</span> <span class="n">trainer</span><span class="o">.</span><span class="n">train</span><span class="p">(</span><span class="n">train_dataloader</span><span class="p">,</span> <span class="n">report_batch</span> <span class="o">=</span> <span class="kc">True</span><span class="p">)</span>
+<span class="n">suppressor</span><span class="o">.</span><span class="n">off</span><span class="p">()</span>
 <span class="nb">print</span><span class="p">(</span><span class="n">report</span><span class="p">)</span>
 </pre></div>
 </div>
@@ -479,27 +487,27 @@ Done
 <div class="output_area docutils container">
 <div class="highlight"><pre>
         Loss
-0   1.895170
-1   1.933711
-2   2.200883
-3   2.626011
-4   2.680342
-5   1.341890
-6   2.156959
-7   2.802052
-8   1.489988
-9   2.411124
-10  2.153813
+0   1.197746
+1   7.171856
+2   7.135652
+3   7.115325
+4   1.138201
+5   1.099432
+6   7.150834
+7   1.107591
+8   1.277280
+9   7.157175
+10  4.155109
 </pre></div></div>
 </div>
 </div>
 <div class="section" id="Then,-we-can-go-for-fine-tuning-part-with-class-labels.">
 <h2>Then, we can go for fine tuning part with class labels.<a class="headerlink" href="#Then,-we-can-go-for-fine-tuning-part-with-class-labels." title="Permalink to this heading"></a></h2>
 <div class="nbinput docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[21]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[5]:
 </pre></div>
 </div>
-<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">tuner</span> <span class="o">=</span> <span class="n">fine_tuner</span><span class="o">.</span><span class="n">Set</span><span class="p">(</span><span class="n">config</span><span class="p">,</span> <span class="n">factory_kwargs</span><span class="p">,</span> <span class="n">prev_model</span> <span class="o">=</span> <span class="n">trainer</span><span class="o">.</span><span class="n">model</span><span class="p">)</span>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">tuner</span> <span class="o">=</span> <span class="n">fine_tuner</span><span class="o">.</span><span class="n">Set</span><span class="p">(</span><span class="n">config</span><span class="p">,</span> <span class="n">prev_model</span> <span class="o">=</span> <span class="n">trainer</span><span class="p">,</span> <span class="n">dtype</span> <span class="o">=</span> <span class="n">dtype</span><span class="p">,</span> <span class="n">device</span> <span class="o">=</span> <span class="n">device</span><span class="p">)</span>
 <span class="n">report</span> <span class="o">=</span> <span class="n">tuner</span><span class="o">.</span><span class="n">train</span><span class="p">(</span><span class="n">train_dataloader</span><span class="p">,</span> <span class="n">report_batch</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,)</span>
 <span class="nb">print</span><span class="p">(</span><span class="n">report</span><span class="p">)</span>
 </pre></div>
@@ -511,17 +519,17 @@ Done
 <div class="output_area docutils container">
 <div class="highlight"><pre>
         Loss  ACC
-0   0.493794  1.0
-1   0.446725  1.0
-2   1.043058  0.0
-3   1.076692  0.0
-4   1.044668  0.0
-5   0.486640  1.0
-6   1.019905  0.0
-7   0.943047  0.0
-8   0.482891  1.0
-9   0.489378  1.0
-10  0.752680  0.5
+0   0.649586  1.0
+1   0.743881  0.0
+2   0.645328  1.0
+3   0.744279  0.0
+4   0.645847  1.0
+5   0.645064  1.0
+6   0.744720  0.0
+7   0.747999  0.0
+8   0.645316  1.0
+9   0.746752  0.0
+10  0.695877  0.5
 </pre></div></div>
 </div>
 </div>
@@ -529,19 +537,20 @@ Done
 <h2>To explain model.<a class="headerlink" href="#To-explain-model." title="Permalink to this heading"></a></h2>
 <p>Three kinds of explanations are available: 1. edge_explain 2. regulon_explain 3. node_explain</p>
 <div class="nbinput docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[25]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[6]:
 </pre></div>
 </div>
-<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">adj_exp</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="n">config</span><span class="p">[</span><span class="s1">&#39;input_sizes&#39;</span><span class="p">][</span><span class="s1">&#39;n_reg&#39;</span><span class="p">],</span> <span class="n">config</span><span class="p">[</span><span class="s1">&#39;input_sizes&#39;</span><span class="p">][</span><span class="s1">&#39;n_node&#39;</span><span class="p">]))</span>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># Initializing edge explain matrix and regulon explain matrix</span>
+<span class="n">adj_exp</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="n">config</span><span class="p">[</span><span class="s1">&#39;input_sizes&#39;</span><span class="p">][</span><span class="s1">&#39;n_reg&#39;</span><span class="p">],</span> <span class="n">config</span><span class="p">[</span><span class="s1">&#39;input_sizes&#39;</span><span class="p">][</span><span class="s1">&#39;n_node&#39;</span><span class="p">]))</span>
 <span class="n">reg_exp</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="n">config</span><span class="p">[</span><span class="s1">&#39;input_sizes&#39;</span><span class="p">][</span><span class="s1">&#39;n_reg&#39;</span><span class="p">],</span> <span class="n">config</span><span class="p">[</span><span class="s1">&#39;encoder&#39;</span><span class="p">][</span><span class="s1">&#39;d_model&#39;</span><span class="p">]))</span>
 
 <span class="c1"># Make background data</span>
-<span class="n">bg</span> <span class="o">=</span> <span class="p">[</span><span class="n">a</span> <span class="k">for</span> <span class="n">a</span><span class="p">,</span><span class="n">_</span> <span class="ow">in</span> <span class="n">DataLoader</span><span class="p">(</span><span class="n">train_dataloader</span><span class="o">.</span><span class="n">dataset</span><span class="p">,</span> <span class="n">batch_size</span> <span class="o">=</span> <span class="n">params</span><span class="p">[</span><span class="s1">&#39;n_sample&#39;</span><span class="p">])][</span><span class="mi">0</span><span class="p">]</span>
+<span class="n">bg</span> <span class="o">=</span> <span class="p">[</span><span class="n">a</span> <span class="k">for</span> <span class="n">a</span><span class="p">,</span><span class="n">_</span> <span class="ow">in</span> <span class="n">DataLoader</span><span class="p">(</span><span class="n">train_dataloader</span><span class="o">.</span><span class="n">dataset</span><span class="p">,</span> <span class="n">faker</span><span class="o">.</span><span class="n">n_sample</span><span class="p">,</span> <span class="n">collate_fn</span> <span class="o">=</span> <span class="n">lib</span><span class="o">.</span><span class="n">collate_fn</span><span class="p">,)][</span><span class="mi">0</span><span class="p">]</span>
 <span class="c1"># Set explainer through taking input data from pseudo-dataloader</span>
-<span class="n">explain</span> <span class="o">=</span> <span class="n">tuner</span><span class="o">.</span><span class="n">model</span><span class="o">.</span><span class="n">make_explainer</span><span class="p">([</span><span class="n">a</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">factory_kwargs</span><span class="p">[</span><span class="s1">&#39;device&#39;</span><span class="p">])</span> <span class="k">for</span> <span class="n">a</span> <span class="ow">in</span> <span class="n">bg</span><span class="p">])</span>
+<span class="n">explain</span> <span class="o">=</span> <span class="n">tuner</span><span class="o">.</span><span class="n">model</span><span class="o">.</span><span class="n">make_explainer</span><span class="p">([</span><span class="n">a</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">tuner</span><span class="o">.</span><span class="n">device</span><span class="p">)</span> <span class="k">for</span> <span class="n">a</span> <span class="ow">in</span> <span class="n">bg</span><span class="p">])</span>
 
 <span class="k">for</span> <span class="n">x</span><span class="p">,</span><span class="n">_</span> <span class="ow">in</span> <span class="n">train_dataloader</span><span class="p">:</span>
-    <span class="n">data</span> <span class="o">=</span> <span class="p">[</span><span class="n">a</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">factory_kwargs</span><span class="p">[</span><span class="s1">&#39;device&#39;</span><span class="p">])</span> <span class="k">for</span> <span class="n">a</span> <span class="ow">in</span> <span class="n">x</span><span class="p">]</span>
+    <span class="n">data</span> <span class="o">=</span> <span class="p">[</span><span class="n">a</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">tuner</span><span class="o">.</span><span class="n">device</span><span class="p">)</span> <span class="k">for</span> <span class="n">a</span> <span class="ow">in</span> <span class="n">x</span><span class="p">]</span>
     <span class="n">adj_temp</span><span class="p">,</span> <span class="n">reg_temp</span><span class="p">,</span> <span class="nb">vars</span> <span class="o">=</span> <span class="n">tuner</span><span class="o">.</span><span class="n">model</span><span class="o">.</span><span class="n">explain_batch</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">explain</span><span class="p">)</span>
     <span class="n">adj_exp</span> <span class="o">+=</span> <span class="n">adj_temp</span>
 
@@ -571,22 +580,43 @@ Explaining 2 classes.
 Each class has regulon explain in shape of (4, 4).
 
 Edge Explain:
- tensor([[0.0268, 0.0269, 0.0271, 0.0245, 0.0247, 0.0253, 0.0252, 0.0257, 0.0000,
-         0.0367],
-        [0.0328, 0.0317, 0.0301, 0.0304, 0.0290, 0.0296, 0.0320, 0.0267, 0.0000,
-         0.0273],
-        [0.0282, 0.0253, 0.0250, 0.0250, 0.0254, 0.0252, 0.0271, 0.0290, 0.0000,
-         0.0285],
-        [0.0255, 0.0267, 0.0266, 0.0264, 0.0292, 0.0260, 0.0326, 0.0275, 0.0000,
-         0.0285]])
+ tensor([[0.0302, 0.0293, 0.0292, 0.0280, 0.0272, 0.0294, 0.0258, 0.0309, 0.0000,
+         0.0291],
+        [0.0342, 0.0287, 0.0284, 0.0255, 0.0264, 0.0269, 0.0298, 0.0260, 0.0000,
+         0.0301],
+        [0.0294, 0.0231, 0.0260, 0.0229, 0.0267, 0.0267, 0.0304, 0.0262, 0.0000,
+         0.0266],
+        [0.0254, 0.0262, 0.0260, 0.0251, 0.0285, 0.0309, 0.0297, 0.0265, 0.0000,
+         0.0287]])
 
 Reg Explain:
- tensor([0.0036, 0.0017, 0.0130, 0.0060], dtype=torch.float64)
+ tensor([0.0008, 0.0008, 0.0003, 0.0016], dtype=torch.float64)
 
 Node Explain:
- tensor([0.0007, 0.0006, 0.0006, 0.0006, 0.0006, 0.0006, 0.0007, 0.0007, 0.0000,
-        0.0007], dtype=torch.float64)
+ tensor([9.7898e-05, 9.2607e-05, 9.2633e-05, 8.7263e-05, 9.3675e-05, 9.9449e-05,
+        9.7947e-05, 9.3009e-05, 0.0000e+00, 9.8218e-05], dtype=torch.float64)
 
+</pre></div></div>
+</div>
+</div>
+<div class="section" id="Cleanup-Env">
+<h2>Cleanup Env<a class="headerlink" href="#Cleanup-Env" title="Permalink to this heading"></a></h2>
+<p>Need to clean up environment once finsihed.</p>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[7]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">worker</span><span class="o">.</span><span class="n">cleanup</span><span class="p">(</span><span class="n">device</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="s1">&#39;Clean up worker env.&#39;</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+Clean up worker env.
 </pre></div></div>
 </div>
 </div>
@@ -597,6 +627,7 @@ Node Explain:
           </div>
           <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
         <a href="clustering.html" class="btn btn-neutral float-left" title="FateZ Clustering" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="pertubation.html" class="btn btn-neutral float-right" title="FateZ Multiomic Pertubation Effect Prediction(?)" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
     </div>
 
   <hr/>

@@ -18,6 +18,7 @@ class Model(nn.Module):
     def __init__(self,
             d_model:int = 512,
             n_layer:int = 6,
+            freeze_encoder:bool = True,
             dtype:str = None,
             **kwargs
             ):
@@ -29,7 +30,7 @@ class Model(nn.Module):
             Number of encoder layers.
         """
         super(Model, self).__init__()
-
+        self.freeze_encoder = freeze_encoder
         self.model = OrderedDict([])
         for i in range(n_layer):
             self.model.update(

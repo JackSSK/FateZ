@@ -6,8 +6,10 @@ Note: Try to keep line length within 81 Chars
 
 author: jjy
 """
+import time
 
 import anndata
+import datetime
 import pandas as pd
 import random
 import re
@@ -26,6 +28,14 @@ import warnings
 import concurrent.futures
 from sklearn.preprocessing import MinMaxScaler
 
+
+def bin_row(row, n_bin):
+
+    percentiles = np.linspace(0, 1, num=n_bin + 1)
+    bins = np.quantile(row, percentiles)
+    binned_row = pd.cut(row, bins=bins, labels=False, include_lowest=True)
+
+    return binned_row + 1
 
 
 class Preprocessor():
@@ -278,7 +288,6 @@ class Preprocessor():
 
             self.rna_mt = self.rna_mt[:, gff_intersect_gene]
 
-
         template.load_cres()
         template.get_genetic_regions()
         annotations = dict()
@@ -415,18 +424,19 @@ class Preprocessor():
         start1 = int(cell_use_idx.split('-')[0])
         end1 = int(cell_use_idx.split('-')[1])
         cell_use = list(self.rna_mt.obs.index)[start1:end1]
-        atac_count = self.atac_mt.X.todense()
+        t1 = time.time()
+        fea_mt = pd.DataFrame(
+            {
+                'gene_mean_exp': [0] * len(self.gff_gene),
+                'peak_mean_count': [0] * len(self.gff_gene)
+            },
+            index=list(self.gff_gene),
+            dtype='float32'
+        )
+
         for cell in cell_use:
-
-            fea_mt = pd.DataFrame(
-                {
-                    'gene_mean_exp': [0] * len(self.gff_gene),
-                    'peak_mean_count': [0] * len(self.gff_gene)
-                },
-                index=list(self.gff_gene),
-                dtype='float64'
-            )
-
+            fea_mt['gene_mean_exp'] = 0
+            fea_mt['peak_mean_count'] = 0
             for i in list(gff_gene):
 
                 if i in rna_gene:
@@ -445,6 +455,9 @@ class Preprocessor():
                 fea_mt.loc[i][1] = gene_peak_count
 
             fea_mt_dict[cell] = fea_mt
+        t2 = time.time()
+        print('batch time')
+        print(t2-t1)
         return fea_mt_dict
 
 

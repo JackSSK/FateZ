@@ -8,80 +8,59 @@ import random
 import torch
 import torch.nn as nn
 import torch.optim as optim
+from torch.nn.parallel import DistributedDataParallel as DDP
 import pandas as pd
 import fatez.model as model
 import fatez.model.gnn as gnn
 import fatez.model.transformer as transformer
 import fatez.model.position_embedder as pe
 import fatez.lib as lib
+from fatez.process.masker import Dimension_Masker, Feature_Masker
 
 
 
-def Set(config:dict = None, factory_kwargs:dict = None, prev_model = None,):
+def Set(
+    config:dict=None,
+    prev_model=None,
+    load_full_model:bool = False,
+    load_opt_sch:bool = True,
+    device:str='cpu',
+    dtype:str=None,
+    **kwargs
+    ):
     """
-    Set up a Trainer object based on given config file (and pre-trained model)
+    Set up a Trainer object based on given config file and pre-trained model
     """
-    if prev_model is None:
-        return Trainer(
+    net = Trainer(
+        input_sizes = config['input_sizes'],
+        gat = gnn.Set(config['gnn'], config['input_sizes'], dtype=dtype),
+        encoder = transformer.Encoder(**config['encoder'],),
+        graph_embedder = pe.Set(
+            config['graph_embedder'], config['input_sizes'], dtype=dtype
+        ),
+        rep_embedder = pe.Set(
+            config['rep_embedder'], config['input_sizes'], dtype=dtype
+        ),
+        dtype = dtype,
+        **config['pre_trainer'],
+        **kwargs,
+    )
+    if prev_model is not None and str(type(prev_model)) == "<class 'dict'>":
+        model.Load_state_dict(net, prev_model, load_opt_sch)
+    elif prev_model is not None:
+        net = Trainer(
             input_sizes = config['input_sizes'],
-            gat = gnn.Set(config['gnn'], config['input_sizes'], factory_kwargs),
-            encoder = transformer.Encoder(**config['encoder'],**factory_kwargs),
-            graph_embedder = pe.Set(
-                config['graph_embedder'], config['input_sizes'], factory_kwargs
-            ),
-            rep_embedder = pe.Set(
-                config['rep_embedder'], config['input_sizes'], factory_kwargs
-            ),
+            gat = prev_model.model.gat,
+            encoder = prev_model.model.bert_model.encoder,
+            graph_embedder = prev_model.model.graph_embedder,
+            rep_embedder = prev_model.model.bert_model.rep_embedder,
+            dtype = dtype,
             **config['pre_trainer'],
-            **factory_kwargs,
+            **kwargs,
         )
-    else:
-        return Trainer(
-            input_sizes = config['input_sizes'],
-            gat = prev_model.gat,
-            encoder = prev_model.bert_model.encoder,
-            graph_embedder = prev_model.graph_embedder,
-            rep_embedder = prev_model.bert_model.rep_embedder,
-            **config['pre_trainer'],
-            **factory_kwargs,
-        )
-
-
-
-class Masker(object):
-    """
-    Make masks for BERT encoder input.
-
-    ToDo:
-    Mask data on sparse matrices instead of full matrix.
-    Then, the loss should be calculated only considering masked values?
-    """
-    def __init__(self, ratio, seed = None):
-        super(Masker, self).__init__()
-        self.ratio = ratio
-        self.seed = seed
-        self.choices = None
-
-    def make_2d_mask(self, size, dtype:str = None):
-        # Set random seed
-        if self.seed != None:
-            random.seed(self.seed)
-            self.seed += 1
-        # Make tensors
-        answer = torch.ones(size)
-        mask = torch.zeros(size[-1])
-        # Set random choices to mask
-        choices = random.choices(range(size[-2]), k = int(size[-2]*self.ratio))
-        assert choices != None
-        self.choices = choices
-        # Make mask
-        for ind in choices:
-            answer[ind] = mask
-        return answer
-
-    def mask(self, input,):
-        mask = self.make_2d_mask(input[0].size(), input.dtype).to(input.device)
-        return torch.multiply(input, mask)
+    # Setup worker env
+    net.setup(device=device)
+    return net
 
 
 
@@ -92,7 +71,7 @@ class Model(nn.Module):
     def __init__(self,
         graph_embedder = None,
         gat = None,
-        masker:Masker = Masker(ratio = 0.0),
+        masker = Feature_Masker(),
         bert_model:transformer.Reconstructor = None,
         ):
         super(Model, self).__init__()
@@ -101,13 +80,15 @@ class Model(nn.Module):
         self.bert_model = bert_model
         self.masker = masker
 
-
-    def forward(self, input):
-        output = self.graph_embedder(input)
-        output = self.gat(output)
+    def forward(self, input, return_embed = False):
+        embed = self.graph_embedder(input)
+        output = self.gat(embed)
         output = self.masker.mask(output,)
         output = self.bert_model(output,)
-        return output
+        if return_embed:
+            return output, embed
+        else:
+            return output
 
     def get_gat_out(self, input,):
         with torch.no_grad():
@@ -151,6 +132,7 @@ class Trainer(object):
         graph_embedder = pe.Skip(),
         rep_embedder = pe.Skip(),
         train_adj:bool = False,
+        node_recon_dim:int = None,
 
         # Adam optimizer settings
         lr:float = 1e-4,
@@ -168,27 +150,29 @@ class Trainer(object):
         # Criterion params
         reduction:str = 'mean',
 
-        # factory_kwargs
+        # factory kwargs
         device:str = 'cpu',
         dtype:str = None,
         **kwargs
         ):
         super(Trainer, self).__init__()
         self.input_sizes = input_sizes
-        self.factory_kwargs = {'device': device, 'dtype': dtype}
+        self.device = device
+        self.dtype = dtype
         self.model = Model(
             gat = gat,
-            masker = Masker(**masker_params),
+            masker = Feature_Masker(**masker_params),
             graph_embedder = graph_embedder,
             bert_model = transformer.Reconstructor(
-                encoder = encoder,
-                # Will need to take this away if embed before GAT.
                 rep_embedder = rep_embedder,
+                encoder = encoder,
                 input_sizes = self.input_sizes,
                 train_adj = train_adj,
-                **self.factory_kwargs,
+                node_recon_dim = node_recon_dim,
+                dtype = self.dtype,
             ),
         )
+        # Torch 2
         # self.model = torch.compile(self.model)
 
         # Setting the Adam optimizer with hyper-param
@@ -219,37 +203,33 @@ class Trainer(object):
         # Using L1 Loss for criterion
         self.criterion = nn.L1Loss(reduction = reduction)
 
-        # Not supporting parallel training now
-        # # Distributed GPU training if CUDA can detect more than 1 GPU
-        # if with_cuda and torch.cuda.device_count() > 1:
-        #     self.model = nn.DataParallel(self.model, device_ids = cuda_devices)
-
-    def train(self, data_loader, report_batch:bool = False):
-        self.model.train()
-        self.model.to(self.factory_kwargs['device'])
+    def train(self, data_loader, report_batch:bool = False,):
+        self.worker.train(True)
         best_loss = 99
         loss_all = 0
         report = list()
 
         for x, _ in data_loader:
-            input = [ele.to(self.factory_kwargs['device']) for ele in x]
-            node_rec, adj_rec = self.model(input)
+            input = [ele.to(self.device) for ele in x]
+            recon, embed_data = self.worker(input, return_embed = True)
 
-            # Get total loss
-            origin_nodes = torch.split(
-                torch.stack([ele.x for ele in input], 0),
-                node_rec.shape[1],
-                dim = 1
-            )[0]
-            loss = self.criterion(node_rec, origin_nodes)
-            if adj_rec is not None:
+            # Get the input tensors
+            node_mat = torch.stack([ele.x for ele in embed_data], 0)
+            # The reg only version
+            # node_mat = torch.split(
+            #     torch.stack([ele.x for ele in input], 0),
+            #     recon[0].shape[1],
+            #     dim = 1
+            # )[0]
+            loss = self.criterion(recon[0], node_mat)
+
+            # For Adjacent Matrix reconstruction
+            if recon[1] is not None:
                 size = self.input_sizes
-                loss += self.criterion(
-                    adj_rec,
-                    lib.get_dense_adjs(
-                        input, (size['n_reg'],size['n_node'],size['edge_attr'])
-                    )
+                adj_mat = lib.get_dense_adjs(
+                    embed_data, (size['n_reg'],size['n_node'],size['edge_attr'])
                 )
+                loss += self.criterion(recon[1], adj_mat)
 
             loss.backward()
             nn.utils.clip_grad_norm_(self.model.parameters(), self.max_norm)
@@ -263,15 +243,29 @@ class Trainer(object):
             # Some logs
             if report_batch: report.append([loss.item()])
 
-
         self.scheduler.step()
         report.append([loss_all / len(data_loader)])
         report = pd.DataFrame(report)
         report.columns = ['Loss', ]
         return report
 
-    def switch_device(self, device:str = 'cpu'):
-        self.factory_kwargs['device'] = device
-        self.model = self.model.to(device)
-        self.model.gat.switch_device(device)
+    def setup(self, device='cpu',):
+        if str(type(device)) == "<class 'list'>":
+            self.device = torch.device('cuda:0')
+            self._setup()
+            self.worker = DDP(self.model, device_ids = device)
+        elif str(type(device)) == "<class 'str'>":
+            self.device = device
+            self._setup()
+            self.worker = self.model
         return
+
+    def _setup(self):
+        self.model = self.model.to(self.device)
+        self._set_state_values(self.optimizer.state.values())
+
+    def _set_state_values(self, state_values):
+        for state in state_values:
+            for k,v in state.items():
+                if torch.is_tensor(v):
+                    state[k] = v.to(self.device)

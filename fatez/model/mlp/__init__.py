@@ -6,7 +6,6 @@ author: jy
 """
 import torch
 import torch.nn as nn
-import torch.nn.functional as F
 from collections import OrderedDict
 
 
@@ -18,7 +17,8 @@ class Model(nn.Module):
     """
     def __init__(self,
         type:str = 'CLF',
-        d_model:int = 512,
+        n_features:int = None,
+        d_model:int = None,
         n_layer_set:int = 2,
         n_hidden:int = 2,
         n_class:int = 100,
@@ -26,8 +26,11 @@ class Model(nn.Module):
         **kwargs
         ):
         """
+        :param n_features:int = None
+            Number of input genes/regulons.
+
         :param d_model:int = None
-            Number of each gene's input features.
+            Number of each gene's features.
 
         :param n_layer_set:int = None
             Number of layer set.
@@ -40,32 +43,39 @@ class Model(nn.Module):
         """
         super(Model, self).__init__()
         if n_layer_set == 1:
-            self.model = OrderedDict([
+            model = OrderedDict([
                 (f'decide', nn.Linear(d_model, n_class, dtype = dtype)),
+                (f'act', nn.ReLU(inplace = True)),
             ])
         elif n_layer_set >= 2:
-            self.model = OrderedDict([
+            model = OrderedDict([
                 (f'layer0', nn.Linear(d_model, n_hidden, dtype = dtype)),
-                (f'act0', nn.LogSoftmax(dim = -1)),
+                (f'act0', nn.ReLU(inplace = True)),
             ])
             for i in range(n_layer_set - 1):
-                self.model.update(
+                model.update(
                     {f'layer{i+1}': nn.Linear(n_hidden, n_hidden, dtype=dtype)}
                 )
-                self.model.update({f'act{i+1}': nn.LogSoftmax(dim = -1)})
-            self.model.update({f'fc': nn.Flatten(start_dim = 1, end_dim = -1)})
-            self.model.update({f'decide': nn.LazyLinear(n_class, dtype=dtype)})
+                model.update({f'act{i+1}': nn.ReLU(inplace = True)})
+            model.update({f'fc': nn.Flatten(start_dim = 1, end_dim = -1)})
+
+            if n_features is None:
+                decision = nn.LazyLinear(n_class, dtype=dtype)
+            else:
+                decision = nn.Linear(n_features*n_hidden, n_class, dtype=dtype)
+            model.update({f'decide': decision})
+
         else:
             raise Exception(f'Invalid n_layer_set:{n_layer_set}')
 
         # Add softmax activation if acting as classifier
-        if type.upper() == 'CLF':
-            self.model.update({f'act_last': nn.Softmax(dim = -1)})
+        # if type.upper() == 'CLF':
+        #     assert True
         # Only one layer is acceptable for data reconstructor
-        elif type.upper() == 'RECON':
+        if type.upper() == 'RECON':
             assert n_layer_set == 1
 
-        self.model = nn.Sequential(self.model)
+        self.model = nn.Sequential(model)
 
     def forward(self, input):
         return self.model(input)

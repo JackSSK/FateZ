@@ -24,6 +24,7 @@ class Reconstructor(nn.Module):
         adapter:str = None,
         input_sizes:dict = None,
         train_adj:bool = False,
+        node_recon_dim:int = None,
         dtype:str = None,
         **kwargs
         ):
@@ -41,20 +42,33 @@ class Reconstructor(nn.Module):
             Whether reconstructing adjacent matrices or not.
         """
         super(Reconstructor, self).__init__()
-        self.factory_kwargs = {'dtype': dtype}
+        self.input_sizes = input_sizes
+        self.dtype = dtype
+        if node_recon_dim is None:
+            self.node_recon_dim = self.input_sizes['node_attr']
+        else:
+            self.node_recon_dim = node_recon_dim
+        self.freeze_encoder = False
+        self.recon_adj = None
         self.rep_embedder = rep_embedder
         self.encoder = encoder
-        self.freeze_encoder = False
         self.adapter=self._set_adapter(adapter) if adapter is not None else None
-        self.input_sizes = input_sizes
-        self.recon_node = mlp.Model(
+        self.relu = nn.ReLU(inplace = True)
+        self.recon_node_1 = mlp.Model(
             type = 'RECON',
             d_model = self.encoder.d_model,
             n_layer_set = 1,
-            n_class = self.input_sizes['node_attr'],
+            n_class = self.input_sizes['n_node'],
             dtype = dtype
         )
-        self.recon_adj = None
+        self.recon_node_2 = mlp.Model(
+            type = 'RECON',
+            d_model = self.input_sizes['n_reg'],
+            n_layer_set = 1,
+            n_class = self.node_recon_dim ,
+            dtype = dtype
+        )
+        self.last_act = nn.LogSoftmax(dim = -2)
 
         if train_adj:
             self.recon_adj = mlp.Model(
@@ -74,17 +88,20 @@ class Reconstructor(nn.Module):
             is_causal: bool = None,
             ) -> torch.Tensor:
         out = self.rep_embedder(src)
+        # Get encoder/adapter output
         if self.adapter is None:
             out = self.encoder(out, mask, src_key_padding_mask, is_causal)
         else:
             out=self.deploy_adapter(out, mask, src_key_padding_mask, is_causal)
-        node_mat = self.recon_node(out)
+        # Reconstruct mats
+        node_mat = self.recon_node_1(out)
+        node_mat = self.recon_node_2(torch.transpose(node_mat,1,2))
+        node_mat = self.last_act(node_mat)
         if self.recon_adj != None:
-            adj_mat = self.recon_adj(out)
+            return node_mat, self.recon_adj(out)
         else:
-            adj_mat = None
+            return node_mat, None
 
-        return node_mat, adj_mat
 
     def deploy_adapter(self,
             src: torch.Tensor,
@@ -114,7 +131,7 @@ class Reconstructor(nn.Module):
             return adapter.LoRA(
                 d_model = n_dim,
                 n_layer = n_layer,
-                **self.factory_kwargs,
+                dtype = self.dtype,
             )
         else:
             raise model.Error('Unknown Adapter Type:', adp_type)

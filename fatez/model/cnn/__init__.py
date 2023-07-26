@@ -7,12 +7,6 @@ Just in case if LazyLinear having problem
 You may want to try torchlayers
 # import torchlayers as tl
 
-Lazy module is still under development
-But so far it's working just fine.
-
-flattenLength = int(featureNum / pow(pool_kernel_size, n_layer_set))
-self.dense = nn.Linear(flattenLength, densed_size)
-
 author: jy, nkmtmsys
 """
 from fatez.model.cnn.cnn1d import Model as Model_1D

@@ -21,7 +21,7 @@ class Error(Exception):
 
 
 
-def Save(model, file_path:str = 'a.model', device:str = 'cpu',):
+def Save(model, file_path:str = 'a.model', save_full:bool = False,):
     """
     Saving a model
 
@@ -30,30 +30,68 @@ def Save(model, file_path:str = 'a.model', device:str = 'cpu',):
     :param device: device to load model
     """
     model_type = str(type(model))
-    if (re.search(r'torch.nn.modules.', model_type) or
-        re.search(r'fatez.*.Model*', model_type) or
-        re.search(r'fatez.*.Trainer*', model_type) or
-        re.search(r'fatez.*.Tuner*', model_type)
+    if (re.search(r'fatez.*.Trainer*', model_type) or
+        re.search(r'fatez.*.Tuner*', model_type) or
+            re.search(r'fatez.*.Imputer*', model_type)
         ):
-        torch.save(model.cpu(), file_path)
+        model.model = model.model.to('cpu')
+        if save_full:
+            bert_model = model.model.bert_model.state_dict()
+            encoder = None
+            rep_embedder = None
+        else:
+            bert_model = None
+            encoder = model.model.bert_model.encoder.state_dict()
+            rep_embedder = model.model.bert_model.rep_embedder.state_dict()
+        dict = {
+            'type':model_type,
+            'graph_embedder':model.model.graph_embedder.state_dict(),
+            'gnn':model.model.gat.state_dict(),
+            'encoder':encoder,
+            'rep_embedder':rep_embedder,
+            'bert_model':bert_model,
+            'optimizer':model.optimizer.state_dict(),
+            'scheduler':model.scheduler.state_dict(),
+        }
+        torch.save(dict, file_path)
     else:
         raise Error('Not Supporting Save ' + model_type)
-    return model.to(device)
+    return
 
-def Load(file_path:str = 'a.model', mode:str = 'torch', device:str = 'cpu',):
+def Load(file_path:str = 'a.model', mode:str = 'torch',):
     """
     Loading a model
 
     :param file_path: path to load model
-    :param device: device to load model
     """
     model = None
     # PyTorch Loading method
     if mode == 'torch':
-        model = torch.load(file_path)
+        dict = torch.load(file_path)
+        print('Loaded:', dict['type'])
+        return dict
     else:
         raise Error('Not Supporting Load Mode ' + mode)
-    return model.to(device)
+
+def Load_state_dict(net, state, load_opt_sch:bool = True):
+    if load_opt_sch:
+        net.optimizer.load_state_dict(state['optimizer'])
+        net.scheduler.load_state_dict(state['scheduler'])
+
+    # This part will be depreciated soon
+    if 'model' in state:
+        net.model.load_state_dict(state['model'])
+        return
+    net.model.graph_embedder.load_state_dict(state['graph_embedder'])
+    net.model.gat.load_state_dict(state['gnn'])
+    if state['bert_model'] is not None:
+        net.model.bert_model.load_state_dict(state['bert_model'])
+        # net.optimizer.load_state_dict(state['optimizer'])
+        # net.scheduler.load_state_dict(state['scheduler'])
+    else:
+        net.model.bert_model.encoder.load_state_dict(state['encoder'])
+        net.model.bert_model.rep_embedder.load_state_dict(state['rep_embedder'])
+
 
 
 

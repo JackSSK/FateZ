@@ -6,6 +6,7 @@ author: jy, nkmtmsys
 """
 import torch
 import torch.nn as nn
+import torch.nn.functional as F
 import fatez.model as model
 import fatez.model.mlp as mlp
 import fatez.model.gnn as gnn
@@ -25,6 +26,7 @@ class Classifier(nn.Module):
             rep_embedder = pe.Skip(),
             encoder:transformer.Encoder = None,
             adapter:str = 'LORA',
+            input_sizes:list = None,
             clf_type:str = 'MLP',
             clf_params:dict = {'n_hidden': 2},
             n_class:int = 100,
@@ -38,16 +40,22 @@ class Classifier(nn.Module):
         :param encoder:transformer.Encoder = None
             The Encoder to build fine-tune model with.
 
-        :param classifier = None
-            The classification model for making predictions.
+        :param adapter:str = None
+            Exp
+
+        :param input_sizes:dict = None
+            Exp
         """
         super(Classifier, self).__init__()
-        self.factory_kwargs = {'dtype': dtype}
+        self.input_sizes = input_sizes
+        self.dtype = dtype
+        self.freeze_encoder = True
         self.rep_embedder = rep_embedder
         self.encoder = encoder
-        self.freeze_encoder = True
         self.adapter=self._set_adapter(adapter) if adapter is not None else None
+        self.relu = nn.ReLU(inplace = True)
         self.classifier = self._set_classifier(
+            n_features = self.input_sizes['n_reg'],
             n_dim = encoder.d_model,
             n_class = n_class,
             clf_type = clf_type,
@@ -65,9 +73,9 @@ class Classifier(nn.Module):
             out = self.encoder(out, mask, src_key_padding_mask, is_causal)
         else:
             out=self.deploy_adapter(out, mask, src_key_padding_mask, is_causal)
-
+        # out = self.relu(out)
         out = self.classifier(out)
-        return out
+        return F.softmax(out, dim = -1)
 
     def deploy_adapter(self,
             src: torch.Tensor,
@@ -97,12 +105,13 @@ class Classifier(nn.Module):
             return adapter.LoRA(
                 d_model = n_dim,
                 n_layer = n_layer,
-                **self.factory_kwargs,
+                dtype = self.dtype,
             )
         else:
             raise model.Error('Unknown Adapter Type:', adp_type)
 
     def _set_classifier(self,
+            n_features:int = 4,
             n_dim:int = 4,
             n_class:int = 2,
             clf_type:str = 'MLP',
@@ -111,54 +120,25 @@ class Classifier(nn.Module):
         """
         Set up classifier model accordingly.
         """
+        args = {
+            'n_features': n_features,
+            'n_dim': n_dim,
+            'n_class': n_class,
+            'dtype': self.dtype,
+        }
         if clf_type.upper() == 'MLP':
-            return mlp.Model(
-                d_model = n_dim,
-                n_class = n_class,
-                **clf_params,
-                **self.factory_kwargs,
-            )
+            return mlp.Model(d_model = n_dim, **args, **clf_params,)
         elif clf_type.upper() == 'CNN_1D':
-            return cnn.Model_1D(
-                in_channels = n_dim,
-                n_class = n_class,
-                **clf_params,
-                **self.factory_kwargs,
-            )
+            return cnn.Model_1D(**args, **clf_params,)
         elif clf_type.upper() == 'CNN_2D':
-            return cnn.Model_2D(
-                in_channels = 1,
-                n_class = n_class,
-                **clf_params,
-                **self.factory_kwargs,
-            )
+            return cnn.Model_2D(**args, **clf_params,)
         elif clf_type.upper() == 'CNN_HYB':
-            return cnn.Model_Hybrid(
-                in_channels = 1,
-                n_class = n_class,
-                **clf_params,
-                **self.factory_kwargs,
-            )
+            return cnn.Model_Hybrid(**args, **clf_params,)
         elif clf_type.upper() == 'RNN':
-            return rnn.RNN(
-                input_size = n_dim,
-                n_class = n_class,
-                **clf_params,
-                **self.factory_kwargs,
-            )
+            return rnn.RNN(**args, **clf_params,)
         elif clf_type.upper() == 'GRU':
-            return rnn.GRU(
-                input_size = n_dim,
-                n_class = n_class,
-                **clf_params,
-                **self.factory_kwargs,
-            )
+            return rnn.GRU(**args, **clf_params,)
         elif clf_type.upper() == 'LSTM':
-            return rnn.LSTM(
-                input_size = n_dim,
-                n_class = n_class,
-                **clf_params,
-                **self.factory_kwargs,
-            )
+            return rnn.LSTM(**args, **clf_params,)
         else:
             raise model.Error('Unknown Classifier Type:', clf_type)

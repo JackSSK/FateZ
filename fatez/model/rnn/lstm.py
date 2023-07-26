@@ -7,8 +7,7 @@ author: jy, nkmtmsys
 
 import torch
 import torch.nn as nn
-import torch.nn.functional as F
-
+from collections import OrderedDict
 
 
 class Model(nn.Module):
@@ -16,8 +15,10 @@ class Model(nn.Module):
     Long-Short-Term Memory
     """
     def __init__(self,
-        input_size:int = None,
+        n_features:int = None,
+        n_dim:int = None,
         hidden_size:int = None,
+        densed_size:int = None,
         num_layers:int = 1,
         bias:bool = True,
         batch_first:bool = True,
@@ -25,15 +26,16 @@ class Model(nn.Module):
         bidirectional:bool = True,
         proj_size:int = 0,
         n_class:int = 2,
+        dtype:str = None,
         **kwargs
         ):
         super(Model, self).__init__()
         self.num_layers = num_layers
         self.hidden_size = hidden_size
         self.bidirectional = bidirectional
-        self.dropout = nn.Dropout(p = dropout, inplace = True)
+        # self.dropout = nn.Dropout(p = dropout, inplace = True)
         self.lstm = nn.LSTM(
-            input_size = input_size,
+            input_size = n_dim,
             hidden_size = hidden_size,
             num_layers = num_layers,
             bias = bias,
@@ -42,11 +44,18 @@ class Model(nn.Module):
             bidirectional = bidirectional,
             proj_size = proj_size,
         )
-        self.fc = nn.Linear(self.hidden_size, n_class)
+        densed_size = hidden_size
+        fc_size = self._cal_fc_size(n_features)
+        self.decision = nn.Sequential(OrderedDict([
+            ('fc', nn.Flatten(start_dim = 1, end_dim = -1)),
+            ('dense', nn.Linear(fc_size, densed_size, dtype=dtype)),
+            ('relu', nn.ReLU(inplace = True)),
+            ('decide', nn.Linear(densed_size, n_class, dtype=dtype))
+        ]))
 
     def forward(self, input):
         # input needs to be: (batch_size, seq, input_size)
-        input = self.dropout(input, training=self.training)
+        # input = self.dropout(input, training=self.training)
         # Set initial hidden and cell states
         if not self.bidirectional:
             h0 = torch.zeros(self.num_layers, input.size(0), self.hidden_size)
@@ -56,8 +65,11 @@ class Model(nn.Module):
             c0 = torch.zeros(2*self.num_layers, input.size(0), self.hidden_size)
         h0 = h0.to(input.device)
         c0 = c0.to(input.device)
-        out, _ = self.lstm(input, (h0, c0))
-        # out: tensor of shape (batch_size, seq_length, hidden_size)
-        # Decode the hidden state of the last time step
-        out = F.softmax(self.fc(out[:, -1, :]), dim = 1)
+        out, states = self.lstm(input, (h0, c0))
+        out = self.decision(out)
+        return out
+
+    def _cal_fc_size(self, n_fea, ):
+        out = n_fea * self.hidden_size
+        if self.bidirectional: out *= 2
         return out
