@@ -6,9 +6,11 @@ import pandas as pd
 import fatez.lib as lib
 import fatez.model as model
 import fatez.process.pre_trainer as pre_trainer
+from sklearn.decomposition import PCA
 import torch_geometric.data as pyg_d
 import fatez.tool.PreprocessIO as PreprocessIO
 import fatez.process.early_stopper as es
+import fatez.process.worker as worker
 from fatez.process.scale_network import scale_network
 import numpy as np
 import pickle
@@ -74,6 +76,8 @@ class rebuilder(object):
             m2[:,1] = 1
             dict_key = sample_name.split('#')[0]
             label = self.edge_label['label'][str(sample_name)]
+            label2 = self.edge_label['label2'][str(sample_name)]
+            label2 = torch.tensor(label2).long()
             edge_name = self.edge_label.loc[sample_name, 'label']
             key_use = dict_key + '#' + str(edge_name)
             inds, attrs = lib.get_sparse_coo(self.matrix2[key_use])
@@ -83,7 +87,7 @@ class rebuilder(object):
                         x=m2,
                         edge_index=inds,
                         edge_attr=attrs,
-                        y=0,
+                        y=label2,
                         shape=self.matrix2[key_use].shape,
                     )
                 )
@@ -92,7 +96,7 @@ class rebuilder(object):
                         x=m1,
                         edge_index=inds,
                         edge_attr=attrs,
-                        y=0,
+                        y=label2,
                         shape=self.matrix2[key_use].shape,
                     )
                 )
@@ -103,7 +107,7 @@ class rebuilder(object):
                         x=m2,
                         edge_index=inds,
                         edge_attr=attrs,
-                        y=0,
+                        y=label2,
                         shape=self.matrix2[key_use].shape,
                     )
                 )
@@ -112,7 +116,7 @@ class rebuilder(object):
                         x=m1,
                         edge_index=inds,
                         edge_attr=attrs,
-                        y=0,
+                        y=label2,
                         shape=self.matrix2[key_use].shape,
                     )
                 )
@@ -147,7 +151,7 @@ class rebuilder(object):
 
     def set_model(self,config,prev_model_dir = None,device = 'cuda',
                   node_recon_dim = 1,mode = 'train'):
-
+        worker.setup(device)
         if prev_model_dir ==None:
             self.trainer = pre_trainer.Set(
                 config,
@@ -177,7 +181,6 @@ class rebuilder(object):
                                 dtype=torch.float32,
                                 node_recon_dim=node_recon_dim,
                                 device=device)
-        self.trainer.setup()
     def get_encoder_out(self,dataloader):
         all_out = []
         for x, y in dataloader:
@@ -194,11 +197,12 @@ class rebuilder(object):
         return torch.cat(all_out,dim=0)
 
     def umap_embedding(self,pca_num=None,input=None):
+        pca = PCA(n_components=pca_num)
         if pca_num == None:
             umap_obj = umap.UMAP()
             umap_result = umap_obj.fit_transform(input)
         else:
-            reduced_matrix = pca.fit_transform(pca_num)
+            reduced_matrix = pca.fit_transform(input)
             umap_obj = umap.UMAP()
             umap_result = umap_obj.fit_transform(reduced_matrix)
 

@@ -205,7 +205,20 @@ class Tuner(object):
             ignore_index = ignore_index,
             reduction = reduction,
         )
-
+    def get_encoder_out(self,dataloader):
+        all_out = []
+        for x, y in dataloader:
+            input = [ele.to(self.device) for ele in x]
+            output = self.worker.get_encoder_out(input)
+            all_out.append(output)
+        return torch.cat(all_out,dim=0)
+    def get_gat_out(self,dataloader):
+        all_out = []
+        for x, y in dataloader:
+            input = [ele.to(self.device) for ele in x]
+            output = self.worker.get_gat_out(input)
+            all_out.append(output)
+        return torch.cat(all_out,dim=0)
     def train(self, data_loader, report_batch:bool = False,):
         self.worker.train(True)
         nbatch = len(data_loader)
