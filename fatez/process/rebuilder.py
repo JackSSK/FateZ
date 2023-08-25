@@ -65,15 +65,23 @@ class rebuilder(object):
         samples2 = []
         samples3 = []
         samples4 = []
+        ### check whether label is numeric
+        if isinstance(self.edge_label['label'][0],int):
+            self.edge_label['label2'] = self.edge_label['label'].to_list()
+        else:
+            self.edge_label['label2'] = \
+                self.__convert_label(self.edge_label['label'].to_list())
+
+        ### load data
         for i in range(len(self.matrix1)):
             sample_name = list(self.matrix1.keys())[i]
             m1 = torch.from_numpy(self.matrix1[sample_name].to_numpy()).to(
                 torch.float32)
             m2 = torch.from_numpy(self.matrix1[sample_name].to_numpy()).to(
                 torch.float32)
-            m1 = nn.LogSoftmax(dim=-2)(m1)
-            m2 = nn.LogSoftmax(dim=-2)(m2)
-            m2[:,1] = 1
+            # m1 = nn.LogSoftmax(dim=-2)(m1)
+            # m2 = nn.LogSoftmax(dim=-2)(m2)
+            m2[:,1] = 0
             dict_key = sample_name.split('#')[0]
             label = self.edge_label['label'][str(sample_name)]
             label2 = self.edge_label['label2'][str(sample_name)]
@@ -149,6 +157,14 @@ class rebuilder(object):
         )
         return pertubation_dataloader,result_dataloader,predict_dataloader,predict_true_dataloader
 
+    def __convert_label(self,label):
+
+        new_label = []
+        label_corr = pd.Series(range(len(set(label))),index=list(set(label)))
+        for i in label:
+            new_label.append(label_corr[i])
+        return new_label
+
     def set_model(self,config,prev_model_dir = None,device = 'cuda',
                   node_recon_dim = 1,mode = 'train'):
         worker.setup(device)
@@ -175,12 +191,12 @@ class rebuilder(object):
                     prev_model=trainer
                 )
             elif mode =='predict':
-                full_model = model.Load(prev_model_dir)
                 self.trainer = pre_trainer.Set(config,
-                                prev_model=full_model,
+                                prev_model=model.Load(prev_model_dir),
                                 dtype=torch.float32,
                                 node_recon_dim=node_recon_dim,
                                 device=device)
+
     def get_encoder_out(self,dataloader):
         all_out = []
         for x, y in dataloader:
@@ -314,16 +330,17 @@ class rebuilder(object):
                                                   node_results.cpu(), dim=0)
                 loss = self.trainer.criterion(node_rec, node_results)
                 node_rec = node_rec.reshape([node_rec.shape[0], 1103])
+                print(cor_atac)
             elif node_recon_dim == 2:
                 node_results = nn.LogSoftmax(dim=-2)(node_results)
                 cor_atac = self.__tensor_cor_atac(node_rec.cpu(),
                                                   node_results.cpu(), dim=1)
                 loss = self.trainer.criterion(node_rec, node_results)
-            print('---loss')
             self.predict_cor.append(cor_atac)
             self.predict_loss.append(loss.item())
             all_predict.append(node_rec)
             all_true.append(node_results)
+        print(self.predict_cor)
         return torch.cat(all_predict,dim=0),torch.cat(all_true,dim=0)
 
     def get_umap_embedding(self,tensor):
@@ -350,12 +367,17 @@ class rebuilder(object):
 
         torch.save(
             self.trainer,
-            outputdir + prefix + '_model.model'
+            outputdir + prefix + '_torch_save_model.model'
         )
         with open(outputdir + prefix + '_model.pkl', 'wb') as file:
             pickle.dump(self.trainer, file)
         model.Save(
             self.trainer,
-            outputdir + prefix + '_model_para.model',
+            outputdir + prefix + '_model_full.model',
+            save_full=True
+        )
+        model.Save(
+            self.trainer,
+            outputdir + prefix + '_model_part.model',
             save_full=True
         )
