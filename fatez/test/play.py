@@ -78,7 +78,7 @@ def test_imputer(
     config:dict = None,
     train_dataloader:DataLoader = None,
     test_dataloader:DataLoader = None,
-    train_epoch:int = 30,
+    train_epoch:int = 50,
     tune_epoch:int = 50,
     quiet:bool = False,
     device = 'cpu',
@@ -120,15 +120,15 @@ if __name__ == '__main__':
     device = 'cuda'
     train_dataloader, test_dataloader = prep.get_dataloaders()
     config = prep.get_config()
-    test_classification(
-        config = config,
-        train_dataloader = train_dataloader,
-        test_dataloader = test_dataloader,
-        device = device,
-        )
-    # test_imputer(
+    # test_classification(
     #     config = config,
     #     train_dataloader = train_dataloader,
     #     test_dataloader = test_dataloader,
     #     device = device,
     #     )
+    test_imputer(
+        config = config,
+        train_dataloader = train_dataloader,
+        test_dataloader = test_dataloader,
+        device = device,
+        )

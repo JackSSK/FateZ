@@ -60,6 +60,7 @@ def get_config():
         "imputer": {
             "impute_dim": 1,
             "node_recon_dim": 1,
+            "adapter": None,
             "masker_params": {
                 "mask_token": -1
             }

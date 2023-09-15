@@ -5,7 +5,7 @@ with open("README.md", "r", encoding="utf-8") as fh:
 
 setuptools.setup(
     name = "FateZ",
-    version = "v0.0.1-alpha2",
+    version = "v0.0.1-alpha1",
     author = "JackSSk",
     author_email = "gyu17@alumni.jh.edu",
     description = "Some people laugh. Some people cry. --PyTorch2.0",
