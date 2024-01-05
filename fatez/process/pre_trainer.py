@@ -15,6 +15,7 @@ import fatez.model.gnn as gnn
 import fatez.model.transformer as transformer
 import fatez.model.position_embedder as pe
 import fatez.lib as lib
+import fatez.process.worker as worker 
 from fatez.process.masker import Dimension_Masker, Feature_Masker
 
 
@@ -58,8 +59,9 @@ def Set(
             **config['pre_trainer'],
             **kwargs,
         )
-    # Setup worker env
-    net.setup(device=device)
+
+    # Setup worker
+    net.setup(rank = device)
     return net
 
 
@@ -157,8 +159,17 @@ class Trainer(object):
         ):
         super(Trainer, self).__init__()
         self.input_sizes = input_sizes
+        self.lr = lr
+        self.betas = betas
+        self.weight_decay = weight_decay
+        self.max_norm = max_norm
+        self.sch_T_0 = sch_T_0
+        self.sch_T_mult = sch_T_mult
+        self.sch_eta_min = sch_eta_min
+        self.reduction = reduction
         self.device = device
         self.dtype = dtype
+
         self.model = Model(
             gat = gat,
             masker = Feature_Masker(**masker_params),
@@ -175,35 +186,16 @@ class Trainer(object):
         # Torch 2
         # self.model = torch.compile(self.model)
 
-        # Setting the Adam optimizer with hyper-param
-        self.optimizer = optim.AdamW(
-            self.model.parameters(),
-            lr = lr,
-            betas = betas,
-            weight_decay = weight_decay
-        )
-        # self.optimizer = optim.SGD(
-        #     self.model.parameters(),
-        #     lr = lr,
-        #     betas = betas,
-        #     weight_decay = weight_decay
-        # )
-
-        # Gradient norm clipper param
-        self.max_norm = max_norm
-
-        # Set scheduler
-        self.scheduler = optim.lr_scheduler.CosineAnnealingWarmRestarts(
-            self.optimizer,
-            T_0 = sch_T_0,
-            T_mult = sch_T_mult,
-            eta_min = sch_eta_min,
-        )
-
         # Using L1 Loss for criterion
-        self.criterion = nn.L1Loss(reduction = reduction)
+        self.criterion = nn.L1Loss(reduction = self.reduction)
 
-    def train(self, data_loader, report_batch:bool = False,):
+    def train(self, 
+            data_loader, 
+            report_batch:bool = False, 
+            rank=None,
+            device='cpu',
+        ) -> pd.DataFrame:
+
         self.worker.train(True)
         best_loss = 99
         loss_all = 0
@@ -243,29 +235,41 @@ class Trainer(object):
             # Some logs
             if report_batch: report.append([loss.item()])
 
+        # Ending current epoch
         self.scheduler.step()
         report.append([loss_all / len(data_loader)])
         report = pd.DataFrame(report)
         report.columns = ['Loss', ]
         return report
 
-    def setup(self, device='cpu',):
-        if str(type(device)) == "<class 'list'>":
-            self.device = torch.device('cuda:0')
-            self._setup()
-            self.worker = DDP(self.model, device_ids = device)
-        elif str(type(device)) == "<class 'str'>":
-            self.device = device
-            self._setup()
-            self.worker = self.model
+    def setup(self, rank = 0, **kwargs):
+        if str(type(rank)) == "<class 'int'>":
+            self.device = torch.device(rank)
+            self.worker = DDP(
+                self.model.to(self.device), 
+                device_ids = [rank]
+            )
+        elif str(type(rank)) == "<class 'str'>":
+            self.device = rank
+            self.worker = self.model.to(self.device)
+
+        # Set optimizer
+        self.optimizer = optim.AdamW(
+        # self.optimizer = optim.SGD(
+            self.worker.parameters(),
+            lr = self.lr,
+            betas = self.betas,
+            weight_decay = self.weight_decay
+        )
+
+        # Set scheduler
+        self.scheduler = optim.lr_scheduler.CosineAnnealingWarmRestarts(
+            self.optimizer,
+            T_0 = self.sch_T_0,
+            T_mult = self.sch_T_mult,
+            eta_min = self.sch_eta_min,
+        )
+
         return
 
-    def _setup(self):
-        self.model = self.model.to(self.device)
-        self._set_state_values(self.optimizer.state.values())
-
-    def _set_state_values(self, state_values):
-        for state in state_values:
-            for k,v in state.items():
-                if torch.is_tensor(v):
-                    state[k] = v.to(self.device)
+        

@@ -9,29 +9,29 @@ import os
 import torch.distributed as dist
 
 def setup(
-    device='cpu',
-    master_addr:str = 'localhost',
-    master_port:str = '2307',
-    backend='nccl',
-    rank:int=0,
-    ):
+        rank:int = 0,
+        world_size:int = 1,
+        master_addr:str = 'localhost',
+        master_port:str = '2307',
+        backend:str = 'nccl',
+        **kwargs
+    ) -> None:
     """
-    Setup worker env
-    Init process with nccl for GPU training, or gloo for CPU training
+    Set up process groups for GPU training
     """
-    if str(type(device)) == "<class 'list'>":
-        # Make sure using properly amount of device
-        device_count = torch.cuda.device_count()
-        assert device_count >= len(device)
-        os.environ['MASTER_ADDR'] = master_addr
-        os.environ['MASTER_PORT'] = master_port
-        dist.init_process_group(backend, rank=rank, world_size=len(device))
-    # elif str(type(device)) == "<class 'str'>":
-    #     if device == 'cpu':
-    #         dist.init_process_group('gloo')
-    return
+    if str(type(rank)) != "<class 'int'>": return
 
-def cleanup(device='cpu',):
-    if str(type(device)) == "<class 'list'>":
-        dist.destroy_process_group()
-    return
+    # Make sure using properly amount of device
+    assert torch.cuda.device_count() >= world_size
+
+    os.environ['MASTER_ADDR'] = master_addr
+    os.environ['MASTER_PORT'] = master_port
+    dist.init_process_group(backend, rank=rank, world_size=world_size)
+
+def cleanup(rank, **kwargs):
+    """
+    Clean up process groups for GPU training
+    """
+    if str(type(rank)) != "<class 'int'>": return
+
+    dist.destroy_process_group()

@@ -58,7 +58,7 @@ def Set(
             **kwargs,
         )
     # Setup worker env
-    net.setup(device=device)
+    net.setup(rank = device)
     return net
 
 
@@ -155,9 +155,19 @@ class Tuner(object):
             ):
         super(Tuner, self).__init__()
         self.input_sizes = input_sizes
+        self.lr = lr
+        self.betas = betas
+        self.weight_decay = weight_decay
+        self.max_norm = max_norm
+        self.sch_T_0 = sch_T_0
+        self.sch_T_mult = sch_T_mult
+        self.sch_eta_min = sch_eta_min
+        self.ignore_index = ignore_index
+        self.reduction = reduction
         self.device = device
         self.dtype = dtype
         self.n_class = n_class
+
         self.model = Model(
             gat = gat,
             graph_embedder = graph_embedder,
@@ -175,36 +185,12 @@ class Tuner(object):
         # Torch 2
         # self.model = torch.compile(self.model)
 
-        # Setting the Adam optimizer with hyper-param
-        self.optimizer = optim.AdamW(
-            self.model.parameters(),
-            lr = lr,
-            betas = betas,
-            weight_decay = weight_decay
-        )
-        # self.optimizer = optim.SGD(
-        #     self.model.parameters(),
-        #     lr = lr,
-        #     betas = betas,
-        #     weight_decay = weight_decay
-        # )
-
-        # Gradient norm clipper param
-        self.max_norm = max_norm
-
-        # Set scheduler
-        self.scheduler = optim.lr_scheduler.CosineAnnealingWarmRestarts(
-            self.optimizer,
-            T_0 = sch_T_0,
-            T_mult = sch_T_mult,
-            eta_min = sch_eta_min,
-        )
-
         # Using Negative Log Likelihood Loss function
         self.criterion = nn.CrossEntropyLoss(
             ignore_index = ignore_index,
-            reduction = reduction,
+            reduction = self.reduction,
         )
+        
     def get_encoder_out(self,dataloader):
         all_out = []
         for x, y in dataloader:
@@ -286,24 +272,33 @@ class Tuner(object):
     def unfreeze_encoder(self):
         self.model.bert_model.freeze_encoder = False
         return
+    
+    def setup(self, rank = 0, **kwargs):
+        if str(type(rank)) == "<class 'int'>":
+            self.device = torch.device(rank)
+            self.worker = DDP(
+                self.model.to(self.device), 
+                device_ids = [rank]
+            )
+        elif str(type(rank)) == "<class 'str'>":
+            self.device = rank
+            self.worker = self.model.to(self.device)
 
-    def setup(self, device='cpu',):
-        if str(type(device)) == "<class 'list'>":
-            self.device = torch.device('cuda:0')
-            self._setup()
-            self.worker = DDP(self.model, device_ids = device)
-        elif str(type(device)) == "<class 'str'>":
-            self.device = device
-            self._setup()
-            self.worker = self.model
+        # Set optimizer
+        self.optimizer = optim.AdamW(
+        # self.optimizer = optim.SGD(
+            self.worker.parameters(),
+            lr = self.lr,
+            betas = self.betas,
+            weight_decay = self.weight_decay
+        )
+
+        # Set scheduler
+        self.scheduler = optim.lr_scheduler.CosineAnnealingWarmRestarts(
+            self.optimizer,
+            T_0 = self.sch_T_0,
+            T_mult = self.sch_T_mult,
+            eta_min = self.sch_eta_min,
+        )
+
         return
-
-    def _setup(self):
-        self.model = self.model.to(self.device)
-        self._set_state_values(self.optimizer.state.values())
-
-    def _set_state_values(self, state_values):
-        for state in state_values:
-            for k,v in state.items():
-                if torch.is_tensor(v):
-                    state[k] = v.to(self.device)

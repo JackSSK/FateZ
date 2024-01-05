@@ -34,16 +34,26 @@ class Faker(object):
     """
 
     def __init__(self,
-        warning_filter:str = 'default',
-        model_config:dict = None,
-        n_sample:int = 10,
-        batch_size:int = 5,
-        simpler_samples:bool = False,
-        device:str = 'cpu',
-        dtype:type = torch.float32,
+            warning_filter:str = 'default',
+            quiet:bool = True,
+            model_config:dict = None,
+            n_sample:int = 10,
+            batch_size:int = 5,
+            simpler_samples:bool = False,
+            device:str = 'cpu',
+            world_size:int = 1,
+            dtype:type = torch.float32,
         ):
         super(Faker, self).__init__()
+        self.quiet = quiet
         self.warning_filter = warning_filter
+        self.suppressor = process.Quiet_Mode()
+        self.factory_kwargs = {
+            'device': device,
+            'world_size': world_size,
+            'dtype': dtype,
+        }
+
         if model_config is None:
             path = '../data/config/gat_bert_config.json'
             # path = '../data/config/gat_bert_cnn1d_config.json'
@@ -51,12 +61,17 @@ class Faker(object):
             self.config = JSON.decode(resource_filename(__name__, path))
         else:
             self.config = model_config
+        
         self.n_sample = n_sample
-        self.batch_size = batch_size
-        self.simpler_samples = simpler_samples
-        self.factory_kwargs = {'device': device, 'dtype': dtype,}
-
-    def make_data_loader(self,):
+        self.data_loader = self.make_data_loader(
+            simpler_samples, n_sample, batch_size
+        )
+         
+    def make_data_loader(self,
+            simpler_samples:bool = True,
+            n_sample:int = 10,
+            batch_size:int = 5
+        ):
         """
         Generate random data with given parameters and
         set up a PyTorch DataLoader.
@@ -78,7 +93,7 @@ class Faker(object):
                 dtype = self.factory_kwargs['dtype']
             )
             # Zero all features if making simple samples
-            if self.simpler_samples:
+            if simpler_samples:
                 fea_m = fea_m * 0 + 1
                 adj_m = adj_m * 0 + 1
             # Take last two features as testing features
@@ -100,21 +115,21 @@ class Faker(object):
             )
 
         # Prepare type_0 samples
-        for i in range(int(self.n_sample / 2)):
+        for i in range(int(n_sample / 2)):
             fea_m, adj_m = rand_sample()
             fea_m[-1] += 8
             adj_m[:,-1] += 9
             append_sample(samples, fea_m, adj_m, label = 0)
 
         # Prepare type_1 samples
-        for i in range(self.n_sample - int(self.n_sample / 2)):
+        for i in range(n_sample - int(n_sample / 2)):
             fea_m, adj_m = rand_sample()
             adj_m[:,-1] += 1
             append_sample(samples, fea_m, adj_m, label = 1)
 
         return DataLoader(
             lib.FateZ_Dataset(samples),
-            batch_size=self.batch_size,
+            batch_size=batch_size,
             collate_fn = lib.collate_fn,
             shuffle=True,
         )
@@ -139,7 +154,6 @@ class Faker(object):
         # Initialize
         device = self.factory_kwargs['device']
         # tracemalloc.start()
-        data_loader = self.make_data_loader()
         # first_size, first_peak = tracemalloc.get_traced_memory()
         # tracemalloc.reset_peak()
         # print(f"{first_size=}, {first_peak=}")
@@ -162,65 +176,72 @@ class Faker(object):
         # criterion = crit.Accuracy(requires_grad = True)
 
         # Using data loader to train
-        for x,y in data_loader:
+        for x,y in self.data_loader:
             out = gat_model(x)
             output = decision(out)
             loss = criterion(output, y.to(device))
             loss.backward()
-        print(f'\tGAT Green.\n')
+        print(f'\tGAT OK.\n')
 
         gat_explain = gat_model.explain_batch([a.to(device) for a in x])
         # print(gat_explain)
         shap_values = shap.GradientExplainer(decision, out).shap_values(out)
         # print(shap_values)
-        print(f'\tExplainer Green.\n')
+        print(f'\tExplainer OK.\n')
         return gat_model
 
-    def test_full_model(self,
-        config:dict = None,
-        train_epoch:int = 20,
-        tune_epoch:int = 10,
-        quiet:bool = True
-        ):
+    def test_trainer(self, train_epoch:int = 20,):
         """
         Function to test whether FateZ is performing properly or not.
-
-        :param config:
-            The configuration of testing model.
 
         :return:
             Pre-trainer model
         """
         # warnings.filterwarnings(self.warning_filter)
-        print('Testing Full Model.\n')
+        print('Testing Trainer Model.\n')
         # Initialize
-        suppressor = process.Quiet_Mode()
-        device = self.factory_kwargs['device']
-        worker.setup(device)
-        data_loader = self.make_data_loader()
-        if config is None: config = self.config
+        worker.setup(
+            self.factory_kwargs['device'], self.factory_kwargs['world_size']
+        )
 
         # Pre-train part
-        if quiet: suppressor.on()
-        trainer = pre_trainer.Set(config, **self.factory_kwargs)
+        if self.quiet: self.suppressor.on()
+        trainer = pre_trainer.Set(self.config, **self.factory_kwargs)
         for i in range(train_epoch):
-            report = trainer.train(data_loader, report_batch = False,)
+            report = trainer.train(self.data_loader, report_batch = False,)
             print(f'Epoch {i} Loss: {report.iloc[0,0]}')
-        if quiet: suppressor.off()
-        print(f'\tPre-Trainer Green.\n')
+        if self.quiet: self.suppressor.off()
+        print(f'\tPre-Trainer OK.\n')
+        worker.cleanup(self.factory_kwargs['device'])
+        return trainer
 
+    def test_tuner(self, trainer = None, tune_epoch:int = 10,):
+        """
+        Function to test whether FateZ is performing properly or not.
+
+        :return:
+            Fine-Tuner model
+        """
+        # warnings.filterwarnings(self.warning_filter)
+        print('Testing Tuner Model.\n')
+        # Initialize
+        device = self.factory_kwargs['device']
+
+        assert trainer is not None
+        worker.setup(device, self.factory_kwargs['world_size'])
         # Fine tune part
-        if quiet: suppressor.on()
-        tuner = fine_tuner.Set(config, trainer, **self.factory_kwargs)
+        if self.quiet: self.suppressor.on()
+        tuner = fine_tuner.Set(self.config, trainer, **self.factory_kwargs)
         for i in range(tune_epoch):
-            report = tuner.train(data_loader, report_batch = False,)
+            report = tuner.train(self.data_loader, report_batch = False,)
             print(f'Epoch {i} Loss: {report.iloc[0,0]}')
         # Test fine tune model
-        report = tuner.test(data_loader, report_batch = True,)
+        report = tuner.test(self.data_loader, report_batch = True,)
         print('Tuner Test Report')
         print(report)
-        if quiet: suppressor.off()
-        print(f'\tFine-Tuner Green.\n')
+        if self.quiet: self.suppressor.off()
+        print(f'\tFine-Tuner OK.\n')
+        worker.cleanup(device)
 
         # Test explain
         size = self.config['input_sizes']
@@ -229,13 +250,13 @@ class Faker(object):
         if str(type(device)) == "<class 'list'>": device=torch.device('cuda:0')
         # Make background data
         bg = [a for a,_ in DataLoader(
-            data_loader.dataset, self.n_sample, collate_fn = lib.collate_fn,
+            self.data_loader.dataset,self.n_sample,collate_fn = lib.collate_fn,
             )][0]
         # Set explainer through taking input data from pseudo-dataloader
         tuner.unfreeze_encoder()
         explain = tuner.model.make_explainer([a.to(device) for a in bg])
 
-        for x,_ in data_loader:
+        for x,_ in self.data_loader:
             data = [a.to(device) for a in x]
             adj_temp, reg_temp, _ = tuner.model.explain_batch(data, explain)
             adj_exp += adj_temp
@@ -248,7 +269,7 @@ class Faker(object):
         print('Edge Explain:\n', adj_exp, '\n')
         print('Reg Explain:\n', reg_exp, '\n')
         print('Node Explain:\n', node_exp, '\n')
-        print(f'\tExplainer Green.\n')
+        print(f'\tExplainer OK.\n')
 
 
         # model.Save(trainer, 'faker_test.model')
@@ -257,6 +278,6 @@ class Faker(object):
         #     prev_model = model.Load('faker_test.model'),
         #     **self.factory_kwargs
         # )
-        # print('Save Load Green')
-        worker.cleanup(device)
+        # print('Save Load OK')
+        
         return trainer, tuner
