@@ -11,6 +11,8 @@ from pkg_resources import resource_filename
 import shap
 import torch
 import torch.nn as nn
+import torch.distributed as dist
+import torch.multiprocessing as mp
 import torch_geometric.data as pyg_d
 from torch.utils.data import DataLoader
 import fatez.lib as lib
@@ -190,94 +192,162 @@ class Faker(object):
         print(f'\tExplainer OK.\n')
         return gat_model
 
-    def test_trainer(self, train_epoch:int = 20,):
-        """
-        Function to test whether FateZ is performing properly or not.
-
-        :return:
-            Pre-trainer model
-        """
-        # warnings.filterwarnings(self.warning_filter)
-        print('Testing Trainer Model.\n')
+    def test_trainer_main(self,
+            rank:int = 0,
+            world_size:int = 1,
+            train_epoch:int = 20,
+            save_path:str = None,
+        ):
         # Initialize
-        worker.setup(
-            self.factory_kwargs['device'], self.factory_kwargs['world_size']
-        )
+        worker.setup(rank, world_size)
 
         # Pre-train part
         if self.quiet: self.suppressor.on()
-        trainer = pre_trainer.Set(self.config, **self.factory_kwargs)
+        trainer = pre_trainer.Set(
+            config = self.config,
+            rank = rank,
+            dtype = self.factory_kwargs['dtype'],
+        )
         for i in range(train_epoch):
-            report = trainer.train(self.data_loader, report_batch = False,)
+            report = trainer.train(
+                self.data_loader, 
+                report_batch = False,
+            )
             print(f'Epoch {i} Loss: {report.iloc[0,0]}')
         if self.quiet: self.suppressor.off()
-        print(f'\tPre-Trainer OK.\n')
-        worker.cleanup(self.factory_kwargs['device'])
-        return trainer
+        dist.destroy_process_group()
 
-    def test_tuner(self, trainer = None, tune_epoch:int = 10,):
+        # Testing Save Load
+        if save_path is not None:
+            model.Save(trainer, save_path)
+            trainer = pre_trainer.Set(
+                self.config,
+                prev_model = model.Load(save_path),
+                load_opt_sch = True,
+                rank = 'cpu',
+                dtype = self.factory_kwargs['dtype'],
+            )
+            print('Trainer Save Load OK.\n')
+        return
+
+
+    def test_tuner_main(self,
+            rank:int = 0,
+            world_size:int = 1,
+            trainer_path:str = None, 
+            tune_epoch:int = 10,
+            save_path:str = None,
+        ):
         """
         Function to test whether FateZ is performing properly or not.
 
         :return:
             Fine-Tuner model
         """
-        # warnings.filterwarnings(self.warning_filter)
-        print('Testing Tuner Model.\n')
         # Initialize
-        device = self.factory_kwargs['device']
+        worker.setup(rank, world_size)
+        # warnings.filterwarnings(self.warning_filter)
 
-        assert trainer is not None
-        worker.setup(device, self.factory_kwargs['world_size'])
         # Fine tune part
         if self.quiet: self.suppressor.on()
-        tuner = fine_tuner.Set(self.config, trainer, **self.factory_kwargs)
+        if trainer_path is not None:
+            trainer = model.Load(trainer_path)
+        else:
+            trainer = None
+
+        tuner = fine_tuner.Set(
+            config = self.config,
+            prev_model =  trainer,
+            load_opt_sch = False,
+            rank = rank,
+            dtype = self.factory_kwargs['dtype'],
+        )
         for i in range(tune_epoch):
-            report = tuner.train(self.data_loader, report_batch = False,)
+            report = tuner.train(
+                self.data_loader,
+                report_batch = False,
+            )
             print(f'Epoch {i} Loss: {report.iloc[0,0]}')
         # Test fine tune model
-        report = tuner.test(self.data_loader, report_batch = True,)
+        report = tuner.test(
+            self.data_loader,
+            report_batch = True,
+        )
         print('Tuner Test Report')
         print(report)
         if self.quiet: self.suppressor.off()
-        print(f'\tFine-Tuner OK.\n')
-        worker.cleanup(device)
+        dist.destroy_process_group()
 
-        # Test explain
+         # Testing Save Load
+        if save_path is not None:
+            model.Save(tuner, save_path, save_full = True)
+            tuner = fine_tuner.Set(
+                self.config,
+                prev_model = model.Load(save_path),
+                load_opt_sch = True,
+                rank = 'cpu',
+                dtype = self.factory_kwargs['dtype'],
+            )
+            print('Tuner Save Load OK.\n')
+        return 
+
+    def test_explainer(self,
+            rank:int = 0,
+            world_size:int = 1,
+            tuner_path:str = None, 
+        ):
+        """
+        Function to test whether FateZ is performing properly or not.
+        """
+        # Init
+        worker.setup(rank, world_size)
+        tuner = fine_tuner.Set(
+            config = self.config,
+            prev_model =  model.Load(tuner_path),
+            load_opt_sch = True,
+            rank = rank,
+            dtype = self.factory_kwargs['dtype'],
+        )
         size = self.config['input_sizes']
-        adj_exp = torch.zeros((size['n_reg'], size['n_node']))
-        reg_exp = torch.zeros((size['n_reg'],self.config['encoder']['d_model']))
-        if str(type(device)) == "<class 'list'>": device=torch.device('cuda:0')
+        adj_exp = torch.zeros(
+            (size['n_reg'], size['n_node'])
+        )
+        reg_exp = torch.zeros(
+            (size['n_reg'], self.config['encoder']['d_model'])
+        )
+        if str(type(rank)) == "<class 'list'>":
+            rank = torch.device('cuda:0')
         # Make background data
         bg = [a for a,_ in DataLoader(
-            self.data_loader.dataset,self.n_sample,collate_fn = lib.collate_fn,
+                self.data_loader.dataset,
+                self.n_sample,
+                collate_fn = lib.collate_fn,
             )][0]
+
         # Set explainer through taking input data from pseudo-dataloader
+        # Unfreeze encoder to get explainations if using LoRA
         tuner.unfreeze_encoder()
-        explain = tuner.model.make_explainer([a.to(device) for a in bg])
+        explain = tuner.model.make_explainer(
+            [a.to(rank) for a in bg]
+        )
 
         for x,_ in self.data_loader:
-            data = [a.to(device) for a in x]
+            data = [a.to(rank) for a in x]
             adj_temp, reg_temp, _ = tuner.model.explain_batch(data, explain)
             adj_exp += adj_temp
             # Only taking explainations for class 0
-            for exp in reg_temp[0]: reg_exp += abs(exp)
+            for exp in reg_temp[0]:
+                reg_exp += abs(exp)
             break
 
-        reg_exp = torch.sum(reg_exp, dim = -1)
-        node_exp = torch.matmul(reg_exp, adj_exp.type(reg_exp.dtype))
+        reg_exp = torch.sum(
+            reg_exp,
+            dim = -1
+        )
+        node_exp = torch.matmul(
+            reg_exp, adj_exp.type(reg_exp.dtype)
+        )
         print('Edge Explain:\n', adj_exp, '\n')
         print('Reg Explain:\n', reg_exp, '\n')
         print('Node Explain:\n', node_exp, '\n')
-        print(f'\tExplainer OK.\n')
-
-
-        # model.Save(trainer, 'faker_test.model')
-        # trainer = pre_trainer.Set(
-        #     config,
-        #     prev_model = model.Load('faker_test.model'),
-        #     **self.factory_kwargs
-        # )
-        # print('Save Load OK')
-        
-        return trainer, tuner
+        return

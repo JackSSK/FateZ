@@ -21,17 +21,18 @@ from fatez.process.masker import Dimension_Masker, Feature_Masker
 
 
 def Set(
-    config:dict=None,
-    prev_model=None,
-    load_full_model:bool = False,
-    load_opt_sch:bool = True,
-    device:str='cpu',
-    dtype:str=None,
-    **kwargs
+        config:dict=None,
+        prev_model=None,
+        load_full_model:bool = False,
+        load_opt_sch:bool = True,
+        device:str='cpu',
+        dtype:str=None,
+        **kwargs
     ):
     """
     Set up a Trainer object based on given config file and pre-trained model
     """
+    torch.cuda.empty_cache()
     net = Trainer(
         input_sizes = config['input_sizes'],
         gat = gnn.Set(config['gnn'], config['input_sizes'], dtype=dtype),
@@ -46,19 +47,21 @@ def Set(
         **config['pre_trainer'],
         **kwargs,
     )
-    if prev_model is not None and str(type(prev_model)) == "<class 'dict'>":
-        model.Load_state_dict(net, prev_model, load_opt_sch)
-    elif prev_model is not None:
-        net = Trainer(
-            input_sizes = config['input_sizes'],
-            gat = prev_model.model.gat,
-            encoder = prev_model.model.bert_model.encoder,
-            graph_embedder = prev_model.model.graph_embedder,
-            rep_embedder = prev_model.model.bert_model.rep_embedder,
-            dtype = dtype,
-            **config['pre_trainer'],
-            **kwargs,
-        )
+    if prev_model is not None:
+        if str(type(prev_model)) == "<class 'dict'>":
+            model.Load_state_dict(net, prev_model, load_opt_sch)
+        else:
+            print('Deprecated: Loading from a model object.')
+            net = Trainer(
+                input_sizes = config['input_sizes'],
+                gat = prev_model.model.gat,
+                encoder = prev_model.model.bert_model.encoder,
+                graph_embedder = prev_model.model.graph_embedder,
+                rep_embedder = prev_model.model.bert_model.rep_embedder,
+                dtype = dtype,
+                **config['pre_trainer'],
+                **kwargs,
+            )
 
     # Setup worker
     net.setup(rank = device)
@@ -116,7 +119,26 @@ class Model(nn.Module):
             self.get_gat_out(batch), return_variances=True
         )
         return adj_exp, reg_exp, vars
-
+    
+    def to_state_dict(self, save_full:bool = False,):
+        """
+        Save the model as a state dict.
+        """
+        if save_full:
+            bert_model = self.bert_model.state_dict()
+            encoder = None
+            rep_embedder = None
+        else:
+            bert_model = None
+            encoder = self.bert_model.encoder.state_dict()
+            rep_embedder = self.bert_model.rep_embedder.state_dict()
+        return {
+            'graph_embedder':self.graph_embedder.state_dict(),
+            'gnn':self.gat.state_dict(),
+            'encoder':encoder,
+            'rep_embedder':rep_embedder,
+            'bert_model':bert_model,
+        }
 
 
 
@@ -187,6 +209,8 @@ class Trainer(object):
         # self.model = torch.compile(self.model)
 
         # Using L1 Loss for criterion
+        self.optimizer = None
+        self.scheduler = None
         self.criterion = nn.L1Loss(reduction = self.reduction)
 
     def train(self, 
@@ -247,28 +271,39 @@ class Trainer(object):
             self.device = torch.device(rank)
             self.worker = DDP(
                 self.model.to(self.device), 
-                device_ids = [rank]
+                device_ids = [rank],
+                # find_unused_parameters = True,
             )
         elif str(type(rank)) == "<class 'str'>":
             self.device = rank
             self.worker = self.model.to(self.device)
 
         # Set optimizer
-        self.optimizer = optim.AdamW(
+        init_optimizer = optim.AdamW(
         # self.optimizer = optim.SGD(
             self.worker.parameters(),
             lr = self.lr,
             betas = self.betas,
             weight_decay = self.weight_decay
         )
+        if self.optimizer is not None:
+            init_optimizer.load_state_dict(self.optimizer)
+            self.optimizer = init_optimizer
+        else:
+            self.optimizer = init_optimizer
 
         # Set scheduler
-        self.scheduler = optim.lr_scheduler.CosineAnnealingWarmRestarts(
+        init_scheduler = optim.lr_scheduler.CosineAnnealingWarmRestarts(
             self.optimizer,
             T_0 = self.sch_T_0,
             T_mult = self.sch_T_mult,
             eta_min = self.sch_eta_min,
         )
+        if self.scheduler is not None:
+            init_scheduler.load_state_dict(self.scheduler)
+            self.scheduler = init_scheduler
+        else:
+            self.scheduler = init_scheduler
 
         return
 

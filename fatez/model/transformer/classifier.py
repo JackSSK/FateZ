@@ -78,10 +78,10 @@ class Classifier(nn.Module):
         return F.softmax(out, dim = -1)
 
     def deploy_adapter(self,
-            src: torch.Tensor,
-            mask: torch.Tensor = None,
-            src_key_padding_mask: torch.Tensor = None,
-            is_causal: bool = None,
+                src: torch.Tensor,
+                mask: torch.Tensor = None,
+                src_key_padding_mask: torch.Tensor = None,
+                is_causal: bool = None,
             ) -> torch.Tensor:
         output, args, convert_to_nested = self.encoder.prepare(
             src, mask, src_key_padding_mask, is_causal

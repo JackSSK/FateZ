@@ -1,6 +1,6 @@
 #!/bin/sh
 #
-#SBATCH --gpus=2
+#SBATCH --gpus=4
 #SBATCH --cpus-per-gpu=8
 #SBATCH --mem=32GB
 #SBATCH --partition=jobs-gpu
@@ -10,7 +10,6 @@
 #SBATCH -o logs/slurm%j.log
 #SBATCH -e logs/slurm%j.err
 #SBATCH -J test_gpu
-
 
 
 # echo "#########"
@@ -23,6 +22,5 @@ nvidia-smi
 
 echo "#########"
 python3 scripts/core/faker_test.py > logs/faker_test.log
-
-
+rm results/faker.ckpt
 
