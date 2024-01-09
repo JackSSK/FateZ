@@ -23,7 +23,7 @@ import pandas as pd
 import fatez.tool.gff as gff1
 import fatez.tool.transfac as transfac
 import fatez.lib.template_grn as tgrn
-import fatez.process.grn_reconstructor as grn_recon
+from fatez.lib.grn import Reverse_Peaks_Ann
 import warnings
 import concurrent.futures
 from sklearn.preprocessing import MinMaxScaler
@@ -387,7 +387,7 @@ class Preprocessor():
                         else:
                             cur_index -= 1
                             break
-        self.peak_annotations = grn_recon.Reverse_Peaks_Ann(annotations)
+        self.peak_annotations = Reverse_Peaks_Ann(annotations)
 
     def generate_feature_mt(self,ncores = 1):
         if ncores > 1:

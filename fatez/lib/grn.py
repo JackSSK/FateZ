@@ -8,8 +8,244 @@ author: jy
 import copy
 import pandas as pd
 import networkx as nx
+import os
+import warnings
+import numpy as np
+import anndata as ad, hdf5plugin
+from scipy.sparse import csr_matrix
+from fatez.process._harmonizer import GEX_Harmonizer
 from fatez.lib import GRN_Basic
 import fatez.tool.JSON as JSON
+
+def make_cluster_map(folder_path):
+    data_dict = {}
+
+    for file_name in os.listdir(folder_path):
+        if file_name.endswith(".txt"):
+            file_path = os.path.join(folder_path, file_name)
+            df = pd.read_csv(
+                file_path,
+                sep=' ',
+                header=None,
+                names=['cluster_id', 'cell_id']
+            )
+
+            prefix = os.path.basename(file_path).replace('.txt', '.')
+
+            for i, row in df.iterrows():
+                if row['cell_id'] not in data_dict:
+                    data_dict[row['cell_id']] = prefix + str(row['cluster_id'])
+                else:
+                    raise Exception('WTF')
+            print('Processed: ', file_name)
+        else:
+            print('Skipped: ', file_name)
+    return data_dict
+
+def make_grn_dict(folder_path):
+    data_dict = {}
+
+    for file_name in os.listdir(folder_path):
+        if file_name.endswith(".csv"):
+            file_path = os.path.join(folder_path, file_name)
+            key = os.path.splitext(file_name)[0]
+
+            df = pd.read_csv(file_path, index_col=0)
+            csr = csr_matrix(
+                df.astype(pd.SparseDtype("float64",0)).sparse.to_coo()
+            )
+
+            # Record data
+            data_dict[key] = {
+                'data': csr.data.tolist(),
+                'indices': csr.nonzero()[0].tolist(),
+                'indptr': csr.nonzero()[1].tolist(),
+                'ind_name': df.index.tolist(),
+                'col_name': df.columns.tolist(),
+            }
+
+            print('Processed:', key)
+        else:
+            print('Skipped:', file_name)
+
+    return data_dict
+
+def load_grn_dict(
+		filepath:str = None,
+		cache_path:str = None,
+		load_cache:bool = False
+    ):
+
+    # Init
+    answer = dict()
+    if cache_path is not None:
+        if not os.path.exists(cache_path):
+            os.makedirs(cache_path)
+        # Check if cache is empty
+        if len(os.listdir(cache_path)) == 0 and load_cache:
+            warnings.warn('Cache is empty, switching to load_cache = False')
+            load_cache = False
+    elif load_cache and cache_path is None:
+        warnings.warn('Null cache_path, switching to load_cache = False')
+        load_cache = False
+
+    # Load from original file
+    if not load_cache:
+        for key,rec in JSON.decode(filepath).items():
+            adata = ad.AnnData(
+                X = csr_matrix(
+                    (rec['data'], (rec['indices'], rec['indptr'])),
+                    shape = (len(rec['ind_name']), len(rec['col_name']))
+                ),
+                obs = pd.DataFrame(index = rec['ind_name']),
+                var = pd.DataFrame(index = rec['col_name']),
+            )
+
+            # Backed in cache path
+            if cache_path is not None:
+                cache_filename = os.path.join(cache_path, key+'.h5ad')
+                adata.write_h5ad(
+                    cache_filename,
+                    compression = hdf5plugin.FILTERS["zstd"],
+                )
+                adata = ad.read_h5ad(cache_filename, backed = True)
+
+            # Add the rec
+            answer[key] = adata
+
+    # Load from cache
+    else:
+        for file in os.listdir(cache_path):
+            # Only load h5ad files
+            if file.endswith(".h5ad"):
+                answer[os.path.splitext(file)[0]] = ad.read_h5ad(
+                    os.path.join(cache_path, file),
+                    backed = True
+                )
+    return answer
+
+def get_uni_grn(
+        tf_list:pd.DataFrame, 
+        genes_dict:dict, 
+        grn_dict:dict, 
+        missed_genes:pd.DataFrame, 
+        valid_genes:pd.Index,
+        cache_path:str = None,
+        ):
+   
+    """
+    """
+    def __get_ens_id(gene_list,):
+        """
+        """
+        answer_dict = dict()
+        for gene in gene_list:
+            # Successfully found gene rec in genes_dict
+            if gene in genes_dict['name']:
+                ens_id = genes_dict['name'][gene]
+                for ele in ens_id:
+                    if ele not in answer_dict:
+                        answer_dict[ele] = None
+            # Expand search in missed_genes
+            elif gene in missed_genes.index:
+                print('Found in missed_genes: ', gene)
+                ens_id = missed_genes.loc[gene].values[0]
+                if str(type(ens_id)) == "<class 'str'>": 
+                    if ens_id in genes_dict['ens_id']:
+                        answer_dict[ens_id] = None
+                    # Skip the pseudogenes, predicted_genes, lncRNA, etc.
+                    else:
+                        print('Not recorded in gene_dict: ', ens_id)
+                # Multiple ENS IDs
+                elif str(type(ens_id)) == "<class 'numpy.ndarray'>":
+                    for ele in missed_genes.loc[gene].values:
+                        ens_id = ele[0]
+                        if ens_id[0] in genes_dict['ens_id']:
+                            answer_dict[ens_id[0]] = None
+                        # Skip the pseudogenes, predicted_genes, lncRNA, etc.
+                        else:
+                            print('Not recorded in gene_dict: ', ens_id)
+            # No can do
+            else:
+                warnings.warn(f'Not found even in missed_genes: {gene}')
+        return answer_dict
+    
+    # Init
+    if cache_path is not None and not os.path.exists(cache_path):
+        os.makedirs(cache_path)
+
+    # Transfer valid_genes to dict for faster search
+    valid_genes = {ele:None for ele in valid_genes}
+
+    # Need to get valid TFs based on which genes are in the corpus
+    tf_ens_ids = {
+        ele:None for ele in __get_ens_id(tf_list.index,) if ele in valid_genes
+    }
+    
+    # Get all the genes involved in the grn_dict
+    grn_gene_names = np.array([])
+    for k,v in grn_dict.items():
+        grn_gene_names = np.union1d(grn_gene_names, v.var.index.values)
+
+    # Transfer gene names to Ensemble IDs
+    gene_ens_ids = {
+        ele:None for ele in __get_ens_id(grn_gene_names,) if ele in valid_genes
+    }
+
+    # Unify the GRNs
+    for k,v in grn_dict.items():
+        # Harmonize the GRN with TF first then genes
+        v = GEX_Harmonizer(
+            adata = GEX_Harmonizer(
+                adata = v.to_memory().T,
+                name_type = 'NAME',
+            ).Process(
+                order = tf_ens_ids,
+                map_dict = genes_dict['name'],
+            ).T,
+            name_type = 'NAME',
+        ).Process(
+            order = gene_ens_ids,
+            map_dict = genes_dict['name'],
+        )
+        assert v.X.nnz>0
+        
+        # Update cache to unified GRN
+        if cache_path is not None:
+            cache_filename = os.path.join(cache_path, k + '.h5ad')
+            v.write_h5ad(
+                cache_filename,
+                compression = hdf5plugin.FILTERS["zstd"],
+            )
+            grn_dict[k] = ad.read_h5ad(cache_filename, backed = True)
+        else:
+            grn_dict[k] = v
+        print('Unified: ', k, grn_dict[k])
+
+    return grn_dict
+
+
+
+def Reverse_Peaks_Ann(annotations):
+    """
+    Make annotation dict with gene IDs as keys.
+
+    :param annotations:<dict Default = None>
+        The annotation dict returned from Reconstruct.annotate_peaks()
+    """
+    answer = dict()
+    for peak, rec in annotations.items():
+        if rec is None: continue
+
+        id = rec['id']
+        if id not in answer:
+            answer[id] = dict()
+
+        if rec['cre']:
+            answer[id][peak] = {'overlap':rec['cre']}
+        else:
+            answer[id][peak]={'overlap':rec['gene'], 'promoter':rec['promoter']}
+    return answer
 
 
 

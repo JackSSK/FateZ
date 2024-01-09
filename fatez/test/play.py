@@ -18,14 +18,14 @@ import fatez.process.imputer as imputer
 
 
 def test_classification(
-    config:dict = None,
-    train_dataloader:DataLoader = None,
-    test_dataloader:DataLoader = None,
-    train_epoch:int = 10,
-    tune_epoch:int = 50,
-    quiet:bool = False,
-    device = 'cpu',
-    dtype = torch.float32,
+        config:dict = None,
+        train_dataloader:DataLoader = None,
+        test_dataloader:DataLoader = None,
+        train_epoch:int = 10,
+        tune_epoch:int = 50,
+        quiet:bool = False,
+        device = 'cpu',
+        dtype = torch.float32,
     ):
     # Initialize
     suppressor = process.Quiet_Mode()

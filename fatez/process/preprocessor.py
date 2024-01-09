@@ -20,8 +20,8 @@ import numpy as np
 import pandas as pd
 import fatez.tool.gff as gff1
 import fatez.tool.transfac as transfac
+from fatez.lib.grn import Reverse_Peaks_Ann
 import fatez.lib.template_grn as tgrn
-import fatez.process.grn_reconstructor as grn_recon
 import warnings
 from sklearn.preprocessing import MinMaxScaler
 
@@ -463,7 +463,7 @@ class Preprocessor():
                         else:
                             cur_index -= 1
                             break
-        self.peak_annotations = grn_recon.Reverse_Peaks_Ann(annotations)
+        self.peak_annotations = Reverse_Peaks_Ann(annotations)
 
     def make_pseudo_networks(self,
         network_cell_size:int = 10,

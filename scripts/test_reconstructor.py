@@ -2,7 +2,7 @@ import fatez.lib.grn as grn
 import fatez.lib.template_grn as tgrn
 import fatez.tool.mex as mex
 import fatez.tool.JSON as JSON
-import fatez.process.grn_reconstructor as grn_recon
+from fatez.lib.grn import Reverse_Peaks_Ann
 from pkg_resources import resource_filename
 
 # data can be downloaded here:
@@ -36,7 +36,7 @@ if __name__ == '__main__':
     template_grn = grn.GRN()
     template_grn.load(load_path = '../data/human/template.js.gz')
 
-    reconstructor = grn_recon.Reconstruct(template_grn = template_grn)
+    reconstructor = Reconstruct(template_grn = template_grn)
     data = mex.Reader(
         matrix_path = '../data/human/filtered_PBMC/matrix.mtx.gz',
         features_path = '../data/human/filtered_PBMC/features.tsv.gz',
@@ -45,7 +45,7 @@ if __name__ == '__main__':
 
     ####################################################################
     peak_annotations = reconstructor.annotate_peaks(data.features)
-    gene_peak_annotations = grn_recon.Reverse_Peaks_Ann(peak_annotations)
+    gene_peak_annotations = Reverse_Peaks_Ann(peak_annotations)
     JSON.encode(peak_annotations, 'a.js')
     JSON.encode(gene_peak_annotations, 'b.js')
 

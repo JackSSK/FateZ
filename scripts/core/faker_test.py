@@ -1,3 +1,10 @@
+#!/usr/bin/env python3
+"""
+Test modules with fake data.
+Using DDP for multi-gpu training.
+
+author: jy
+"""
 import torch
 import fatez as fz
 import fatez.model as model
@@ -9,8 +16,8 @@ if __name__ == '__main__':
     n_gpus = torch.cuda.device_count()
     train_epoch = 20
     tune_epoch = 10
-    trainer_save_path = 'results/faker.ckpt'
-    tuner_save_path = 'results/faker.ckpt'
+    trainer_save_path = '../../results/faker.ckpt'
+    tuner_save_path = '../../results/faker.ckpt'
     print('Using GPUs:', n_gpus)
 
     fake = Faker(
