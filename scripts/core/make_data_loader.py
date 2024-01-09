@@ -5,6 +5,8 @@ Using DDP for multi-gpu training.
 
 author: jy
 """
+from scipy.sparse import csr_matrix, lil_matrix, hstack
+import numpy as np
 import pandas as pd
 import fatez.tool.JSON as JSON
 from fatez.lib.grn import load_grn_dict
@@ -80,29 +82,64 @@ from torch.utils.data import DataLoader
 #     )
 
 
+
+
+def integrate_corpus(
+        gex_corpus = None,
+        promoter_corpus = None,
+        tss_corpus = None,
+        genes_dict = None,
+        layer_name:str = '5k_bps',
+        save_path:str = None,
+    ):
+    def _get_counts(adata = None, var_list = None, answer = None,):
+        for var in var_list:
+            count = adata[:, var].to_memory().X
+            if answer is None:
+                answer = count
+            else:
+                answer = answer + count
+        return answer
+
+    gex_corpus.layers[layer_name] = lil_matrix(gex_corpus.X.shape)
+    
+    for i,gene in enumerate(gex_corpus.var.index):
+        gex_corpus.layers[layer_name][:, i] = _get_counts(
+            adata = promoter_corpus,
+            var_list = genes_dict['ens_id'][gene]['promoter'],
+            answer = _get_counts(
+                adata = tss_corpus,
+                var_list = genes_dict['ens_id'][gene]['tss_region'],
+            ),
+        )
+        print(f'processed {i}: {gene}')
+    
+    gex_corpus.layers[layer_name] = gex_corpus.layers[layer_name].tocsr()
+    gex_corpus.write_h5ad(save_path, compression = hdf5plugin.FILTERS["zstd"],)
+    return gex_corpus
+
+
 if __name__ == '__main__':
     dir = "/data/core-genlmu/e-gyu/data/scRNA_scATAC/"
     unify_path = dir + "grn/unify/"
 
-
-    gex_corpus = ad.read_h5ad(
-        dir + 'adata/gex.hfilter.Corpus.h5ad',
-        backed=True
-    )
-
-    gex_corpus = ad.read_h5ad(
-        dir + 'adata/gex.harmonized.Corpus.h5ad',
-        backed=True
-    )
-
-    promoter_corpus = ad.read_h5ad(
-        dir + 'adata/promoter.harmonized.Corpus.h5ad',
-        backed=True
-    )
-
-    tss_corpus = ad.read_h5ad(
-        dir + 'adata/tss_nk.harmonized.Corpus.h5ad',
-        backed=True
+    gex_corpus = integrate_corpus(
+        gex_corpus = ad.read_h5ad(
+            dir + 'adata/gex.harmonized.Corpus.h5ad',
+            # dir + 'adata/gex.hfilter.Corpus.h5ad',
+            backed=True
+        ),
+        promoter_corpus = ad.read_h5ad(
+            dir + 'adata/promoter.harmonized.Corpus.h5ad',
+            backed=True
+        ),
+        tss_corpus = ad.read_h5ad(
+            dir + 'adata/tss_nk.harmonized.Corpus.h5ad',
+            backed=True
+        ),
+        genes_dict = JSON.decode('../../fatez/data/genes.json.gz'),
+        layer_name = '5k_bps',
+        save_path = dir + 'adata/integrated.5k_bps.Corpus.h5ad',
     )
 
     # Load cluster map
@@ -111,12 +148,13 @@ if __name__ == '__main__':
         orient='index',
         columns=['cluster']
     )
+    
 
-    # Load unified grn
-    grn_dict = load_grn_dict(
-        dir + 'grn/grns.json.gz',
-        cache_path = unify_path,
-        load_cache = True,
-    )
-    print(grn_dict.keys())
-    print('loaded unified grn_dict')
+    # # Load unified grn
+    # grn_dict = load_grn_dict(
+    #     dir + 'grn/grns.json.gz',
+    #     cache_path = unify_path,
+    #     load_cache = True,
+    # )
+    # print(grn_dict.keys())
+    # print('loaded unified grn_dict')
