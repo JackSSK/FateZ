@@ -21,8 +21,10 @@ class FateZ_Dataset(Dataset):
 	Basic Dataset object for DataLoader.
     Saving data as PyG Data objects.
 	"""
-    def __init__(self, samples, **kwargs):
+    def __init__(self, samples, tf_boundary:int = 0, gene_list = None, **kwargs):
         self.samples = samples
+        self.tf_boundary = tf_boundary
+        self.gene_list = gene_list
 
     def __len__(self):
         return len(self.samples)

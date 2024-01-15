@@ -1,18 +1,13 @@
 #!/bin/sh
 #
-#SBATCH --gpus=1
-#SBATCH --cpus-per-gpu=8
-#SBATCH --mem=32GB
-#SBATCH --partition=jobs-gpu
+#SBATCH --cpus-per-task=16
+#SBATCH --mem=100GB
+#SBATCH --partition=jobs-cpu-long
 #SBATCH --account=core-genlmu
 #SBATCH --mail-user=gyu@genzentrum.lmu.de
 #SBATCH --mail-type=fail
 #SBATCH -o ../../logs/slurm%j.log
 #SBATCH -e ../../logs/slurm%j.err
-#SBATCH -J test_gpu
+#SBATCH -J integrate_corpus
 
-
-echo "#########"
 python3 make_data_loader.py > ../../logs/dl_test.log
-
-

@@ -11,7 +11,7 @@ import torch.nn as nn
 
 class Embedder(nn.Module):
     """
-    Absolute positional encoding.
+    Embedding with logsoftmax.
     """
     def __init__(self,
         dim:int = -2,
@@ -27,8 +27,10 @@ class Embedder(nn.Module):
 
     def forward(self, input, **kwargs):
         if self.mode == 'TENSOR':
-            if not self.reverse: return self.encoder(input)
-            else: return self.encoder(input) * -1
+            if not self.reverse:
+                return self.encoder(input)
+            else:
+                return self.encoder(input) * -1
         elif self.mode == 'PYG':
             for ele in input:
                 if not self.reverse: ele.x = self.encoder(ele.x)

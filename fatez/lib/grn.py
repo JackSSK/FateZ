@@ -71,9 +71,10 @@ def make_grn_dict(folder_path):
     return data_dict
 
 def load_grn_dict(
-		filepath:str = None,
-		cache_path:str = None,
-		load_cache:bool = False
+        filepath:str = None,
+        cache_path:str = None,
+        load_cache:bool = False,
+        backed:bool = True,
     ):
 
     # Init
@@ -104,14 +105,15 @@ def load_grn_dict(
             # Backed in cache path
             if cache_path is not None:
                 cache_filename = os.path.join(cache_path, key+'.h5ad')
-                adata.write_h5ad(
-                    cache_filename,
-                    compression = hdf5plugin.FILTERS["zstd"],
-                )
-                adata = ad.read_h5ad(cache_filename, backed = True)
-
-            # Add the rec
-            answer[key] = adata
+                with open(cache_filename, 'w') as f:
+                    adata.write_h5ad(
+                        cache_filename,
+                        compression = hdf5plugin.FILTERS["zstd"],
+                    )
+                answer[key] = ad.read_h5ad(cache_filename, backed = backed)
+            else:
+                # Add the rec
+                answer[key] = adata
 
     # Load from cache
     else:
@@ -120,7 +122,7 @@ def load_grn_dict(
             if file.endswith(".h5ad"):
                 answer[os.path.splitext(file)[0]] = ad.read_h5ad(
                     os.path.join(cache_path, file),
-                    backed = True
+                    backed = backed
                 )
     return answer
 

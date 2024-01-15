@@ -15,7 +15,8 @@ def get_sparse_coo(mat:torch.Tensor, sparse_dim:int = 2,):
     coo = mat.cpu().to_sparse(sparse_dim = sparse_dim).coalesce()
     # Reshape value matrix if edges only have single features
     values = coo.values()
-    if len(values.shape) == 1: values = torch.reshape(values, (len(values), 1))
+    if len(values.shape) == 1:
+        values = torch.reshape(values, (len(values), 1))
     return coo.indices().to(mat.device), values.to(mat.device)
 
 def get_dense(inds:torch.Tensor, vals:torch.Tensor, size,):

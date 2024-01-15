@@ -3,14 +3,14 @@
     "epoch": 100,
     "input_sizes": {
         "n_reg": 1191,
-        "n_node": 11560,
+        "n_node": 11615,
         "node_attr": 2,
         "edge_attr": 1
     },
     "graph_embedder": {
         "type": "skip",
         "params": {
-            "n_embed": 11560,
+            "n_embed": 11615,
             "n_dim": 2
         }
     },

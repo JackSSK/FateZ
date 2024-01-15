@@ -32,7 +32,12 @@ class Embedder(nn.Module):
 
     def forward(self, x, fea_ind:int = 1, **kwargs):
         if self.mode == 'TENSOR':
-            ans = x+self.encoder(torch.arange(x.shape[fea_ind],device=x.device))
+            ans = x + self.encoder(
+                torch.arange(
+                    x.shape[fea_ind],
+                    device=x.device
+                )
+            )
         elif self.mode == 'PYG':
             raise Error('PyG mode under construction!')
         return ans

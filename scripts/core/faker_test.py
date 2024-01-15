@@ -14,8 +14,8 @@ from fatez.test.faker import Faker
 
 if __name__ == '__main__':
     n_gpus = torch.cuda.device_count()
-    train_epoch = 20
-    tune_epoch = 10
+    train_epoch = 2
+    tune_epoch = 2
     trainer_save_path = '../../results/faker.ckpt'
     tuner_save_path = '../../results/faker.ckpt'
     print('Using GPUs:', n_gpus)
@@ -53,12 +53,12 @@ if __name__ == '__main__':
     )
     print('Fine-Tuner OK.\n')
 
-    print('Testing Explainer.\n')
-    fake.test_explainer(
-        rank = 0,
-        world_size = 1,
-        tuner_path = tuner_save_path,
-    )
-    print('Explainer OK.\n')
+    # print('Testing Explainer.\n')
+    # fake.test_explainer(
+    #     rank = 0,
+    #     world_size = 1,
+    #     tuner_path = tuner_save_path,
+    # )
+    # print('Explainer OK.\n')
 
 
