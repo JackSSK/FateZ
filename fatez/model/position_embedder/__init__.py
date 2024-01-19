@@ -20,14 +20,25 @@ __all__ = [
     'LogSoftmax'
 ]
 
-def Set(config:dict=None, input_sizes:list=None, dtype:str = None, **kwargs):
+def Set(
+        config:dict=None,
+        input_sizes:dict=None,
+        latent_dim:int=None,
+        dtype:str = None,
+        **kwargs
+    ):
     """
     Set up positional embedder based on given config.
     """
     if config['type'].upper() == 'SKIP':
         return Skip()
     elif config['type'].upper() == 'ABS':
-        return Absolute_Embed(**config['params'], dtype = dtype)
+        return Absolute_Embed(
+            **config['params'],
+            n_embed = input_sizes['n_reg'],
+            n_dim = latent_dim,
+            dtype = dtype
+        )
     elif config['type'].upper() == 'LSME':
         return LSME(**config['params'], dtype = dtype)
     elif config['type'].upper() == 'RW':

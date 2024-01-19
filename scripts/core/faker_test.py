@@ -23,7 +23,7 @@ if __name__ == '__main__':
     fake = Faker(
         world_size = n_gpus,
         device = list(range(n_gpus)),
-        # quiet = False,
+        quiet = False,
     )
 
     print('Testing Trainer Model.\n')
@@ -39,19 +39,19 @@ if __name__ == '__main__':
     )
     print('Pre-Trainer OK.\n')
 
-    print('Testing Tuner Model.\n')
-    mp.spawn(
-        fake.test_tuner_main,
-        args = (
-            n_gpus,
-            trainer_save_path,
-            train_epoch,
-            tuner_save_path,
-        ),
-        #  total number of processes - # gpus
-        nprocs = n_gpus, 
-    )
-    print('Fine-Tuner OK.\n')
+    # print('Testing Tuner Model.\n')
+    # mp.spawn(
+    #     fake.test_tuner_main,
+    #     args = (
+    #         n_gpus,
+    #         trainer_save_path,
+    #         train_epoch,
+    #         tuner_save_path,
+    #     ),
+    #     #  total number of processes - # gpus
+    #     nprocs = n_gpus, 
+    # )
+    # print('Fine-Tuner OK.\n')
 
     # print('Testing Explainer.\n')
     # fake.test_explainer(

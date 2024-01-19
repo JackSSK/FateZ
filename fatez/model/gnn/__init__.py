@@ -21,16 +21,34 @@ class Error(Exception):
 
 
 
-def Set(config:dict=None, input_sizes:dict=None, dtype:str = None, **kwargs):
+def Set(
+        config:dict=None,
+        input_sizes:dict=None,
+        latent_dim:int=None,
+        dtype:str = None,
+        **kwargs
+    ):
     """
     Set up GNN model based on given config.
     """
     # Init models accordingly
     if config['type'].upper() == 'GAT':
-        return GAT(input_sizes, **config['params'],)
+        return GAT(
+            input_sizes,
+            en_dim = latent_dim,
+            **config['params'],
+        )
     elif config['type'].upper() == 'GATV2':
-        return GATv2(input_sizes, **config['params'],)
+        return GATv2(
+            input_sizes,
+            en_dim = latent_dim,
+            **config['params'],
+        )
     elif config['type'].upper() == 'GATVD':
-        return GATvD(input_sizes, **config['params'],)
+        return GATvD(
+            input_sizes,
+            en_dim = latent_dim,
+            **config['params'],
+        )
     else:
         raise Error('Unknown GNN type')

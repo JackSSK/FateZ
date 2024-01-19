@@ -1,7 +1,7 @@
 #!/bin/sh
 #
 #SBATCH --gpus=2
-#SBATCH --cpus-per-gpu=8
+#SBATCH --cpus-per-gpu=16
 #SBATCH --mem=256GB
 #SBATCH --partition=jobs-gpu
 #SBATCH --account=core-genlmu
@@ -25,5 +25,5 @@ echo "Start Test"
 python3 faker_test.py > ../../logs/faker_test.log
 echo "#########"
 
-rm ../../results/faker.ckpt
+# rm ../../results/faker.ckpt
 

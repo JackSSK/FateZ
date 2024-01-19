@@ -35,13 +35,27 @@ def Set(
     torch.cuda.empty_cache()
     net = Trainer(
         input_sizes = config['input_sizes'],
-        gat = gnn.Set(config['gnn'], config['input_sizes'], dtype=dtype),
-        encoder = transformer.Encoder(**config['encoder'],),
         graph_embedder = pe.Set(
-            config['graph_embedder'], config['input_sizes'], dtype=dtype
+            config = config['graph_embedder'],
+            input_sizes = config['input_sizes'],
+            latent_dim = config['latent_dim'],
+            dtype=dtype
+        ),
+        gat = gnn.Set(
+            config = config['gnn'],
+            input_sizes = config['input_sizes'],
+            latent_dim = config['latent_dim'],
+            dtype=dtype
         ),
         rep_embedder = pe.Set(
-            config['rep_embedder'], config['input_sizes'], dtype=dtype
+            config = config['rep_embedder'],
+            input_sizes = config['input_sizes'],
+            latent_dim = config['latent_dim'],
+            dtype=dtype
+        ),
+        encoder = transformer.Encoder(
+            d_model = config['latent_dim'],
+            **config['encoder'],
         ),
         dtype = dtype,
         **config['pre_trainer'],

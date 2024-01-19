@@ -68,7 +68,7 @@ class Reconstructor(nn.Module):
             n_class = self.node_recon_dim ,
             dtype = dtype
         )
-        self.last_act = nn.LogSoftmax(dim = -2)
+        # self.last_act = nn.LogSoftmax(dim = -2)
 
         if train_adj:
             self.recon_adj = mlp.Model(
@@ -96,7 +96,7 @@ class Reconstructor(nn.Module):
         # Reconstruct mats
         node_mat = self.recon_node_1(out)
         node_mat = self.recon_node_2(torch.transpose(node_mat,1,2))
-        node_mat = self.last_act(node_mat)
+        # node_mat = self.last_act(node_mat)
         if self.recon_adj != None:
             return node_mat, self.recon_adj(out)
         else:
@@ -108,7 +108,7 @@ class Reconstructor(nn.Module):
             mask: torch.Tensor = None,
             src_key_padding_mask: torch.Tensor = None,
             is_causal: bool = None,
-            ) -> torch.Tensor:
+        ) -> torch.Tensor:
         output, args, convert_to_nested = self.encoder.prepare(
             src, mask, src_key_padding_mask, is_causal
         )

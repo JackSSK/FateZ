@@ -15,6 +15,7 @@ import torch.distributed as dist
 import torch.multiprocessing as mp
 import torch_geometric.data as pyg_d
 from torch.utils.data import DataLoader
+from torch.utils.data.distributed import DistributedSampler
 import fatez.lib as lib
 import fatez.tool.JSON as JSON
 import fatez.model as model
@@ -49,6 +50,7 @@ class Faker(object):
         super(Faker, self).__init__()
         self.quiet = quiet
         self.warning_filter = warning_filter
+        # warnings.filterwarnings(self.warning_filter)
         self.suppressor = process.Quiet_Mode()
         self.factory_kwargs = {
             'device': device,
@@ -131,9 +133,9 @@ class Faker(object):
 
         return DataLoader(
             lib.FateZ_Dataset(samples),
-            batch_size=batch_size,
+            batch_size = batch_size,
             collate_fn = lib.collate_fn,
-            shuffle=True,
+            shuffle = (self.factory_kwargs['world_size'] <= 1),
         )
 
     def test_gat(self, config:dict = None, decision = None):
@@ -200,6 +202,9 @@ class Faker(object):
         ):
         # Initialize
         worker.setup(rank, world_size)
+        sampler = DistributedSampler(
+            self.data_loader.dataset,
+        ) if world_size > 1 else None
 
         # Pre-train part
         if self.quiet: self.suppressor.on()
@@ -209,16 +214,20 @@ class Faker(object):
             dtype = self.factory_kwargs['dtype'],
         )
         for i in range(train_epoch):
+            # Activate distributed sampler
+            if sampler is not None:
+                sampler.set_epoch(i)
+            # Process training
             report = trainer.train(
                 self.data_loader, 
                 report_batch = False,
             )
-            print(f'Epoch {i} Loss: {report.iloc[0,0]}')
+            print(f'Rank {rank} Epoch {i} Loss: {report.iloc[0,0]}')
         if self.quiet: self.suppressor.off()
         dist.destroy_process_group()
 
         # Testing Save Load
-        if save_path is not None:
+        if save_path is not None and rank == 0:
             model.Save(trainer, save_path)
             trainer = pre_trainer.Set(
                 self.config,
@@ -246,7 +255,9 @@ class Faker(object):
         """
         # Initialize
         worker.setup(rank, world_size)
-        # warnings.filterwarnings(self.warning_filter)
+        sampler = DistributedSampler(
+            self.data_loader.dataset,
+        ) if world_size > 1 else None
 
         # Fine tune part
         if self.quiet: self.suppressor.on()
@@ -263,11 +274,15 @@ class Faker(object):
             dtype = self.factory_kwargs['dtype'],
         )
         for i in range(tune_epoch):
+            # Activate distributed sampler
+            if sampler is not None:
+                sampler.set_epoch(i)
+            # Process training
             report = tuner.train(
                 self.data_loader,
                 report_batch = False,
             )
-            print(f'Epoch {i} Loss: {report.iloc[0,0]}')
+            print(f'Rank {rank} Epoch {i} Loss: {report.iloc[0,0]}')
         # Test fine tune model
         report = tuner.test(
             self.data_loader,
@@ -279,8 +294,10 @@ class Faker(object):
         dist.destroy_process_group()
 
          # Testing Save Load
-        if save_path is not None:
+        if save_path is not None and rank == 0:
             model.Save(tuner, save_path, save_full = True)
+            # No need to set barrier since only testing in rank 0
+            # dist.barrier()
             tuner = fine_tuner.Set(
                 self.config,
                 prev_model = model.Load(save_path),
@@ -313,7 +330,7 @@ class Faker(object):
             (size['n_reg'], size['n_node'])
         )
         reg_exp = torch.zeros(
-            (size['n_reg'], self.config['encoder']['d_model'])
+            (size['n_reg'], self.config['latent_dim'])
         )
         if str(type(rank)) == "<class 'list'>":
             rank = torch.device('cuda:0')
