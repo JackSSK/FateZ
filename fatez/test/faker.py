@@ -17,6 +17,7 @@ import torch_geometric.data as pyg_d
 from torch.utils.data import DataLoader
 from torch.utils.data.distributed import DistributedSampler
 import fatez.lib as lib
+# from fatez.tool import timer
 import fatez.tool.JSON as JSON
 import fatez.model as model
 import fatez.model.mlp as mlp
@@ -27,7 +28,6 @@ import fatez.process as process
 import fatez.process.worker as worker
 import fatez.process.fine_tuner as fine_tuner
 import fatez.process.pre_trainer as pre_trainer
-
 
 
 
@@ -70,7 +70,7 @@ class Faker(object):
         self.data_loader = self.make_data_loader(
             simpler_samples, n_sample, batch_size
         )
-         
+    
     def make_data_loader(self,
             simpler_samples:bool = True,
             n_sample:int = 10,
@@ -238,7 +238,6 @@ class Faker(object):
             )
             print('Trainer Save Load OK.\n')
         return
-
 
     def test_tuner_main(self,
             rank:int = 0,

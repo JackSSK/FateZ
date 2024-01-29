@@ -1,7 +1,7 @@
 #!/bin/sh
 #
 #SBATCH --gpus=2
-#SBATCH --cpus-per-gpu=16
+#SBATCH --cpus-per-gpu=8
 #SBATCH --mem=256GB
 #SBATCH --partition=jobs-gpu
 #SBATCH --account=core-genlmu
@@ -9,7 +9,7 @@
 #SBATCH --mail-type=fail
 #SBATCH -o ../../logs/slurm%j.log
 #SBATCH -e ../../logs/slurm%j.err
-#SBATCH -J test_gpu
+#SBATCH -J faker_test
 
 
 # echo "#########"

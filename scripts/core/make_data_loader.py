@@ -5,13 +5,15 @@ Using DDP for multi-gpu training.
 
 author: jy
 """
+import os
 import torch
 from scipy.sparse import csr_matrix, lil_matrix, hstack
 import numpy as np
 import pandas as pd
-import fatez.tool.JSON as JSON
 import fatez.lib as lib
 from fatez.lib.grn import load_grn_dict
+import fatez.tool.JSON as JSON
+from time import time
 import anndata as ad, hdf5plugin
 import torch_geometric.data as pyg_d
 from torch.utils.data import DataLoader
@@ -68,13 +70,13 @@ def make_data_loader(
         shuffle=True,
     )
 
-
 def integrate_corpus(
         gex_corpus = None,
         promoter_corpus = None,
         tss_corpus = None,
-        genes_dict = None,
+        gene_dict = None,
         layer_name:str = '5k_bps',
+        promoter_levels:int = 5,
         save_path:str = None,
     ):
 
@@ -83,33 +85,39 @@ def integrate_corpus(
     tss_down_peaks = {k: None for k in tss_corpus.var.index}
     promoter_peaks = {k: None for k in promoter_corpus.var.index}
     
-    print('start processing')
-    for i,gene in enumerate(gex_corpus.var.index):
-        gene_rec = genes_dict['ens_id'][gene]
-        print(gene_rec, 'updated' in gene_rec)
+    # Start iterations on each gene for making the TSS downstream matrix
+    index_temp = list()
+    for i, gene in enumerate(gex_corpus.var.index):
+        gene_rec = gene_dict['ens_id'][gene]['tss_region']
+        if len(gene_rec) == 1 and gene_rec[0] in tss_down_peaks:
+            index_temp.append(gene_rec[0])
+        else:
+            raise Exception(f'{gene} not found TSS downstream {gene_rec[0]}')
+    # Reorder tss_corpus.X
+    temp_mat = tss_corpus[:, index_temp].to_memory().X
+    assert temp_mat.shape == gex_corpus.shape
+    gex_corpus.layers[layer_name] = temp_mat.tolil()
 
-        # Get tss_down_counts
-        answer = None
-        for var in gene_rec['tss_region']:
-            if var in tss_down_peaks:
-                if answer is None:
-                    answer = tss_corpus[:, var].to_memory().X
-                else:
-                    answer += tss_corpus[:, var].to_memory().X
-        
-        # Get promoter_counts
-        for var in gene_rec['promoter']:
-            if var in promoter_peaks:
-                if answer is None:
-                    answer = promoter_corpus[:, var].to_memory().X
-                else:
-                    answer += promoter_corpus[:, var].to_memory().X
+    os.system(f'echo "Finished TSS downstream matrix"')
 
-        temp_mat[:, i] = answer
-        print(f'processed {i}: {gene}')
-        break
     
-    gex_corpus.layers[layer_name] = temp_mat.tocsr()
+    for level in range(promoter_levels):
+        temp_index = list()
+        corpus_index = list()
+        for i, gene in enumerate(gex_corpus.var.index):
+            gene_rec = gene_dict['ens_id'][gene]['promoter']
+            # Get promoter_counts
+            if level < len(gene_rec) and gene_rec[level] in promoter_peaks:
+                temp_index.append(i)
+                corpus_index.append(gene_rec[level])
+        
+        os.system(f'echo "Curating for level {level}"') 
+        temp_mat = lil_matrix(gex_corpus.X.shape)
+        temp_mat[:, temp_index] = promoter_corpus[:, corpus_index].to_memory().X.tolil()
+        gex_corpus.layers[layer_name] = np.add(gex_corpus.layers[layer_name], temp_mat,)
+        os.system(f'echo "processed level {level}"')
+
+    gex_corpus.layers[layer_name] = gex_corpus.layers[layer_name].tocsr()
 
     # Save corpus
     if save_path is not None:
@@ -117,56 +125,73 @@ def integrate_corpus(
             save_path,
             compression = hdf5plugin.FILTERS["zstd"],
         )
+
     return gex_corpus
 
 
 if __name__ == '__main__':
-    dir = "/data/core-genlmu/e-gyu/data/scRNA_scATAC/"
-    integrate_corpus_path = dir + "adata/integrated.5k_bps.Corpus.h5ad"
-    unify_path = dir + "grn/unify_hfilter/"
+    corpus = None
     backed = True
+    dir = "/data/core-genlmu/e-gyu/data/scRNA_scATAC/"
+    integrate_corpus_path = dir + "adata/ptest.integrated.5k_bps.Corpus.h5ad"
+    unified_grns_path = dir + "grn/unify_hfilter/"
+    ens_ids = '/data/core-genlmu/e-gyu/FateZ/fatez/data/ens_ids.hfilter.json.gz'
 
     # Integrate corpus
-    corpus = integrate_corpus(
-        gex_corpus = ad.read_h5ad(
-            dir + 'adata/gex.tpm.Corpus.h5ad',
-            # dir + 'adata/gex.hfilter.Corpus.h5ad',
-            backed = backed
-        ),
-        promoter_corpus = ad.read_h5ad(
-            dir + 'adata/promoter.harmonized.Corpus.h5ad',
-            backed = backed
-        ),
-        tss_corpus = ad.read_h5ad(
-            dir + 'adata/tss_nk.harmonized.Corpus.h5ad',
-            backed = backed
-        ),
-        genes_dict = JSON.decode('../../fatez/data/gene_dict/promoter.update.harm.json.gz'),
-        layer_name = '5k_bps',
-        # save_path = integrate_corpus_path,
+
+    # Load in data
+    gene_dict = JSON.decode('../../fatez/data/gene_dict/main.json.gz')
+    gex_corpus = ad.read_h5ad(
+        dir + 'adata/gex.harmonized.Corpus.h5ad',
+        # dir + 'adata/gex.hfilter.Corpus.h5ad',
+        backed = backed
+    )
+    promoter_corpus = ad.read_h5ad(
+        dir + 'adata/promoter.harmonized.Corpus.h5ad',
+        backed = backed
+    )
+    tss_corpus = ad.read_h5ad(
+        dir + 'adata/tss_nk.harmonized.Corpus.h5ad',
+        backed = backed
     )
 
-    # ens_ids = '/data/core-genlmu/e-gyu/FateZ/fatez/data/ens_ids.hfilter.json.gz'
-    # integrate_corpus_path = dir + "adata/test.integrated.5k_bps.Corpus.h5ad"
+    print('Start Integrating...')
+    t1 = time() 
+    corpus = integrate_corpus(
+        gex_corpus = gex_corpus,
+        promoter_corpus = promoter_corpus,
+        tss_corpus = tss_corpus,
+        gene_dict = gene_dict,
+        layer_name = '5k_bps',
+        save_path = integrate_corpus_path,
+    )
+    t2 = time() 
+    print(f'Executed in {(t2-t1):.4f}s') 
+    print('Finished Integrating.')
 
-    # # Load integrated corpus
-    # corpus = ad.read_h5ad(integrate_corpus_path, backed = backed)
+    # Load integrated corpus
+    if corpus is None:
+        corpus = ad.read_h5ad(
+            integrate_corpus_path,
+            backed = backed,
+        )
 
-    # # Load cluster map
-    # corpus.obs['grn'] = pd.DataFrame.from_dict(
-    #     JSON.decode(dir + 'grn/cluster_map.json'),
-    #     orient='index',
-    #     columns=['cluster']
-    # )
+    # Load cluster map
+    corpus.obs['grn'] = pd.DataFrame.from_dict(
+        JSON.decode(dir + 'grn/cluster_map.json'),
+        orient='index',
+        columns=['cluster']
+    )
+    print('Loaded GRN cluster map')
     
-    # # Load unified grn
-    # grn_dict = load_grn_dict(
-    #     dir + 'grn/grns.json.gz',
-    #     cache_path = unify_path,
-    #     load_cache = True,
-    #     backed = backed,
-    # )
-    # print('loaded unified grn_dict')
+    # Load unified grn
+    grn_dict = load_grn_dict(
+        dir + 'grn/grns.json.gz',
+        cache_path = unified_grns_path,
+        load_cache = True,
+        backed = backed,
+    )
+    print('Loaded unified GRN dict')
 
     # data_loader = make_data_loader(
     #     corpus = corpus,
