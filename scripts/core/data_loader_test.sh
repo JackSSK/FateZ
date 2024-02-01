@@ -1,8 +1,8 @@
 #!/bin/sh
 #
 #SBATCH --cpus-per-task=8
-#SBATCH --mem=256GB
-#SBATCH --partition=jobs-cpu-long
+#SBATCH --mem=320GB
+#SBATCH --partition=jobs-cpu
 #SBATCH --account=core-genlmu
 #SBATCH --mail-user=gyu@genzentrum.lmu.de
 #SBATCH --mail-type=fail

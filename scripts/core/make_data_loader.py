@@ -133,14 +133,14 @@ if __name__ == '__main__':
     corpus = None
     backed = True
     dir = "/data/core-genlmu/e-gyu/data/scRNA_scATAC/"
-    integrate_corpus_path = dir + "adata/ptest.integrated.5k_bps.Corpus.h5ad"
+    integrate_corpus_path = dir + "adata/ptest.integrated.tss_jar.Corpus.h5ad"
     unified_grns_path = dir + "grn/unify_hfilter/"
     ens_ids = '/data/core-genlmu/e-gyu/FateZ/fatez/data/ens_ids.hfilter.json.gz'
 
     # Integrate corpus
 
     # Load in data
-    gene_dict = JSON.decode('../../fatez/data/gene_dict/main.json.gz')
+    gene_dict = JSON.decode('../../fatez/data/gene_dict/promoter.tss_jar.json.gz')
     gex_corpus = ad.read_h5ad(
         dir + 'adata/gex.harmonized.Corpus.h5ad',
         # dir + 'adata/gex.hfilter.Corpus.h5ad',
