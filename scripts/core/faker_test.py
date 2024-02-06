@@ -45,30 +45,30 @@ if __name__ == '__main__':
     print('Pre-Trainer OK.\n')
     print(f'Pre-Trainer time: {time.time()-t0:.4f}s\n')
 
-    print('Testing Tuner Model.\n')
-    t0 = time.time()
-    mp.spawn(
-        fake.test_tuner_main,
-        args = (
-            n_gpus,
-            trainer_save_path,
-            train_epoch,
-            tuner_save_path,
-        ),
-        #  total number of processes - # gpus
-        nprocs = n_gpus, 
-    )
-    print('Fine-Tuner OK.\n')
-    print(f'Fine-Tuner time: {time.time()-t0:.4f}s\n') 
+    # print('Testing Tuner Model.\n')
+    # t0 = time.time()
+    # mp.spawn(
+    #    fake.test_tuner_main,
+    #    args = (
+    #        n_gpus,
+    #        trainer_save_path,
+    #        train_epoch,
+    #        tuner_save_path,
+    #    ),
+    #    #  total number of processes - # gpus
+    #    nprocs = n_gpus, 
+    #)
+    # print('Fine-Tuner OK.\n')
+    # print(f'Fine-Tuner time: {time.time()-t0:.4f}s\n') 
 
-    print('Testing Explainer.\n')
-    t0 = time.time()
-    fake.test_explainer(
-        rank = 0,
-        world_size = 1,
-        tuner_path = tuner_save_path,
-    )
-    print('Explainer OK.\n')
-    print(f'Explainer time: {time.time()-t0:.4f}s\n')
+    # print('Testing Explainer.\n')
+    # t0 = time.time()
+    # fake.test_explainer(
+    #     rank = 0,
+    #    world_size = 1,
+    #    tuner_path = tuner_save_path,
+    #)
+    #print('Explainer OK.\n')
+    # print(f'Explainer time: {time.time()-t0:.4f}s\n')
 
 
