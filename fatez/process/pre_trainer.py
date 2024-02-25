@@ -5,6 +5,7 @@ Pre-train model with unlabeled data
 author: jy, nkmtmsys
 """
 import random
+import shap
 import torch
 import torch.nn as nn
 import torch.optim as optim
@@ -25,7 +26,7 @@ def Set(
         prev_model=None,
         load_full_model:bool = False,
         load_opt_sch:bool = True,
-        device:str='cpu',
+        rank:str='cpu',
         dtype:str=None,
         **kwargs
     ):
@@ -78,7 +79,7 @@ def Set(
             )
 
     # Setup worker
-    net.setup(rank = device)
+    net.setup(rank = rank)
     return net
 
 
